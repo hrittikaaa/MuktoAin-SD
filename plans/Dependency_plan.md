@@ -71,7 +71,7 @@
 - [ ] **[S-F.3]** Identity Views (`Login.cshtml`, `Register.cshtml`), wired to real Identity — *Shads* `[Blocked by: S-F.1, S-1.1]`
 - [ ] **[S-F.4]** Checkpoint 1 Frontend Exit Gate — *Shads* `[Blocked by: S-F.1, S-F.2, H-F.1, A-F.1, S-F.3]`
 - [x] ~~**[H-1.7]** Seed Data Loaders (`SeedDistricts`, `SeedCategories`, `SeedScenarioMappings`) — *Hrittika* `[Blocked by: S-Setup.3, H-1.6] [Unblocks: H-1.8]`~~
-- [ ] **[H-1.8]** 1,484 Bangladesh Acts Ingestion Pipeline (`ActImportService.cs`) — *Hrittika* `[Blocked by: H-1.6, H-1.7] [Unblocks: H-1.9]`
+- [x] ~~**[H-1.8]** 1,484 Bangladesh Acts Ingestion Pipeline (`ActImportService.cs`) — *Hrittika* `[Blocked by: H-1.6, H-1.7] [Unblocks: H-1.9]`~~
 - [ ] **[H-1.9]** Legal Section Chunking Pipeline (`LegalChunkingService.cs`) — *Hrittika* `[Blocked by: H-1.8] [Unblocks: S-1.8]`
 - [x] ~~**[H-1.10]** Manual SQL Server Full-Text Search (FTS) SSMS Script — *Hrittika* `[Blocked by: H-1.6] [Unblocks: H-2.2]`~~
 - [ ] **[H-1.11]** `QdrantVectorStore.cs` (.NET SDK Vector Implementation) — *Hrittika* `[Blocked by: S-Setup.5, H-1.4] [Unblocks: S-1.8]`
