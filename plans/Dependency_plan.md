@@ -53,7 +53,7 @@
 - [ ] **[S-F.1]** Master Layout `_Layout.cshtml` (Bootstrap 5, Nav, Footer) — *Shads* `[Unblocks: S-F.2, everyone's views]`
 - [ ] **[S-F.2]** Home Controller & Views (Landing page with mock data) — *Shads* `[Blocked by: S-F.1]`
 - [x] ~~**[H-F.1]** `_DisclaimerBanner.cshtml` & `_LanguageToggle.cshtml` — *Hrittika* `[Unblocks: S-F.1]`~~
-- [ ] **[A-F.1]** Static Assets (CSS, JS & Noto Sans Bengali Fonts in `wwwroot/`) — *Arpita* `[Unblocks: A-2.5]`
+- [x] ~~**[A-F.1]** Static Assets (CSS, JS & Noto Sans Bengali Fonts in `wwwroot/`) — *Arpita* `[Unblocks: A-2.5]`~~
 
 ### 2. Core Architecture Critical Path (Hrittika's First Wave)
 - [x] ~~**[H-1.1]** Initialize .NET 8 Solution (`MuktoAin.sln` 4 Projects + References) — *Hrittika* `[Blocked by: H-Setup.1] [Unblocks: H-1.2]`~~
