@@ -42,7 +42,7 @@
 
 ### 1. Day 0 Setup & Independent Start (No Cross-Teammate Blockers)
 - [x] ~~**[H-Setup.1]** Create GitHub Repository — *Hrittika* `[Unblocks: H-1.1, H-Setup.2]`~~
-- [ ] **[H-Setup.2]** Set Up Branch Protection on `main` — *Hrittika*
+- [x] ~~**[H-Setup.2]** Set Up Branch Protection on `main` — *Hrittika*~~
 - [ ] **[S-Setup.3]** Prepare Seed Data Files (`districts.json`, `categories.json`, etc.) — *Shads* `[Unblocks: H-1.7]`
 - [ ] **[S-Setup.4]** Set Up Multi-Key Gemini API Key Rotation Config — *Shads* `[Unblocks: S-1.3]`
 - [ ] **[S-Setup.5]** Set Up Qdrant Cloud Cluster — *Shads* `[Unblocks: H-1.11]`
@@ -56,9 +56,9 @@
 - [ ] **[A-F.1]** Static Assets (CSS, JS & Noto Sans Bengali Fonts in `wwwroot/`) — *Arpita* `[Unblocks: A-2.5]`
 
 ### 2. Core Architecture Critical Path (Hrittika's First Wave)
-- [ ] **[H-1.1]** Initialize .NET 8 Solution (`MuktoAin.sln` 4 Projects + References) — *Hrittika* `[Blocked by: H-Setup.1] [Unblocks: H-1.2]`
-- [ ] **[H-1.2]** Implement All 9 Enums in `MuktoAin.Domain/Enums/` — *Hrittika* `[Blocked by: H-1.1] [Unblocks: H-1.3, A-1.1]`
-- [ ] **[H-1.3]** Implement All 14 Domain Entities in `MuktoAin.Domain/Entities/` — *Hrittika* `[Blocked by: H-1.2] [Unblocks: H-1.4, A-1.1]`
+- [x] ~~**[H-1.1]** Initialize .NET 8 Solution (`MuktoAin.sln` 4 Projects + References) — *Hrittika* `[Blocked by: H-Setup.1] [Unblocks: H-1.2]`~~
+- [x] ~~**[H-1.2]** Implement All 9 Enums in `MuktoAin.Domain/Enums/` — *Hrittika* `[Blocked by: H-1.1] [Unblocks: H-1.3, A-1.1]`~~
+- [x] ~~**[H-1.3]** Implement All 14 Domain Entities in `MuktoAin.Domain/Entities/` — *Hrittika* `[Blocked by: H-1.2] [Unblocks: H-1.4, A-1.1]`~~
 - [ ] **[H-1.4]** Define Repository & Service Interfaces in Domain/Application — *Hrittika* `[Blocked by: H-1.3] [Unblocks: H-1.5, A-2.1]`
 - [ ] **[H-1.5]** EF Core `AppDbContext.cs` in `MuktoAin.Infrastructure` — *Hrittika* `[Blocked by: H-1.3, H-1.4] [Unblocks: H-1.6, S-1.1]`
 - [ ] **[H-1.6]** Manual MSSQL Schema Scripts in SSMS (`scripts/01-14_*.sql`) — *Hrittika* `[Blocked by: H-1.3, H-1.5] [Unblocks: S-1.1, H-1.7]`
