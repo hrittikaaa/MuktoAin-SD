@@ -167,7 +167,7 @@ git clone https://github.com/hrittikaaa/MuktoAin.git
 cd MuktoAin
 git checkout <your-branch>
 
-dotnet restore src/MuktoAin.slnx
+dotnet restore src/MuktoAin.sln
 
 cd src/MuktoAin.Web
 libman restore
@@ -226,7 +226,7 @@ git merge origin/main          # (or rebase, per your team's convention)
 .\scripts\run-all.ps1
 
 # 3. Build and run
-dotnet build src/MuktoAin.slnx
+dotnet build src/MuktoAin.sln
 dotnet run --project src/MuktoAin.Web
 
 # 4. Commit your work to a feature branch (never directly to main)
