@@ -60,8 +60,8 @@
 - [x] ~~**[H-1.2]** Implement All 9 Enums in `MuktoAin.Domain/Enums/` — *Hrittika* `[Blocked by: H-1.1] [Unblocks: H-1.3, A-1.1]`~~
 - [x] ~~**[H-1.3]** Implement All 14 Domain Entities in `MuktoAin.Domain/Entities/` — *Hrittika* `[Blocked by: H-1.2] [Unblocks: H-1.4, A-1.1]`~~
 - [x] ~~**[H-1.4]** Define Repository & Service Interfaces in Domain/Application — *Hrittika* `[Blocked by: H-1.3] [Unblocks: H-1.5, A-2.1]`~~
-- [ ] **[H-1.5]** EF Core `AppDbContext.cs` in `MuktoAin.Infrastructure` — *Hrittika* `[Blocked by: H-1.3, H-1.4] [Unblocks: H-1.6, S-1.1]`
-- [ ] **[H-1.6]** Manual MSSQL Schema Scripts in SSMS (`scripts/01-14_*.sql`) — *Hrittika* `[Blocked by: H-1.3, H-1.5] [Unblocks: S-1.1, H-1.7]`
+- [x] ~~**[H-1.5]** EF Core `AppDbContext.cs` in `MuktoAin.Infrastructure` — *Hrittika* `[Blocked by: H-1.3, H-1.4] [Unblocks: H-1.6, S-1.1]`~~
+- [x] ~~**[H-1.6]** Manual MSSQL Schema Scripts in SSMS (`scripts/01-14_*.sql`) — *Hrittika* `[Blocked by: H-1.3, H-1.5] [Unblocks: S-1.1, H-1.7]`~~
 - [ ] **[A-1.1]** All DTOs in `MuktoAin.Application/DTOs/` — *Arpita* `[Blocked by: H-1.2, H-1.3] [Unblocks: A-2.1]`
 - [ ] **[A-1.2]** Checkpoint 1 DTOs Exit Gate — *Arpita* `[Blocked by: A-1.1]`
 
@@ -70,7 +70,7 @@
 - [ ] **[S-1.2]** `SeedAdminUser.cs` Startup Seeding — *Shads* `[Blocked by: S-1.1]`
 - [ ] **[S-F.3]** Identity Views (`Login.cshtml`, `Register.cshtml`), wired to real Identity — *Shads* `[Blocked by: S-F.1, S-1.1]`
 - [ ] **[S-F.4]** Checkpoint 1 Frontend Exit Gate — *Shads* `[Blocked by: S-F.1, S-F.2, H-F.1, A-F.1, S-F.3]`
-- [ ] **[H-1.7]** Seed Data Loaders (`SeedDistricts`, `SeedCategories`, `SeedScenarioMappings`) — *Hrittika* `[Blocked by: S-Setup.3, H-1.6] [Unblocks: H-1.8]`
+- [x] ~~**[H-1.7]** Seed Data Loaders (`SeedDistricts`, `SeedCategories`, `SeedScenarioMappings`) — *Hrittika* `[Blocked by: S-Setup.3, H-1.6] [Unblocks: H-1.8]`~~
 - [ ] **[H-1.8]** 1,484 Bangladesh Acts Ingestion Pipeline (`ActImportService.cs`) — *Hrittika* `[Blocked by: H-1.6, H-1.7] [Unblocks: H-1.9]`
 - [ ] **[H-1.9]** Legal Section Chunking Pipeline (`LegalChunkingService.cs`) — *Hrittika* `[Blocked by: H-1.8] [Unblocks: S-1.8]`
 - [ ] **[H-1.10]** Manual SQL Server Full-Text Search (FTS) SSMS Script — *Hrittika* `[Blocked by: H-1.6] [Unblocks: H-2.2]`
