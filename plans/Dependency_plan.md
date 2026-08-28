@@ -88,7 +88,7 @@
 
 ### 1. Retrieval & RAG Context Assembly
 - [ ] **[H-2.1]** `SimilaritySearchService.cs` (Qdrant Vector Retrieval) — *Hrittika* `[Blocked by: S-1.4, S-1.8, H-1.11] [Unblocks: H-2.3]`
-- [ ] **[H-2.2]** `KeywordSearchService.cs` (SQL FTS Fallback) — *Hrittika* `[Blocked by: H-1.10] [Unblocks: H-2.3]`
+- [x] ~~**[H-2.2]** `KeywordSearchService.cs` (SQL FTS Fallback) — *Hrittika* `[Blocked by: H-1.10] [Unblocks: H-2.3]`~~
 - [ ] **[H-2.3]** `RagContextBuilder.cs` (Vector-Primary with FTS Fallback) — *Hrittika* `[Blocked by: H-2.1, H-2.2] [Unblocks: S-2.1]`
 - [ ] **[H-2.4]** `SearchService.cs` (Standalone Keyword Search for FR-7) — *Hrittika* `[Blocked by: H-2.2]`
 - [ ] **[H-F.2]** Acts Keyword Search View (`/Search`), wired to `SearchService` — *Hrittika* `[Blocked by: H-2.4, S-F.1]`
