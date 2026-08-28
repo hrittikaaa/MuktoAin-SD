@@ -75,7 +75,7 @@
 - [ ] **[H-1.9]** Legal Section Chunking Pipeline (`LegalChunkingService.cs`) — *Hrittika* `[Blocked by: H-1.8] [Unblocks: S-1.8]`
 - [x] ~~**[H-1.10]** Manual SQL Server Full-Text Search (FTS) SSMS Script — *Hrittika* `[Blocked by: H-1.6] [Unblocks: H-2.2]`~~
 - [ ] **[H-1.11]** `QdrantVectorStore.cs` (.NET SDK Vector Implementation) — *Hrittika* `[Blocked by: S-Setup.5, H-1.4] [Unblocks: S-1.8]`
-- [ ] **[H-1.12]** MSSQL Repository Implementations (Parameterized SQL) — *Hrittika* `[Blocked by: H-1.4, H-1.6] [Unblocks: H-1.13, A-2.1]`
+- [x] ~~**[H-1.12]** MSSQL Repository Implementations (Parameterized SQL) — *Hrittika* `[Blocked by: H-1.4, H-1.6] [Unblocks: H-1.13, A-2.1]`~~
 - [ ] **[H-1.13]** DI Registration in `Program.cs` — *Hrittika* `[Blocked by: H-1.11, H-1.12] [Unblocks: S-1.9]`
 - [ ] **[H-1.14]** Data Layer Unit Tests (`MuktoAin.UnitTests`) — *Hrittika* `[Blocked by: H-1.12]`
 - [ ] **[S-1.8]** `EmbeddingBatchJob.cs` (Embed & Index All Chunks into Qdrant) — *Shads* `[Blocked by: H-1.9, H-1.11, S-1.4] [Unblocks: S-1.9, H-2.1]`
