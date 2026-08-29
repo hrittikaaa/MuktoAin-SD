@@ -43,14 +43,14 @@
 ### 1. Day 0 Setup & Independent Start (No Cross-Teammate Blockers)
 - [x] ~~**[H-Setup.1]** Create GitHub Repository — *Hrittika* `[Unblocks: H-1.1, H-Setup.2]`~~
 - [x] ~~**[H-Setup.2]** Set Up Branch Protection on `main` — *Hrittika*~~
-- [ ] **[S-Setup.3]** Prepare Seed Data Files (`districts.json`, `categories.json`, etc.) — *Shads* `[Unblocks: H-1.7]`
-- [ ] **[S-Setup.4]** Set Up Multi-Key Gemini API Key Rotation Config — *Shads* `[Unblocks: S-1.3]`
+- [x] ~~**[S-Setup.3]** Prepare Seed Data Files (`districts.json`, `categories.json`, etc.) — *Shads* `[Unblocks: H-1.7]`~~
+- [x] ~~**[S-Setup.4]** Set Up Multi-Key Gemini API Key Rotation Config — *Shads* `[Unblocks: S-1.3]`~~
 - [ ] **[S-Setup.5]** Set Up Qdrant Cloud Cluster — *Shads* `[Unblocks: H-1.11]`
-- [ ] **[S-1.3]** Implement `GeminiClient.cs` with Key Rotation — *Shads* `[Unblocks: S-1.4]`
-- [ ] **[S-1.5]** Define Legal Prompt Templates & Disclaimers (`Disclaimers.cs`) — *Shads* `[Unblocks: S-1.6, S-2.1]`
-- [ ] **[S-1.6]** Implement `DisclaimerInjector.cs` — *Shads* `[Blocked by: S-1.5] [Unblocks: S-2.2]`
-- [ ] **[S-1.7]** Implement `EncryptionService.cs` (ASP.NET Data Protection API) — *Shads* `[Unblocks: S-2.5]`
-- [ ] **[S-F.1]** Master Layout `_Layout.cshtml` (Bootstrap 5, Nav, Footer) — *Shads* `[Unblocks: S-F.2, everyone's views]`
+- [x] ~~**[S-1.3]** Implement `GeminiClient.cs` with Key Rotation — *Shads* `[Unblocks: S-1.4]`~~
+- [x] ~~**[S-1.5]** Define Legal Prompt Templates & Disclaimers (`Disclaimers.cs`) — *Shads* `[Unblocks: S-1.6, S-2.1]`~~
+- [x] ~~**[S-1.6]** Implement `DisclaimerInjector.cs` — *Shads* `[Blocked by: S-1.5] [Unblocks: S-2.2]`~~
+- [x] ~~**[S-1.7]** Implement `EncryptionService.cs` (ASP.NET Data Protection API) — *Shads* `[Unblocks: S-2.5]`~~
+- [x] ~~**[S-F.1]** Master Layout `_Layout.cshtml` (Bootstrap 5, Nav, Footer) — *Shads* `[Unblocks: S-F.2, everyone's views]`~~
 - [ ] **[S-F.2]** Home Controller & Views (Landing page with mock data) — *Shads* `[Blocked by: S-F.1]`
 - [x] ~~**[H-F.1]** `_DisclaimerBanner.cshtml` & `_LanguageToggle.cshtml` — *Hrittika* `[Unblocks: S-F.1]`~~
 - [x] ~~**[A-F.1]** Static Assets (CSS, JS & Noto Sans Bengali Fonts in `wwwroot/`) — *Arpita* `[Unblocks: A-2.5]`~~
@@ -66,9 +66,9 @@
 - [x] ~~**[A-1.2]** Checkpoint 1 DTOs Exit Gate — *Arpita* `[Blocked by: A-1.1]`~~
 
 ### 3. Identity, Data Ingestion & Vector Indexing
-- [ ] **[S-1.1]** ASP.NET Core Identity Configuration in `MuktoAin.Infrastructure` — *Shads* `[Blocked by: H-1.5, H-1.6] [Unblocks: S-1.2, S-3.6]`
-- [ ] **[S-1.2]** `SeedAdminUser.cs` Startup Seeding — *Shads* `[Blocked by: S-1.1]`
-- [ ] **[S-F.3]** Identity Views (`Login.cshtml`, `Register.cshtml`), wired to real Identity — *Shads* `[Blocked by: S-F.1, S-1.1]`
+- [x] ~~**[S-1.1]** ASP.NET Core Identity Configuration in `MuktoAin.Infrastructure` — *Shads* `[Blocked by: H-1.5, H-1.6] [Unblocks: S-1.2, S-3.6]`~~
+- [x] ~~**[S-1.2]** `SeedAdminUser.cs` Startup Seeding — *Shads* `[Blocked by: S-1.1]`~~
+- [x] ~~**[S-F.3]** Identity Views (`Login.cshtml`, `Register.cshtml`), wired to real Identity — *Shads* `[Blocked by: S-F.1, S-1.1]`~~
 - [ ] **[S-F.4]** Checkpoint 1 Frontend Exit Gate — *Shads* `[Blocked by: S-F.1, S-F.2, H-F.1, A-F.1, S-F.3]`
 - [x] ~~**[H-1.7]** Seed Data Loaders (`SeedDistricts`, `SeedCategories`, `SeedScenarioMappings`) — *Hrittika* `[Blocked by: S-Setup.3, H-1.6] [Unblocks: H-1.8]`~~
 - [x] ~~**[H-1.8]** 1,484 Bangladesh Acts Ingestion Pipeline (`ActImportService.cs`) — *Hrittika* `[Blocked by: H-1.6, H-1.7] [Unblocks: H-1.9]`~~
@@ -78,9 +78,9 @@
 - [x] ~~**[H-1.12]** MSSQL Repository Implementations (Parameterized SQL) — *Hrittika* `[Blocked by: H-1.4, H-1.6] [Unblocks: H-1.13, A-2.1]`~~
 - [ ] **[H-1.13]** DI Registration in `Program.cs` — *Hrittika* `[Blocked by: H-1.11, H-1.12] [Unblocks: S-1.9]`
 - [x] ~~**[H-1.14]** Data Layer Unit Tests (`MuktoAin.UnitTests`) — *Hrittika* `[Blocked by: H-1.12]`~~
-- [ ] **[S-1.8]** `EmbeddingBatchJob.cs` (Embed & Index All Chunks into Qdrant) — *Shads* `[Blocked by: H-1.9, H-1.11, S-1.4] [Unblocks: S-1.9, H-2.1]`
+- [x] ~~**[S-1.8]** `EmbeddingBatchJob.cs` (Embed & Index All Chunks into Qdrant) — *Shads* `[Blocked by: H-1.9, H-1.11, S-1.4] [Unblocks: S-1.9, H-2.1]`~~
 - [ ] **[H-1.15]** Checkpoint 1 Data Foundation Exit Gate — *Hrittika* `[Blocked by: H-1.1 to H-1.14]`
-- [ ] **[S-1.9]** Checkpoint 1 Overall RAG Ingestion Smoke Test Exit Gate — *Shads* `[Blocked by: S-1.8, H-1.13, H-2.1]`
+- [x] ~~**[S-1.9]** Checkpoint 1 Overall RAG Ingestion Smoke Test Exit Gate — *Shads* `[Blocked by: S-1.8, H-1.13, H-2.1]`~~
 
 ---
 
