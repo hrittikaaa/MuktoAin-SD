@@ -1,0 +1,80 @@
+@model CaseSubmitViewModel
+@{
+    ViewData["Title"] = "মামলা জমা দিন — মুক্ত আইন";
+}
+
+<main class="container" id="main">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a asp-controller="Home" asp-action="Index" data-bn="হোম" data-en="Home">হোম</a>
+        <span class="sep">/</span>
+        <span data-bn="সমস্যা জমা দিন" data-en="Submit a case">সমস্যা জমা দিন</span>
+    </nav>
+
+    <div class="page-head">
+        <span class="kicker"><i data-lucide="edit-3"></i> FR-2 · বিকল্প পথ</span>
+        <h1 class="page-title" data-bn="মামলা জমা দিন" data-en="Submit a case">মামলা জমা দিন</h1>
+        <p class="page-sub" data-bn="ফর্মে গোছাতে পছন্দ করলে এখানে জমা দিন — চ্যাটের মতোই একই প্রক্রিয়া।" data-en="Prefer forms? Submit here — same pipeline as the chat.">ফর্মে গোছাতে পছন্দ করলে এখানে জমা দিন — চ্যাটের মতোই একই প্রক্রিয়া।</p>
+    </div>
+
+    <div class="grid" style="grid-template-columns: minmax(0, 1fr); gap: 20px">
+        <div class="card">
+            <form asp-action="Submit" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <div style="margin-bottom: 14px">
+                    <label class="form-label" asp-for="CategoryId" data-bn="অভিযোগের ধরন" data-en="Category">অভিযোগের ধরন</label>
+                    <select class="input" asp-for="CategoryId" asp-items="Model.Categories"></select>
+                    <span class="text-danger" asp-validation-for="CategoryId"></span>
+                </div>
+
+                <div style="margin-bottom: 14px">
+                    <label class="form-label" asp-for="DistrictId" data-bn="জেলা (৬৪)" data-en="District (64)">জেলা (৬৪)</label>
+                    <select class="input" asp-for="DistrictId" asp-items="Model.Districts"></select>
+                    <span class="text-danger" asp-validation-for="DistrictId"></span>
+                </div>
+
+                <div style="margin-bottom: 14px">
+                    <label class="form-label" asp-for="Title" data-bn="শিরোনাম" data-en="Title">শিরোনাম</label>
+                    <input class="input" asp-for="Title" maxlength="250" placeholder="যেমন: ৩ মাসের বকেয়া বেতন" />
+                    <span class="text-danger" asp-validation-for="Title"></span>
+                </div>
+
+                <div style="margin-bottom: 14px">
+                    <label class="form-label" asp-for="Description" data-bn="বিবরণ" data-en="Description">বিবরণ</label>
+                    <textarea class="input autogrow" asp-for="Description" rows="5" maxlength="5000"
+                              placeholder="বাংলা / English / Banglish — যেভাবে খুশি লিখুন"
+                              data-counter="#desc-counter"></textarea>
+                    <small class="muted tiny" id="desc-counter"></small>
+                    <span class="text-danger" asp-validation-for="Description"></span>
+                </div>
+
+                <div class="alert alert-warn tiny" style="margin-bottom: 14px">
+                    <input type="checkbox" asp-for="IsAnonymous" style="margin-right: 8px" />
+                    <span data-bn="বেনামে জমা দিন — একটি ট্র্যাকিং কোড পাবেন যা দিয়ে মামলা দেখতে পারবেন" data-en="Submit anonymously — you'll get a tracking code to view the case">বেনামে জমা দিন — একটি ট্র্যাকিং কোড পাবেন যা দিয়ে মামলা দেখতে পারবেন</span>
+                </div>
+
+                <div class="row wrap" style="gap: 10px">
+                    <button class="btn btn-primary" type="submit">
+                        <i data-lucide="send"></i> <span data-bn="জমা দিন" data-en="Submit">জমা দিন</span>
+                    </button>
+                    <a class="btn btn-ghost" asp-controller="Home" asp-action="Index">
+                        <i data-lucide="message-circle"></i> <span data-bn="চ্যাটের মাধ্যমে জমা দিন" data-en="Submit via chat instead">চ্যাটের মাধ্যমে জমা দিন</span>
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <aside class="card">
+            <h2 class="section-h"><i data-lucide="workflow"></i> <span data-bn="এরপর কী হবে" data-en="What happens next">এরপর কী হবে</span></h2>
+            <ol style="padding-left: 20px; line-height: 2.2">
+                <li data-bn="AI আপনার অধিকার ব্যাখ্যা করবে (ধারাসহ)" data-en="AI explains your rights (with citations)">AI আপনার অধিকার ব্যাখ্যা করবে (ধারাসহ)</li>
+                <li data-bn="খসড়া দলিল তৈরি হবে — আপনি সম্পাদনা করতে পারবেন" data-en="A draft document is generated — you can edit it">খসড়া দলিল তৈরি হবে — আপনি সম্পাদনা করতে পারবেন</li>
+                <li data-bn="আইনজীবী অনুমোদনের পরেই PDF ডাউনলোড আনলক হবে" data-en="PDF download unlocks only after lawyer approval">আইনজীবী অনুমোদনের পরেই PDF ডাউনলোড আনলক হবে</li>
+            </ol>
+        </aside>
+    </div>
+</main>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
