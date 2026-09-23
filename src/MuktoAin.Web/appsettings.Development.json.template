@@ -44,7 +44,7 @@
   },
   "Payments": {
     "Mode": "Simulator",
-    "Mode_Comment": "Set to Sandbox to pay through the real bKash and SSLCommerz sandboxes (needs internet). The credentials below are the vendors' public sandbox merchants, not secrets. bKash test wallet 01619777282, OTP 123456, PIN 12121."
+    "Mode_Comment": "Set to Sandbox to pay through the real bKash and SSLCommerz sandboxes (needs internet). The credentials below are the vendors' public sandbox merchants, not secrets. bKash test wallet 01770618575, OTP 123456, PIN 12121."
   },
   "SslCommerz": {
     "StoreId": "testbox",

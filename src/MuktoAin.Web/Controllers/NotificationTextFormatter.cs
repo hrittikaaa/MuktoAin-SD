@@ -46,6 +46,11 @@ public static class NotificationTextFormatter
             "A citizen resubmitted a document you are reviewing.",
             $"/Lawyer/Review/{dto.RelatedDocumentId}"),
 
+        NotificationType.ChatCreditsAdded => (
+            "আপনার চ্যাট ক্রেডিট সফলভাবে রিচার্জ হয়েছে।",
+            "Your chat credits were recharged successfully.",
+            "/Account/Profile"),
+
         _ => ("বিজ্ঞপ্তি", "Notification", "/")
     };
 }
