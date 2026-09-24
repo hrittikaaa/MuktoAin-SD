@@ -11,13 +11,10 @@
 
 | Member | Role | Area |
 |---|---|---|
-| **Shads** | Project Lead | Identity & AI core, RAG ingestion, evaluation, delivery, layout/home/identity/case-result views |
-| **Hrittika** | Data Foundation | Schema, entities, repositories, search infrastructure, disclaimer/search/category views |
-| **Arpita** | Document Pipeline | Case/document services, lawyer review gate, admin, static assets/case/document/lawyer views |
-
-There's no dedicated frontend teammate on this team — every view is owned by whichever of the
-3 above owns that feature's backend. See `plans/Dependency_plan.md` for the full task/owner map
-and `plans/Frontend_Conventions.md` for the shared view-building conventions.
+| **Shads** | Project Lead | Identity & AI core, RAG ingestion, evaluation, delivery |
+| **Tultul** | Data Foundation | Schema, entities, repositories, search infrastructure |
+| **Arpita** | Document Pipeline | Case/document services, lawyer review gate, admin |
+| **Erin** | Frontend | Razor views, mock-first UI, final integration |
 
 ---
 
@@ -43,7 +40,7 @@ Full rationale in [AGENTS.md §2](AGENTS.md).
 | Relational DB | Microsoft SQL Server (schema managed via SSMS scripts) |
 | Vector DB | Qdrant (.NET SDK) |
 | Full-text fallback | SQL Server FTS |
-| Embeddings | Google `text-embedding-004` |
+| Embeddings | Google `gemini-embedding-001` (3072-dim) |
 | Generation | Gemini Flash API (multi-key rotation, Polly resilience) |
 | Frontend | Razor Views + Bootstrap 5 + vanilla JS/Fetch |
 | Auth | ASP.NET Core Identity (Citizen / Lawyer / Admin) |
@@ -71,14 +68,15 @@ Deep dive: [.agent/spec/design.md](.agent/spec/design.md),
 [requirements](.agent/spec/requirements.md),
 [execution plan](.agent/spec/tasks.md), and
 [deployment guide](docs/deployment-guide.md).
-*(A rendered `docs/architecture.md` with ERD lands with Hrittika's H-3.5.)*
+*(A rendered `docs/architecture.md` with ERD lands with Tultul's T-3.5.)*
 
 ---
 
 ## 3. ⚡ Quick Start
 
 > Detailed first-time setup lives below in
-> [Local Development Setup](#-local-development-setup); the short version:
+> [Local Development Setup](#-muktoain-মকত-আইন)--local-development-setup;
+> the short version:
 
 1. Install prerequisites: .NET SDK `8.0.400+`, SQL Server 2022 **with
    Full-Text Search** (not LocalDB!), SSMS, LibMan CLI.
@@ -144,7 +142,7 @@ with task A-3.6.
 
 ---
 
-## ⚖️ Local Development Setup
+# ⚖️ Local Development Setup
 
 This section gets you from a fresh clone to a running local environment in minutes! 🚀
 
@@ -163,11 +161,11 @@ SELECT FULLTEXTSERVICEPROPERTY('IsFullTextInstalled') AS IsFTSInstalled;
 
 **Step 1: Clone & Restore**
 ```bash
-git clone https://github.com/hrittikaaa/MuktoAin.git
-cd MuktoAin
+git clone https://github.com/shads-01/muktoAin-ISD.git
+cd muktoAin-ISD
 git checkout <your-branch>
 
-dotnet restore src/MuktoAin.sln
+dotnet restore src/MuktoAin.slnx
 
 cd src/MuktoAin.Web
 libman restore
@@ -226,7 +224,7 @@ git merge origin/main          # (or rebase, per your team's convention)
 .\scripts\run-all.ps1
 
 # 3. Build and run
-dotnet build src/MuktoAin.sln
+dotnet build src/MuktoAin.slnx
 dotnet run --project src/MuktoAin.Web
 
 # 4. Commit your work to a feature branch (never directly to main)
