@@ -39,6 +39,14 @@ public class UserRoleClaimsTransformation(UserManager<User> userManager) : IClai
         }
 
         identity.AddClaim(new Claim(RoleClaimType, user.Role.ToString()));
+        if (user.IsSuperAdmin)
+        {
+            identity.AddClaim(new Claim("IsSuperAdmin", "true"));
+        }
+        if (!identity.HasClaim(c => c.Type == "FullName") && !string.IsNullOrWhiteSpace(user.FullName))
+        {
+            identity.AddClaim(new Claim("FullName", user.FullName));
+        }
         return principal;
     }
 }
