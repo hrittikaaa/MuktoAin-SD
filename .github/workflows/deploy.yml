@@ -1,5 +1,5 @@
 # Continuous deployment to Azure App Service (free F1 Linux plan).
-# Setup and required secrets: docs/deployment-plan.md, section 6.
+# Setup and required secrets: docs/deployment-guide.md, section 4.
 #
 # Runs on every push to main (after merge) and on demand from the Actions tab.
 # ci.yml stays the build/test gate; this workflow only publishes and deploys.
