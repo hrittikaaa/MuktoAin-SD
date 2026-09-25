@@ -226,7 +226,13 @@ changes.
 The Bangladesh Acts dataset is too large for git. Follow
 [`data/README.md`](data/README.md) to download it from Kaggle and verify its
 SHA256. The app starts without it, but there will be no statutes to search or
-cite, and nothing to index in step 5.7.
+cite, and nothing to index in step 5.7. You can skip it if you're only working
+on UI, accounts or payments.
+
+> [!NOTE]
+> [`data/README.md`](data/README.md) also lists a **Legal QA dataset**. You do
+> **not** need it to run the app. It is only used by the optional
+> [answer-quality benchmark](#answer-quality-benchmark).
 
 ### 5.6 Run
 
@@ -332,7 +338,7 @@ dotnet test tests/MuktoAin.IntegrationTests   # needs SQL Server with the schema
 |---|---|---|
 | `MuktoAin.UnitTests` | services, controllers, view models, seeding, localization | nothing (in-memory) |
 | `MuktoAin.IntegrationTests/Api`, `Repositories` | HTTP endpoints and SQL repositories | SQL Server |
-| `MuktoAin.IntegrationTests/AiPipeline` | retrieval and answer-quality benchmark | SQL Server, Qdrant, Gemini keys |
+| `MuktoAin.IntegrationTests/AiPipeline` | retrieval, plus the answer-quality benchmark (off unless enabled, see below) | SQL Server, Qdrant, Gemini keys |
 | `MuktoAin.IntegrationTests/Browser` | end-to-end payment flows in a real browser | SQL Server, Playwright Chromium (skipped if missing) |
 
 To enable the browser tests, build once and install Chromium:
@@ -343,6 +349,33 @@ pwsh tests/MuktoAin.IntegrationTests/bin/Debug/net8.0/playwright.ps1 install chr
 
 In CI, unit tests run on every push and pull request. Integration tests are
 opt-in (see the [deployment guide](docs/deployment-guide.md#6-continuous-integration)).
+
+### Answer-quality benchmark
+
+This measures how accurately the chat answers real legal questions. It sends
+questions from the [Bangladesh Legal QA dataset](https://huggingface.co/datasets/momahadi/bangladesh-legal-qa-dataset)
+through the full pipeline and scores the answers against the known correct
+ones. It is only for evaluating answer quality; the app never uses this dataset.
+
+1. Download the dataset (optional). Without it, the benchmark uses the
+   5-question sample already in the repo
+   (`data/benchmark/benchmark-sample.json`), which is enough to check that
+   everything is wired up.
+   ```bash
+   curl -L -o data/bangladesh-legal-qa-dataset.json https://huggingface.co/datasets/momahadi/bangladesh-legal-qa-dataset/resolve/main/sft/finetune_dataset_2165.json
+   ```
+2. Make sure the app works locally, with the Acts imported and indexed
+   (steps 5.4 to 5.7). The benchmark uses the same settings.
+3. Run it:
+   ```powershell
+   $env:MUKTOAIN_RUN_QA_BENCHMARK = "1"
+   $env:MUKTOAIN_BENCHMARK_MAX_QUESTIONS = "25"   # optional; leave unset for all 2,165
+   dotnet test tests/MuktoAin.IntegrationTests --filter "FullyQualifiedName~QaBenchmark"
+   ```
+
+Reports are written to `data/benchmark/results/`: `zero-shot.json`,
+`few-shot.json`, and a comparison of the two. A full run makes thousands of
+Gemini calls, so start with a small `MAX_QUESTIONS` on the free tier.
 
 ## 8. Deployment
 
@@ -361,7 +394,7 @@ set.
 ```text
 MuktoAin-SD/
  ├── .github/workflows/   # ci.yml (build + test), deploy.yml (Azure)
- ├── data/                # seed JSON files; large Kaggle datasets go here (git-ignored)
+ ├── data/                # seed JSON files; downloaded datasets go here (git-ignored)
  ├── docs/                # deployment guide, runbook
  ├── scripts/             # numbered SQL schema scripts + run-all.ps1
  ├── src/                 # the four application projects (see Architecture)
@@ -483,7 +516,8 @@ and the pull request checklist.
   licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
   1,484 Acts, used as the statute corpus.
 - **Bangladesh Legal QA Dataset** by momahadi, from
-  [Kaggle](https://www.kaggle.com/datasets/momahadi/bangladesh-legal-qa-dataset).
+  [Hugging Face](https://huggingface.co/datasets/momahadi/bangladesh-legal-qa-dataset),
+  licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
   2,165 question-answer pairs, used for evaluation.
 
 Download and verification steps are in [data/README.md](data/README.md).
