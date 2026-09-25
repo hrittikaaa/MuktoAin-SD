@@ -4,6 +4,8 @@
    Execute in SSMS against the MuktoAin database.
    ============================================================ */
 SET NOCOUNT ON;
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[USER]') AND name = N'IsSuperAdmin')
