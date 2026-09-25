@@ -14,12 +14,18 @@ namespace MuktoAin.Infrastructure.Payments;
 // ValidateAsync(paymentID) is the execute call; if bKash says the payment was
 // already executed, the payment-status query answers instead.
 //
-// Sandbox test wallets: 01619777282 / 01619777283, OTP 123456, PIN 12121.
+// Sandbox test wallet: 01770618575, OTP 123456, PIN 12121. The sandbox wallets
+// are shared by every bKash developer and a few wrong PINs lock one ("Your
+// wallet is locked"); 01619777282, 01619777283, 01929918378 and 01823074817
+// were all locked when checked on 2026-09-25.
 public class BkashGatewayClient : IPaymentGatewayClient
 {
     // Shown to the citizen in Sandbox mode (_PaymentMethodPicker), since the
     // real bKash checkout page cannot carry our hint.
-    public const string SandboxWallet = "01619777282";
+    public const string SandboxWallet = "01770618575";
+    // Expected to fail (the built-in simulator's insufficient-balance wallet,
+    // not confirmed against the real bKash sandbox).
+    public const string SandboxFailWallet = "01700000099";
     public const string SandboxOtp = "123456";
     public const string SandboxPin = "12121";
 

@@ -218,6 +218,28 @@ public class PaymentService
         // Tell the lawyer only once the money is confirmed, not at order creation.
         if (o.Purpose == PaymentPurpose.Honorarium && o.LawyerProfileId.HasValue)
             await NotifyLawyerOfPaymentAsync(o);
+
+        // Likewise the citizen who recharged chat credits.
+        if (o.Purpose == PaymentPurpose.TopUp && o.UserId.HasValue)
+            await NotifyBuyerOfTopUpAsync(o.UserId.Value);
+    }
+
+    private async Task NotifyBuyerOfTopUpAsync(int userId)
+    {
+        try
+        {
+            await _notificationRepo.AddAsync(new Notification
+            {
+                UserId = userId,
+                Type = NotificationType.ChatCreditsAdded,
+                CreatedAt = DateTime.UtcNow
+            });
+            await _notificationRepo.SaveChangesAsync();
+        }
+        catch
+        {
+            // A notification-write failure must not fail the payment confirmation.
+        }
     }
 
     private async Task NotifyLawyerOfPaymentAsync(PaymentOrder o)

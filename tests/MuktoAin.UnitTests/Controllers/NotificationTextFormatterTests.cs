@@ -31,4 +31,17 @@ public class NotificationTextFormatterTests
         Assert.Equal("/Lawyer/Status", url);
         Assert.False(string.IsNullOrWhiteSpace(textEn));
     }
+
+    [Fact]
+    public void Format_ChatCreditsAdded_LinksToProfile()
+    {
+        var dto = new NotificationDto(3, NotificationType.ChatCreditsAdded, RelatedCaseId: null,
+            RelatedDocumentId: null, RelatedLawyerProfileId: null, IsRead: false, CreatedAt: DateTime.UtcNow);
+
+        var (textBn, textEn, url) = NotificationTextFormatter.Format(dto);
+
+        Assert.Equal("/Account/Profile", url);
+        Assert.False(string.IsNullOrWhiteSpace(textBn));
+        Assert.Contains("credit", textEn, StringComparison.OrdinalIgnoreCase);
+    }
 }

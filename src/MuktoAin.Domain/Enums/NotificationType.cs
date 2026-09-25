@@ -8,5 +8,6 @@ public enum NotificationType
     PaymentReceived = 3,
     NewLawyerApplication = 4,
     NewCaseInQueue = 5,
-    DocumentResubmitted = 6
+    DocumentResubmitted = 6,
+    ChatCreditsAdded = 7
 }

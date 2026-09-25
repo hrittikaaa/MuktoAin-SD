@@ -244,6 +244,41 @@ public class PaymentServiceTests
         _notificationRepo.Verify(n => n.AddAsync(It.IsAny<Notification>()), Times.Once);
     }
 
+    // Recharge notification: the citizen is told once the top-up is confirmed,
+    // never while it is Pending and never twice for a replayed callback.
+    [Fact]
+    public async Task ConfirmPaymentAsync_TopUp_NotifiesBuyerOnce()
+    {
+        var order = PendingOrder(11, tranId: "MA-11-x", purpose: PaymentPurpose.TopUp);
+        order.UserId = 55;
+        order.ChatCredits = 100;
+        GatewayValidates("val-11", "MA-11-x", 500m);
+        Notification? captured = null;
+        _notificationRepo.Setup(n => n.AddAsync(It.IsAny<Notification>()))
+            .Callback<Notification>(n => captured = n)
+            .Returns(Task.CompletedTask);
+
+        Assert.True(await _service.ConfirmPaymentAsync(11, "val-11"));
+        Assert.True(await _service.ConfirmPaymentAsync(11, "val-11")); // replayed callback
+
+        Assert.NotNull(captured);
+        Assert.Equal(55, captured!.UserId);
+        Assert.Equal(NotificationType.ChatCreditsAdded, captured.Type);
+        _notificationRepo.Verify(n => n.AddAsync(It.IsAny<Notification>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ConfirmPaymentAsync_TopUpGatewayRejects_DoesNotNotify()
+    {
+        var order = PendingOrder(12, tranId: "MA-12-x", purpose: PaymentPurpose.TopUp);
+        order.UserId = 55;
+        GatewayValidates("val-12", "MA-12-x", 500m, success: false);
+
+        Assert.False(await _service.ConfirmPaymentAsync(12, "val-12"));
+
+        _notificationRepo.Verify(n => n.AddAsync(It.IsAny<Notification>()), Times.Never);
+    }
+
     [Fact]
     public async Task ConfirmPaymentAsync_HonorariumWithoutLawyer_SkipsNotification()
     {
