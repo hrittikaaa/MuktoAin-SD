@@ -23,6 +23,9 @@ public class BkashGatewayClient : IPaymentGatewayClient
     // Shown to the citizen in Sandbox mode (_PaymentMethodPicker), since the
     // real bKash checkout page cannot carry our hint.
     public const string SandboxWallet = "01770618575";
+    // Expected to fail (the built-in simulator's insufficient-balance wallet,
+    // not confirmed against the real bKash sandbox).
+    public const string SandboxFailWallet = "01700000099";
     public const string SandboxOtp = "123456";
     public const string SandboxPin = "12121";
 
