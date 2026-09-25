@@ -6,6 +6,9 @@
 # dotenv files
 .env
 
+# Report drafts / deliverables (not part of the codebase)
+/Reports/
+
 # User-specific files
 *.rsuser
 *.suo
@@ -424,6 +427,9 @@ autom4te.cache/
 tarballs/
 test-results/
 
+# Page snapshots written by the Playwright MCP server during agent sessions
+.playwright-mcp/
+
 # content below from: https://github.com/github/gitignore/blob/main/Global/macOS.gitignore
 # General
 .DS_Store
@@ -512,12 +518,20 @@ src/MuktoAin.Web/wwwroot/lib/
 # Temporary review notes
 TODOS.md
 
-# Local-machine-only migration notes (references an absolute path to a source repo
-# that only exists on this developer's machine)
-plans/Copy_Paste_Plan.md
-
 # Frontend prototypes & UI design drafts
-frontend/
-frontend.zip
+template-frontend/
 UI.md
 UI_SPEC.md
+Copy_Paste_Plan.md
+docs/*
+!docs/architecture.md
+!docs/deployment-plan.md
+
+# Scratch files
+.agent/scratch/
+.superpowers/
+
+# Data Protection key ring (AUD-2) — never commit encryption keys
+keys/
+
+.atlas/
