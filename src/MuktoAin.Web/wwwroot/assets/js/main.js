@@ -47,15 +47,19 @@
     bn: {
       "skip-link": "সরাসরি কন্টেন্টে যান / Skip to content",
       "nav-legal-aid": "আইনি সেবা",
+      "nav-submit": "সমস্যা জমা দিন",
       "nav-tracking": "মামলা ট্র্যাকিং",
       "nav-search": "আইন খুঁজুন",
+      "nav-corpus": "আইন ও করপাস",
       "nav-categories": "বিভাগসমূহ",
       "nav-about": "পরিচিতি",
       "nav-signin": "সাইন ইন",
       "nav-register": "নিবন্ধন",
       "nav-mycases": "আমার মামলাসমূহ",
-      "nav-lawyerqueue": "আইনজীবী রিভিউ কিউ",
-      "nav-admindash": "অ্যাডমিন ড্যাশবোর্ড",
+      "nav-lawyerqueue": "রিভিউ কিউ",
+      "nav-admindash": "ড্যাশবোর্ড",
+      "nav-analytics": "অ্যানালিটিক্স",
+      "nav-profile": "আমার প্রোফাইল ও সেটিংস",
       "nav-logout": "লগআউট",
       "disclaimer-tag": "দাবিত্যাগ:",
       "disclaimer-text": "মুক্ত আইন সাধারণ আইনি তথ্যসেবা দেয় — এটি আনুষ্ঠানিক আইনি পরামর্শ নয়। প্রতিটি দলিল ব্যবহারের পূর্বে সনদপ্রাপ্ত আইনজীবী দ্বারা পর্যালোচনা আবশ্যক।",
@@ -218,18 +222,22 @@
       // Common
       "skip-link": "Skip to content",
       "nav-legal-aid": "Legal Aid",
+      "nav-submit": "Submit Issue",
       "nav-tracking": "Case Tracking",
       "nav-search": "Search Laws",
+      "nav-corpus": "Corpus & Acts",
       "nav-categories": "Categories",
       "nav-about": "About",
       "nav-signin": "Sign In",
       "nav-register": "Register",
       "nav-mycases": "My Cases",
-      "nav-lawyerqueue": "Lawyer Queue",
-      "nav-admindash": "Admin Dashboard",
-      "nav-logout": "Logout",
+      "nav-lawyerqueue": "Review Queue",
+      "nav-admindash": "Dashboard",
+      "nav-analytics": "Analytics",
+      "nav-profile": "Profile & Settings",
+      "nav-logout": "Sign Out",
       "disclaimer-tag": "Disclaimer:",
-      "disclaimer-text": "MuktoAin provides general legal information and document drafting assistance. This is NOT formal legal advice. Every document must be reviewed by a verified lawyer before use.",
+      "disclaimer-text": "MuktoAin provides general legal information and document drafting assistance. This is NOT formal legal advice. Every document must be reviewed by a verified lawyer before use. For urgent legal matters, consult a qualified advocate.",
       "footer-tagline": "Free AI-augmented legal aid platform for citizens of Bangladesh — every document reviewed by verified advocates.",
       "footer-nav-h": "Navigation",
       "footer-legal-h": "Legal & Terms",
@@ -403,6 +411,10 @@
       });
     });
 
+    document.querySelectorAll("input[name='Language']").forEach(function (input) {
+      input.value = currentLang;
+    });
+
     var dict = translations[currentLang];
     if (!dict) return;
 
@@ -416,11 +428,49 @@
       disclaimerEl.innerHTML = "<b>" + dict["disclaimer-tag"] + "</b> " + dict["disclaimer-text"];
     }
 
+    // 2b. Universal declarative translation attribute handler
+    document.querySelectorAll("[data-bn][data-en]").forEach(function (el) {
+      var text = currentLang === "en" ? el.dataset.en : el.dataset.bn;
+      if (el.children.length === 0) {
+        el.textContent = text;
+      } else {
+        // Preserves child icons (e.g. lucide icons) if present
+        var iconEl = el.querySelector("i, svg");
+        if (iconEl) {
+          el.innerHTML = iconEl.outerHTML + " " + text;
+        } else {
+          el.textContent = text;
+        }
+      }
+    });
+
+    // 2c. Bilingual title tooltips (data-bn-title/data-en-title) -- elements
+    // like the locked-PDF button whose visible text may carry no data-bn/en
+    // pair but whose title attribute still needs to follow the language.
+    document.querySelectorAll("[data-bn-title][data-en-title]").forEach(function (el) {
+      el.setAttribute("title", currentLang === "en" ? el.getAttribute("data-en-title") : el.getAttribute("data-bn-title"));
+    });
+
+    // 2d. Bilingual input placeholders and read-only display values.
+    document.querySelectorAll("[data-bn-placeholder][data-en-placeholder]").forEach(function (el) {
+      el.setAttribute("placeholder", currentLang === "en" ? el.getAttribute("data-en-placeholder") : el.getAttribute("data-bn-placeholder"));
+    });
+    document.querySelectorAll("[data-bn-value][data-en-value]").forEach(function (el) {
+      el.value = currentLang === "en" ? el.getAttribute("data-en-value") : el.getAttribute("data-bn-value");
+    });
+
     // 3. Navbar navigation links (Preserving logo brand!)
     var navMap = [
       { sel: '.nav-links a[href="/"], .nav-links a[href=""]', text: dict["nav-legal-aid"], icon: "message-square" },
+      { sel: '.nav-links a[href*="/Case/Submit"]', text: dict["nav-submit"], icon: "edit-3" },
       { sel: '.nav-links a[href*="/Case/Track"]', text: dict["nav-tracking"], icon: "folder-clock" },
-      { sel: '.nav-links a[href*="/Search"]', text: dict["nav-search"], icon: "search" },
+      { sel: '.nav-links a[href*="/Admin/Dashboard"], .nav-links a[href="/Admin"]', text: dict["nav-admindash"], icon: "shield" },
+      { sel: '.nav-links a[href*="/Admin/Analytics"]', text: dict["nav-analytics"], icon: "bar-chart-3" },
+      { sel: '.nav-links a[href*="/Lawyer/Queue"]', text: dict["nav-lawyerqueue"], icon: "file-check-2" },
+      { sel: '.nav-links a[href*="/Lawyer/History"]', text: currentLang === "en" ? "History" : "ইতিহাস", icon: "history" },
+      { sel: '.nav-links a[href*="/Lawyer/Payments"]', text: currentLang === "en" ? "Payments" : "পেমেন্ট", icon: "wallet" },
+      { sel: '.nav-links a[href*="/Lawyer/Status"]', text: currentLang === "en" ? "Verification" : "ভেরিফিকেশন", icon: "badge-check" },
+      { sel: '.nav-links a[href*="/Search"]', text: dict["nav-corpus"] || dict["nav-search"], icon: "search" },
       { sel: '.nav-links a[href*="/Category"]', text: dict["nav-categories"], icon: "layout-grid" },
       { sel: '.nav-links a[href*="/Home/About"]', text: dict["nav-about"], icon: "info" },
       { sel: '.nav-desktop-auth a[href*="/Account/Login"]', text: dict["nav-signin"] },
@@ -438,10 +488,8 @@
 
     // 4. User menu popover
     var userPopMap = [
-      { sel: '#user-pop a[href*="/Case/Track"]', text: dict["nav-mycases"], icon: "folder" },
-      { sel: '#user-pop a[href*="/Lawyer/Queue"]', text: dict["nav-lawyerqueue"], icon: "file-check-2" },
-      { sel: '#user-pop a[href*="/Admin/Dashboard"], #user-pop a[href*="/Admin"]', text: dict["nav-admindash"], icon: "shield" },
-      { sel: '#user-pop a[href*="/Account/Login"]', text: dict["nav-logout"], icon: "log-out" }
+      { sel: '#user-pop a[href*="/Account/Profile"]', text: dict["nav-profile"], icon: "user" },
+      { sel: '#user-pop .user-logout-btn', text: dict["nav-logout"], icon: "log-out" }
     ];
     userPopMap.forEach(function (item) {
       document.querySelectorAll(item.sel).forEach(function (el) {
@@ -451,16 +499,21 @@
 
     // 5. Mobile drawer links
     var drawerMap = [
-      { sel: 'aside.drawer nav a[href="/"]', text: dict["nav-legal-aid"], icon: "message-square" },
-      { sel: 'aside.drawer nav a[href*="/Case/Submit"]', text: currentLang === "en" ? "Submit Issue (Intake)" : "সমস্যা জমা দিন (Intake)", icon: "edit-3" },
-      { sel: 'aside.drawer nav a[href*="/Case/Track"]', text: dict["nav-tracking"], icon: "folder-clock" },
-      { sel: 'aside.drawer nav a[href*="/Search"]', text: dict["nav-search"], icon: "search" },
-      { sel: 'aside.drawer nav a[href*="/Category"]', text: dict["nav-categories"], icon: "layout-grid" },
-      { sel: 'aside.drawer nav a[href*="/Lawyer/Queue"]', text: dict["nav-lawyerqueue"], icon: "file-check-2" },
-      { sel: 'aside.drawer nav a[href*="/Admin"]', text: dict["nav-admindash"], icon: "shield" },
-      { sel: 'aside.drawer nav a[href*="/Home/About"]', text: dict["nav-about"], icon: "info" },
-      { sel: 'aside.drawer nav a[href*="/Account/Login"]', text: dict["nav-signin"], icon: "log-in" },
-      { sel: 'aside.drawer nav a[href*="/Account/Register"]', text: dict["nav-register"], icon: "user-plus" }
+      { sel: 'aside.drawer nav a[href="/"]', text: currentLang === "en" ? "Legal Aid & Chat" : "আইনি সেবা ও চ্যাট", icon: "message-square" },
+      { sel: 'aside.drawer nav a[href*="/Case/Submit"]', text: currentLang === "en" ? "Submit Problem (Intake)" : "সমস্যা জমা দিন (Intake)", icon: "edit-3" },
+      { sel: 'aside.drawer nav a[href*="/Case/Track"]', text: currentLang === "en" ? "Case Tracking" : "মামলা ট্র্যাকিং", icon: "folder-clock" },
+      { sel: 'aside.drawer nav a[href*="/Admin/Dashboard"], aside.drawer nav a[href="/Admin"]', text: currentLang === "en" ? "Admin Dashboard" : "অ্যাডমিন ড্যাশবোর্ড", icon: "shield" },
+      { sel: 'aside.drawer nav a[href*="/Admin/Analytics"]', text: currentLang === "en" ? "Analytics & Reports" : "অ্যানালিটিক্স ও রিপোর্ট", icon: "bar-chart-3" },
+      { sel: 'aside.drawer nav a[href*="/Lawyer/Queue"]', text: currentLang === "en" ? "Lawyer Review Queue" : "আইনজীবী রিভিউ কিউ", icon: "file-check-2" },
+      { sel: 'aside.drawer nav a[href*="/Lawyer/History"]', text: currentLang === "en" ? "Review History" : "রিভিউ ইতিহাস", icon: "history" },
+      { sel: 'aside.drawer nav a[href*="/Lawyer/Payments"]', text: currentLang === "en" ? "Payments" : "আয় ও পেমেন্ট", icon: "wallet" },
+      { sel: 'aside.drawer nav a[href*="/Lawyer/Status"]', text: currentLang === "en" ? "Lawyer Verification" : "আইনজীবী ভেরিফিকেশন", icon: "badge-check" },
+      { sel: 'aside.drawer nav a[href*="/Search"]', text: currentLang === "en" ? "Statutes & Corpus" : "আইন ও করপাস", icon: "search" },
+      { sel: 'aside.drawer nav a[href*="/Category"]', text: currentLang === "en" ? "Legal Categories" : "আইনি বিভাগসমূহ", icon: "layout-grid" },
+      { sel: 'aside.drawer nav a[href*="/Home/About"]', text: currentLang === "en" ? "About & Disclaimer" : "পরিচিতি ও দাবিত্যাগ", icon: "info" },
+      { sel: 'aside.drawer nav a[href*="/Account/Login"]', text: currentLang === "en" ? "Sign In" : "সাইন ইন", icon: "log-in" },
+      { sel: 'aside.drawer nav a[href*="/Account/Register"]', text: currentLang === "en" ? "Register New Account" : "নতুন একাউন্ট নিবন্ধন", icon: "user-plus" },
+      { sel: 'aside.drawer nav a[href*="/Account/Profile"]', text: currentLang === "en" ? "My Profile & Settings" : "আমার প্রোফাইল ও সেটিংস", icon: "user" }
     ];
     drawerMap.forEach(function (item) {
       document.querySelectorAll(item.sel).forEach(function (el) {
@@ -480,12 +533,15 @@
         else if (t === "মামলাসমূহ" || t === "মামলা") b.textContent = "Cases";
         else if (t === "নতুন দাখিল") b.textContent = "New Submission";
         else if (t === "মামলা ট্র্যাকিং") b.textContent = "Case Tracking";
-        else if (t === "আইন অনুসন্ধান" || t === "আইন খুঁজুন") b.textContent = "Search Statutes";
+        else if (t === "আইন অনুসন্ধান" || t === "আইন খুঁজুন" || t === "আইন ও করপাস") b.textContent = "Search Statutes";
         else if (t === "আইনি বিভাগসমূহ" || t === "বিভাগসমূহ") b.textContent = "Categories";
         else if (t === "পরিচিতি ও দাবিত্যাগ" || t === "পরিচিতি") b.textContent = "About & Disclaimer";
         else if (t === "সাইন ইন") b.textContent = "Sign In";
         else if (t === "নিবন্ধন") b.textContent = "Register";
         else if (t === "আইনজীবী কিউ") b.textContent = "Lawyer Queue";
+        else if (t.indexOf("অ্যাডমিন") !== -1 || t.indexOf("মিশন কন্ট্রোল") !== -1) b.textContent = "Admin Console";
+        else if (t.indexOf("অ্যানালিটিক্স") !== -1) b.textContent = "Analytics";
+        else if (t.indexOf("প্রোফাইল") !== -1) b.textContent = "Account Profile";
       } else {
         if (t === "Home") b.textContent = "হোম";
         else if (t === "Cases") b.textContent = "মামলাসমূহ";
@@ -497,6 +553,9 @@
         else if (t === "Sign In") b.textContent = "সাইন ইন";
         else if (t === "Register") b.textContent = "নিবন্ধন";
         else if (t === "Lawyer Queue") b.textContent = "আইনজীবী কিউ";
+        else if (t === "Admin Console") b.textContent = "অ্যাডমিন কনসোল";
+        else if (t === "Analytics") b.textContent = "অ্যানালিটিক্স";
+        else if (t === "Account Profile") b.textContent = "অ্যাকাউন্ট প্রোফাইল";
       }
     });
 
@@ -727,6 +786,15 @@
         ths[5].textContent = dict["track-th-action"];
       }
 
+      // Pagination page numbers render as real digits carried in data-page --
+      // reformat them into the active script (Bengali vs Latin) rather than
+      // leaving them permanently Bengali regardless of language (same
+      // convention as the Search page's pagination below).
+      document.querySelectorAll(".pagination [data-page]").forEach(function (el) {
+        var n = el.getAttribute("data-page");
+        el.textContent = currentLang === "en" ? n : toBengaliDigits(n);
+      });
+
     } else if (path.indexOf("/search") !== -1) {
       // Search Laws Page
       var kicker = document.querySelector(".search-hero .kicker");
@@ -739,7 +807,10 @@
       var searchInp = document.querySelector('.search-bar input[name="q"], .search-bar input[type="search"], .search-bar input[type="text"]');
       if (searchInp) searchInp.placeholder = dict["search-placeholder"];
 
-      var searchBtn = document.querySelector(".search-bar button");
+      // type="submit" -- .act-filter-btn (the Act picker) is also a <button> in
+      // .search-bar and comes first in the DOM, so a bare "button" selector here
+      // used to grab it by accident and stomp its label with the search icon/text.
+      var searchBtn = document.querySelector(".search-bar button[type=\"submit\"]");
       if (searchBtn) searchBtn.innerHTML = '<i data-lucide="search"></i> ' + dict["search-btn"];
 
       var popLabel = document.querySelector(".search-bar .row.wrap .tiny.muted");
@@ -899,55 +970,187 @@
         }
       });
 
-    } else if (path.indexOf("/lawyer") !== -1) {
-      // Lawyer Portal
+    } else if (path.indexOf("/admin/dashboard") !== -1 || path === "/admin" || path === "/admin/") {
+      // Admin Dashboard / Mission Control
       var kicker = document.querySelector(".page-head .kicker");
-      if (kicker) kicker.innerHTML = '<i data-lucide="award"></i> ' + (currentLang === "en" ? "Verified Advocate Portal · FR-13" : "সনদপ্রাপ্ত আইনজীবী পোর্টাল · FR-13");
+      if (kicker) kicker.innerHTML = '<i data-lucide="shield-check"></i> ' + (currentLang === "en" ? "FR-15 · Mission Control & Operations" : "FR-15 · মিশন কন্ট্রোল ও সিস্টেম অপারেশনস");
       var title = document.querySelector(".page-head .page-title");
-      if (title) title.textContent = currentLang === "en" ? "Document Review Queue" : "দলিল পর্যালোচনা কিউ (Review Queue)";
+      if (title) title.textContent = currentLang === "en" ? "Admin Control Hub" : "অ্যাডমিন কন্ট্রোল হাব";
       var sub = document.querySelector(".page-head .page-sub");
-      if (sub) sub.textContent = currentLang === "en" ? "Review and certify AI-generated drafts to approve final official documents for citizens." : "AI দ্বারা প্রস্তুতকৃত খসড়া দলিল পর্যালোচনা ও সত্যায়ন করে নাগরিকের জন্য চূড়ান্ত PDF অনুমোদন করুন।";
+      if (sub) sub.textContent = currentLang === "en" ? "Platform infrastructure status, advocate verification triage, and system action console." : "প্ল্যাটফর্ম ইনফ্রাস্ট্রাকচার স্ট্যাটাস, আইনজীবী সনদ যাচাই ট্রায়াজ এবং সিস্টেম অ্যাকশন কনসোল।";
 
-      var badgeBar = document.querySelector(".page-head .badge-final");
-      if (badgeBar) badgeBar.innerHTML = '<i data-lucide="check-circle-2"></i> ' + (currentLang === "en" ? "Bar Verified: DHA-1187" : "বার সনদ যাচাইকৃত: DHA-1187");
-
-      var kpiCards = document.querySelectorAll(".stat-strip .kpi");
-      if (kpiCards.length >= 3) {
-        var k1_lbl = kpiCards[0].querySelector(".k-label");
-        var k1_num = kpiCards[0].querySelector(".k-num");
-        var k1_sub = kpiCards[0].querySelector(".k-sub");
-        if (k1_lbl) k1_lbl.innerHTML = '<i data-lucide="clock"></i> ' + (currentLang === "en" ? "Pending in Queue" : "অপেক্ষমাণ কিউ");
-        if (k1_num) k1_num.textContent = currentLang === "en" ? "3 items" : "৩টি";
-        if (k1_sub) k1_sub.textContent = currentLang === "en" ? "Avg Review Time: 2 hours" : "গড় পর্যালোচনা সময়: ২ ঘণ্টা";
-
-        var k2_lbl = kpiCards[1].querySelector(".k-label");
-        var k2_num = kpiCards[1].querySelector(".k-num");
-        var k2_sub = kpiCards[1].querySelector(".k-sub");
-        if (k2_lbl) k2_lbl.innerHTML = '<i data-lucide="check-check"></i> ' + (currentLang === "en" ? "Your Reviews" : "আপনার পর্যালোচনাসমূহ");
-        if (k2_num) k2_num.textContent = currentLang === "en" ? "28 items" : "২৮টি";
-        if (k2_sub) k2_sub.textContent = currentLang === "en" ? "Completed this month" : "এই মাসে সম্পন্ন";
-
-        var k3_lbl = kpiCards[2].querySelector(".k-label");
-        var k3_num = kpiCards[2].querySelector(".k-num");
-        var k3_sub = kpiCards[2].querySelector(".k-sub");
-        if (k3_lbl) k3_lbl.innerHTML = '<i data-lucide="star"></i> ' + (currentLang === "en" ? "Pro-Bono Hours" : "প্রো-বোনো ঘণ্টা");
-        if (k3_num) k3_num.textContent = currentLang === "en" ? "14.5" : "১৪.৫";
-        if (k3_sub) k3_sub.textContent = currentLang === "en" ? "Legal aid contribution" : "আইনি সহায়তা অবদান";
+      var pulseHead = document.querySelector(".card strong i[data-lucide='server']");
+      if (pulseHead && pulseHead.parentElement) {
+        pulseHead.parentElement.innerHTML = '<i data-lucide="server" style="width:16px;height:16px;color:var(--gold);"></i> ' + (currentLang === "en" ? "Live Infrastructure & Service Pulse (System Health)" : "লাইভ ইনফ্রাস্ট্রাকচার ও সার্ভিস পালস (System Health)");
+      }
+      var pulseBadge = document.querySelector(".card span.badge-success");
+      if (pulseBadge && (pulseBadge.textContent.indexOf("সচল") !== -1 || pulseBadge.textContent.indexOf("Operational") !== -1)) {
+        pulseBadge.textContent = currentLang === "en" ? "All Services Operational" : "সকল সার্ভিস সচল (Operational)";
       }
 
-      var lawyerThs = document.querySelectorAll("table thead th");
-      if (lawyerThs.length >= 6) {
-        lawyerThs[0].textContent = currentLang === "en" ? "Case Tracking" : "মামলা ট্র্যাকিং";
-        lawyerThs[1].textContent = currentLang === "en" ? "Title & Description" : "শিরোনাম ও বিবরণ";
-        lawyerThs[2].textContent = currentLang === "en" ? "Legal Category" : "আইনি বিভাগ";
-        lawyerThs[3].textContent = currentLang === "en" ? "Submitted At" : "দাখিলের সময়";
-        lawyerThs[4].textContent = currentLang === "en" ? "Status" : "বর্তমান অবস্থা";
-        lawyerThs[5].textContent = currentLang === "en" ? "Action" : "পদক্ষেপ";
+      var kpis = document.querySelectorAll(".grid-4 .kpi");
+      if (kpis.length >= 4) {
+        var k1 = kpis[0].querySelector(".k-label");
+        var k1_sub = kpis[0].querySelector(".k-sub");
+        if (k1) k1.innerHTML = '<i data-lucide="user-check"></i> ' + (currentLang === "en" ? "Verifications Waiting" : "সনদ যাচাই অপেক্ষমান");
+        if (k1_sub) k1_sub.textContent = currentLang === "en" ? "Bar Council Advocate Applications" : "বাংলাদেশ বার কাউন্সিল আইনজীবী আবেদন";
+
+        var k2 = kpis[1].querySelector(".k-label");
+        var k2_sub = kpis[1].querySelector(".k-sub");
+        if (k2) k2.innerHTML = '<i data-lucide="clock"></i> ' + (currentLang === "en" ? "Review Queue Backlog" : "রিভিউ কিউ ব্যাকলগ");
+        if (k2_sub) k2_sub.textContent = currentLang === "en" ? "Cases pending lawyer approval" : "আইনজীবী পর্যালোচনার অপেক্ষায়";
+
+        var k3 = kpis[2].querySelector(".k-label");
+        var k3_sub = kpis[2].querySelector(".k-sub");
+        if (k3) k3.innerHTML = '<i data-lucide="book-marked"></i> ' + (currentLang === "en" ? "Statutes & Act Corpus" : "আইন ও স্ট্যাটিউট করপাস");
+        if (k3_sub) k3_sub.textContent = currentLang === "en" ? "Fully digitalized legal repository" : "সম্পূর্ণ ডিজিটালাইজড আইন ভাণ্ডার";
+
+        var k4 = kpis[3].querySelector(".k-label");
+        var k4_sub = kpis[3].querySelector(".k-sub");
+        if (k4) k4.innerHTML = '<i data-lucide="users"></i> ' + (currentLang === "en" ? "Total Platform Users" : "মোট প্ল্যাটফর্ম ব্যবহারকারী");
+        if (k4_sub) k4_sub.textContent = currentLang === "en" ? "Citizen and advocate accounts" : "নাগরিক ও আইনজীবী একাউন্ট";
       }
 
-      document.querySelectorAll("table tbody a.btn-primary").forEach(function(btn) {
-        btn.textContent = currentLang === "en" ? "Review Draft →" : "পর্যালোচনা করুন →";
-      });
+      var triageTitle = document.querySelector(".card h2 i[data-lucide='award']");
+      if (triageTitle && triageTitle.parentElement) {
+        triageTitle.parentElement.innerHTML = '<i data-lucide="award" style="display:inline;vertical-align:middle;color:var(--gold);"></i> ' + (currentLang === "en" ? "Advocate Bar Verification Triage (FR-17)" : "আইনজীবী সনদ যাচাই ট্রায়াজ (FR-17)");
+      }
+
+      var triageThs = document.querySelectorAll("table thead th");
+      if (triageThs.length >= 4) {
+        triageThs[0].textContent = currentLang === "en" ? "Applicant Name" : "আবেদনকারীর নাম";
+        triageThs[1].textContent = currentLang === "en" ? "Bar Reg No" : "বার রেজিস্ট্রেশন নং";
+        triageThs[2].textContent = currentLang === "en" ? "Date" : "তারিখ";
+        triageThs[3].textContent = currentLang === "en" ? "Decision" : "সিদ্ধান্ত";
+      }
+
+      var auditHead = document.querySelector(".card h2 i[data-lucide='history']");
+      if (auditHead && auditHead.parentElement) {
+        auditHead.parentElement.innerHTML = '<i data-lucide="history" style="display:inline;vertical-align:middle;color:var(--gold);"></i> ' + (currentLang === "en" ? "Recent System Audit & Security Logs" : "সাম্প্রতিক সিস্টেম অডিট ও সিকিউরিটি লগ");
+      }
+
+      // Real-time Live Infrastructure Pulse Monitor
+      function updateLiveHealthPulse() {
+        if (!document.getElementById("db-status-dot")) {
+          if (window._adminHealthPollInterval) {
+            clearInterval(window._adminHealthPollInterval);
+            window._adminHealthPollInterval = null;
+          }
+          return;
+        }
+
+        var updatedSpan = document.getElementById("pulse-last-updated");
+        fetch("/Admin/HealthStatus", { headers: { "Accept": "application/json" } })
+          .then(function(r) {
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            return r.json();
+          })
+          .then(function(data) {
+            if (!data) return;
+            var dbDot = document.getElementById("db-status-dot");
+            var dbText = document.getElementById("db-status-text");
+            if (dbDot && dbText) {
+              dbDot.style.background = data.isDatabaseHealthy ? "#16a34a" : "#dc2626";
+              dbDot.style.boxShadow = data.isDatabaseHealthy ? "0 0 8px #16a34a" : "0 0 8px #dc2626";
+              dbText.textContent = data.databaseStatus;
+              dbText.style.color = data.isDatabaseHealthy ? "" : "#dc2626";
+              dbText.style.fontWeight = data.isDatabaseHealthy ? "" : "600";
+            }
+
+            var qdrantDot = document.getElementById("qdrant-status-dot");
+            var qdrantText = document.getElementById("qdrant-status-text");
+            if (qdrantDot && qdrantText) {
+              qdrantDot.style.background = data.isVectorDbHealthy ? "#16a34a" : "#d97706";
+              qdrantDot.style.boxShadow = data.isVectorDbHealthy ? "0 0 8px #16a34a" : "0 0 8px #d97706";
+              qdrantText.textContent = data.vectorDbStatus;
+              qdrantText.style.color = data.isVectorDbHealthy ? "" : "#b45309";
+              qdrantText.style.fontWeight = data.isVectorDbHealthy ? "" : "600";
+            }
+
+            var geminiDot = document.getElementById("gemini-status-dot");
+            var geminiText = document.getElementById("gemini-status-text");
+            if (geminiDot && geminiText) {
+              geminiDot.style.background = data.isAiServiceHealthy ? "#16a34a" : "#dc2626";
+              geminiDot.style.boxShadow = data.isAiServiceHealthy ? "0 0 8px #16a34a" : "0 0 8px #dc2626";
+              geminiText.textContent = data.aiServiceStatus;
+              geminiText.style.color = data.isAiServiceHealthy ? "" : "#dc2626";
+              geminiText.style.fontWeight = data.isAiServiceHealthy ? "" : "600";
+            }
+
+            var pulseBadge = document.getElementById("pulse-badge");
+            if (pulseBadge) {
+              pulseBadge.className = "badge " + data.overallHealthBadgeClass;
+              pulseBadge.textContent = currentLang === "en" 
+                ? (data.isDatabaseHealthy && data.isVectorDbHealthy && data.isAiServiceHealthy ? "All Services Operational" : "Degraded · Fallback Active")
+                : data.overallHealthBadgeText;
+            }
+
+            if (updatedSpan) {
+              updatedSpan.textContent = (currentLang === "en" ? "Live: " : "লাইভ: ") + data.lastChecked;
+            }
+          })
+          .catch(function(err) {
+            // Silently catch in background poll
+          });
+      }
+
+      var refreshBtn = document.getElementById("pulse-refresh-btn");
+      if (refreshBtn && !refreshBtn.dataset.wired) {
+        refreshBtn.dataset.wired = "true";
+        refreshBtn.addEventListener("click", function() {
+          updateLiveHealthPulse();
+        });
+      }
+
+      // Automatically poll health status every 5 seconds only while on the Admin Dashboard
+      if (!window._adminHealthPollInterval && document.getElementById("db-status-dot")) {
+        window._adminHealthPollInterval = setInterval(updateLiveHealthPulse, 5000);
+      }
+
+    } else if (path.indexOf("/admin/analytics") !== -1) {
+      // Admin Analytics Page
+      var kicker = document.querySelector(".page-head .kicker");
+      if (kicker) kicker.innerHTML = '<i data-lucide="bar-chart-3"></i> ' + (currentLang === "en" ? "FR-16 · Anonymized Analytics & Observability" : "FR-16 · Anonymized Analytics & Observability");
+      var title = document.querySelector(".page-head .page-title");
+      if (title) title.textContent = currentLang === "en" ? "System Analytics & Impact Report" : "সিস্টেম অ্যানালিটিক্স ও কার্যক্ষমতা রিপোর্ট";
+      var sub = document.querySelector(".page-head .page-sub");
+      if (sub) sub.textContent = currentLang === "en" ? "Platform utilization, geographic legal demand, AI processing latency, and lawyer review turnaround metrics." : "প্ল্যাটফর্ম ব্যবহার, আইনি বিভাগের ভৌগোলিক বণ্টন, এআই প্রসেসিং লেটেন্সি ও আইনজীবী রিভিউ টার্নঅ্যারাউন্ড মেট্রিক্স।";
+
+      var kpis = document.querySelectorAll(".grid-4 .kpi");
+      if (kpis.length >= 4) {
+        var k1 = kpis[0].querySelector(".k-label");
+        var k1_sub = kpis[0].querySelector(".k-sub");
+        if (k1) k1.innerHTML = '<i data-lucide="folder-check"></i> ' + (currentLang === "en" ? "Total Resolved Cases" : "সর্বমোট সমাধানকৃত মামলা");
+        if (k1_sub) k1_sub.textContent = currentLang === "en" ? "New cases this week" : "এই সপ্তাহে নতুন";
+
+        var k2 = kpis[1].querySelector(".k-label");
+        var k2_num = kpis[1].querySelector(".k-num");
+        var k2_sub = kpis[1].querySelector(".k-sub");
+        if (k2) k2.innerHTML = '<i data-lucide="clock"></i> ' + (currentLang === "en" ? "Avg Lawyer Review Time" : "গড় আইনজীবী রিভিউ সময়");
+        if (k2_num) k2_num.textContent = currentLang === "en" ? "3.4 Hours" : "৩.৪ ঘণ্টা";
+        if (k2_sub) k2_sub.textContent = currentLang === "en" ? "Target: < 6 hours" : "টার্গেট: < ৬ ঘণ্টা";
+
+        var k3 = kpis[2].querySelector(".k-label");
+        var k3_sub = kpis[2].querySelector(".k-sub");
+        if (k3) k3.innerHTML = '<i data-lucide="cpu"></i> ' + (currentLang === "en" ? "AI Calls Today" : "AI কল ভলিউম (আজ)");
+        if (k3_sub) k3_sub.textContent = currentLang === "en" ? "Failure rate: 2.1%" : "ব্যর্থতার হার: ২.১%";
+
+        var k4 = kpis[3].querySelector(".k-label");
+        var k4_sub = kpis[3].querySelector(".k-sub");
+        if (k4) k4.innerHTML = '<i data-lucide="zap"></i> ' + (currentLang === "en" ? "Avg RAG Response Latency" : "গড় RAG রেসপন্স লেটেন্সি");
+        if (k4_sub) k4_sub.textContent = currentLang === "en" ? "Google Gemini + Qdrant" : "Google Gemini + Qdrant";
+      }
+
+      var chartH1 = document.querySelector(".card h3");
+      if (chartH1 && (chartH1.textContent.indexOf("মামলা বিভাজন") !== -1 || chartH1.textContent.indexOf("Case Share") !== -1)) {
+        chartH1.textContent = currentLang === "en" ? "Case Distribution by Legal Category (Case Share)" : "আইনি বিষয়ভিত্তিক মামলা বিভাজন (Case Share)";
+      }
+
+    } else if (path.indexOf("/account/profile") !== -1) {
+      // User Profile Page
+      var crumbProfile = document.querySelector(".breadcrumbs span:last-child");
+      if (crumbProfile) crumbProfile.textContent = currentLang === "en" ? "Account Profile" : "অ্যাকাউন্ট প্রোফাইল";
+      // Remaining profile copy is driven by data-bn/data-en attributes in the view.
 
     } else if (path.indexOf("/account/login") !== -1) {
       // Login Page
@@ -999,6 +1202,8 @@
       if (demoLawyer) demoLawyer.textContent = currentLang === "en" ? "Lawyer" : "আইনজীবী";
       var demoAdmin = document.querySelector(".demo-role-admin");
       if (demoAdmin) demoAdmin.textContent = currentLang === "en" ? "Admin" : "অ্যাডমিন";
+      var demoSuperAdmin = document.querySelector(".demo-role-superadmin");
+      if (demoSuperAdmin) demoSuperAdmin.textContent = currentLang === "en" ? "SuperAdmin" : "সুপার অ্যাডমিন";
 
       var regPrompts = document.querySelectorAll('.auth-card .text-center, .auth-card p.muted.tiny, .auth-card p:last-of-type');
       regPrompts.forEach(function (el) {
@@ -1234,6 +1439,14 @@
     window.dispatchEvent(new CustomEvent("languagechange", { detail: { lang: currentLang } }));
   }
 
+  // Minimal public surface so a page-specific control (e.g. the Profile page's
+  // "Preferred Language" select) can read/drive the same toggle this file owns,
+  // without reaching into this closure's internals.
+  window.mktLang = {
+    get: function () { return currentLang; },
+    set: applyLanguage
+  };
+
   document.addEventListener("DOMContentLoaded", function () {
     /* theme toggle buttons */
     document.querySelectorAll(".theme-toggle").forEach(function (b) {
@@ -1276,17 +1489,64 @@
       });
     });
 
+    /* Grows a textarea to fit all of its content so the whole document is
+       visible with no inner scrollbar -- used by the Lawyer Review compare
+       card below, where a fixed rows="" height would clip long drafts. */
+    function autosizeTextarea(el) {
+      if (!el) return;
+      el.style.height = "auto";
+      // +2px: border-box rounding can leave scrollHeight a hair taller than
+      // the exact content, which would otherwise show a 1px inner scrollbar.
+      el.style.height = (el.scrollHeight + 2) + "px";
+    }
+    document.querySelectorAll(".compare-pane textarea, .tab-panel textarea").forEach(function (ta) {
+      autosizeTextarea(ta);
+      ta.addEventListener("input", function () { autosizeTextarea(ta); });
+    });
+    // Re-measure on resize too: crossing the 900px breakpoint swaps which
+    // pane is visible (mobile tab vs. desktop grid), and it was 0-height
+    // (hidden) the last time it was measured.
+    var resizeRaf = null;
+    window.addEventListener("resize", function () {
+      if (resizeRaf) return;
+      resizeRaf = requestAnimationFrame(function () {
+        resizeRaf = null;
+        document.querySelectorAll(".compare-pane textarea, .tab-panel textarea").forEach(autosizeTextarea);
+      });
+    });
+
     /* underline tabs */
     document.querySelectorAll("[data-tabs]").forEach(function (tabsEl) {
-      var buttons = tabsEl.querySelectorAll("button");
+      var buttons = tabsEl.querySelectorAll("[data-tab]");
+      var panels = tabsEl.querySelectorAll("[data-tab-panel]");
+      // Lawyer Review's compare card reuses this same button row to drive its
+      // desktop side-by-side grid: Original/Editable expand that pane to the
+      // full window width, and Split View (desktop-only -- hidden on
+      // mobile, where tabs already show one pane at a time) returns to the
+      // split view.
+      var grid = tabsEl.closest(".card") && tabsEl.closest(".card").querySelector(".compare-grid-desktop");
       buttons.forEach(function (btn) {
         btn.addEventListener("click", function () {
+          var name = btn.dataset.tab;
+
           buttons.forEach(function (b) { b.classList.remove("active"); });
           btn.classList.add("active");
-          var scope = document.querySelector(tabsEl.dataset.tabs) || document;
-          scope.querySelectorAll(":scope > .tab-panel, :scope .tab-panel").forEach(function (p) {
-            p.classList.toggle("active", p.id === btn.dataset.panel);
-          });
+
+          var panel = tabsEl.querySelector('[data-tab-panel="' + name + '"]');
+          if (panel) {
+            panels.forEach(function (p) { p.hidden = p !== panel; });
+          }
+
+          if (grid) {
+            grid.classList.remove("focus-original", "focus-editable");
+            if (name === "original" || name === "editable") grid.classList.add("focus-" + name);
+          }
+
+          // A pane hidden a moment ago measured 0 scrollHeight; now that it's
+          // visible again, size it for real.
+          tabsEl.querySelectorAll("textarea").forEach(autosizeTextarea);
+          if (grid) { var gta = grid.querySelector("textarea"); if (gta) autosizeTextarea(gta); }
+
           renderIcons();
         });
       });
@@ -1333,6 +1593,182 @@
     document.addEventListener("click", function (e) {
       if (!e.target.closest(".pop-wrap")) closePops();
     });
+
+    /* notifications: bell badge + poll dropdown (no-ops when logged out --
+       #notif-bell only renders in _Layout.cshtml's authenticated branch) */
+    (function () {
+      var bell = document.getElementById("notif-bell");
+      if (!bell) return;
+
+      var badge = document.getElementById("notif-badge");
+      var list = document.getElementById("notif-pop-list");
+
+      // AUD-1: same csrf-token <meta> that chat.js / Case/Result.cshtml
+      // already read for every other authenticated POST -- guaranteed on
+      // every page (unlike a hidden form input, which depends on markup
+      // elsewhere on the page).
+      function antiForgeryToken() {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute("content") : "";
+      }
+
+      var headCount = document.getElementById("notif-pop-count");
+
+      function isEn() { return document.documentElement.lang === "en"; }
+
+      function num(n) { return isEn() ? String(n) : toBengaliDigits(n); }
+
+      // CreatedAt is stored as UTC but EF hands it back as Unspecified, so
+      // the JSON has no offset -- treat an offset-less stamp as UTC.
+      function timeAgo(stamp) {
+        if (!stamp) return "";
+        if (!/(Z|[+-]\d\d:?\d\d)$/.test(stamp)) stamp += "Z";
+        var secs = Math.max(0, (Date.now() - new Date(stamp).getTime()) / 1000);
+        var mins = Math.floor(secs / 60), hrs = Math.floor(mins / 60), days = Math.floor(hrs / 24);
+        if (mins < 1) return isEn() ? "Just now" : "এইমাত্র";
+        if (hrs < 1) return isEn() ? mins + " min ago" : num(mins) + " মিনিট আগে";
+        if (days < 1) return isEn() ? hrs + " hr ago" : num(hrs) + " ঘণ্টা আগে";
+        if (days < 7) return isEn() ? days + (days === 1 ? " day ago" : " days ago") : num(days) + " দিন আগে";
+        return new Date(stamp).toLocaleDateString(isEn() ? "en-GB" : "bn-BD", { day: "numeric", month: "short", year: "numeric" });
+      }
+
+      function post(url) {
+        return fetch(url, {
+          method: "POST",
+          headers: { "RequestVerificationToken": antiForgeryToken() }
+        });
+      }
+
+      function el(tag, cls, text) {
+        var node = document.createElement(tag);
+        if (cls) node.className = cls;
+        if (text != null) node.textContent = text;
+        return node;
+      }
+
+      function render(data) {
+        if (data.count > 0) {
+          badge.textContent = num(data.count > 99 ? "99+" : data.count);
+          badge.hidden = false;
+          headCount.textContent = isEn() ? data.count + " new" : num(data.count) + "টি নতুন";
+          headCount.hidden = false;
+        } else {
+          badge.hidden = true;
+          headCount.hidden = true;
+        }
+        list.innerHTML = "";
+        if (!data.items || !data.items.length) {
+          var empty = el("div", "notif-empty");
+          var icon = el("i");
+          icon.setAttribute("data-lucide", "bell-off");
+          empty.appendChild(icon);
+          empty.appendChild(el("span", null, isEn() ? "You're all caught up." : "কোনো বিজ্ঞপ্তি নেই।"));
+          list.appendChild(empty);
+          renderIcons(list);
+          return;
+        }
+        data.items.forEach(function (item) {
+          var row = el("div", "notif-item" + (item.isRead ? "" : " unread"));
+
+          var link = el("a", "notif-item-link");
+          link.href = item.url;
+          link.appendChild(el("span", "notif-dot"));
+          var body = el("span", "notif-item-body");
+          body.appendChild(el("span", "notif-item-text", isEn() ? item.textEn : item.textBn));
+          body.appendChild(el("span", "notif-item-time", timeAgo(item.createdAt)));
+          link.appendChild(body);
+          link.addEventListener("click", function (e) {
+            e.preventDefault();
+            post("/Notification/MarkRead?id=" + encodeURIComponent(item.id))
+              .finally(function () { window.location.href = item.url; });
+          });
+
+          var del = el("button", "notif-del");
+          del.type = "button";
+          del.setAttribute("aria-label", isEn() ? "Delete notification" : "বিজ্ঞপ্তি মুছুন");
+          del.title = del.getAttribute("aria-label");
+          var trash = el("i");
+          trash.setAttribute("data-lucide", "trash-2");
+          del.appendChild(trash);
+          del.addEventListener("click", function (e) {
+            // keep the dropdown open: the document-level click handler
+            // closes pops when the target is outside .pop-wrap, and this
+            // row is about to be detached from the DOM.
+            e.stopPropagation();
+            del.disabled = true;
+            function deleteFailed() {
+              del.disabled = false;
+              if (typeof window.showToast === "function") {
+                window.showToast(isEn()
+                  ? "Could not delete the notification. Please try again."
+                  : "বিজ্ঞপ্তি মুছে ফেলা যায়নি। আবার চেষ্টা করুন।", "error");
+              }
+            }
+            post("/Notification/Delete?id=" + encodeURIComponent(item.id))
+              .then(function (r) { if (r.ok) poll(); else deleteFailed(); })
+              .catch(deleteFailed);
+          });
+
+          row.appendChild(link);
+          row.appendChild(del);
+          list.appendChild(row);
+        });
+        renderIcons(list);
+      }
+
+      function poll() {
+        return fetch("/Notification/Unread")
+          .then(function (r) { return r.json(); })
+          .then(function (data) { render(data); return data; })
+          .catch(function () { return null; });
+      }
+
+      // On open: refresh (so times and language are current), then mark
+      // everything *seen* -- clears the badge only. Rows stay bold until
+      // each one is actually opened (IsRead), which also keeps My Cases'
+      // unread-activity dot intact.
+      var pop = document.getElementById("notif-pop");
+      bell.addEventListener("click", function () {
+        if (!pop.classList.contains("open")) return; // this click closed it
+        poll().then(function (data) {
+          if (!data || !data.count) return;
+          badge.hidden = true;
+          post("/Notification/MarkAllSeen").catch(function () {});
+        });
+      });
+      poll();
+
+      // Real-time: the server pushes a content-free "notificationsChanged"
+      // signal (Hubs/NotificationHub) whenever this user's notifications
+      // change, and we re-fetch. Polling only runs while the socket is down
+      // (or if the SignalR client script failed to load).
+      var pollTimer = null;
+      function startPolling() { if (!pollTimer) pollTimer = setInterval(poll, 30000); }
+      function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+
+      if (!window.signalR) { startPolling(); return; }
+
+      var connection = new window.signalR.HubConnectionBuilder()
+        .withUrl("/hubs/notifications")
+        .withAutomaticReconnect()
+        .build();
+      connection.on("notificationsChanged", poll);
+      // catch up on anything missed while disconnected
+      connection.onreconnecting(startPolling);
+      connection.onreconnected(function () { stopPolling(); poll(); });
+
+      function connect() {
+        connection.start()
+          .then(function () { stopPolling(); poll(); })
+          .catch(function () {
+            // automatic reconnect only covers drops after a successful start
+            startPolling();
+            setTimeout(connect, 15000);
+          });
+      }
+      connection.onclose(function () { startPolling(); setTimeout(connect, 15000); });
+      connect();
+    })();
 
     /* modals & bottom sheets */
     document.querySelectorAll("[data-open-modal]").forEach(function (t) {
@@ -1402,12 +1838,212 @@
       update();
     });
 
-    /* demo confirm dialogs [data-confirm] */
-    document.querySelectorAll("[data-confirm]").forEach(function (el) {
-      el.addEventListener("click", function (e) {
-        if (!window.confirm(el.dataset.confirm)) e.preventDefault();
+    /* Long content preview (Case/Result: generated document, rights
+       explanation): clamp + fade + the expand toggle only kick in when the
+       content actually overflows the box, so a short block renders plainly
+       with no dead space under a fake control. The button carries its own
+       expand/collapse wording via its data-more-en/data-more-bn and
+       data-less-en/data-less-bn attributes, so this one mechanism serves
+       callers with different labels (e.g. "Show full document" vs.
+       "Read more"). */
+    document.querySelectorAll("[data-clamp-preview]").forEach(function (box) {
+      var btn = document.querySelector('[data-clamp-expand-for="' + box.id + '"]');
+      if (!btn || box.scrollHeight <= box.clientHeight + 2) return;
+      box.classList.add("overflowing");
+      btn.hidden = false;
+      btn.addEventListener("click", function () {
+        var open = box.classList.toggle("expanded");
+        box.classList.toggle("overflowing", !open);
+        btn.querySelector("span").textContent = open
+          ? (currentLang === "en" ? btn.dataset.lessEn : btn.dataset.lessBn)
+          : (currentLang === "en" ? btn.dataset.moreEn : btn.dataset.moreBn);
       });
     });
+
+    /* ---------- Custom Themed Confirm Dialog ---------- */
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    window.showConfirmDialog = function (options) {
+      options = options || {};
+      var msg = options.message || "";
+      var title = options.title || (currentLang === "en" ? "Please Confirm" : "নিশ্চিতকরণ");
+      var okText = options.okText || (currentLang === "en" ? "Confirm" : "নিশ্চিত করুন");
+      var cancelText = options.cancelText || (currentLang === "en" ? "Cancel" : "বাতিল");
+      var isDanger = !!options.isDanger;
+      var iconName = options.icon || (isDanger ? "alert-triangle" : "shield-check");
+      var iconClass = isDanger ? "danger" : "primary";
+
+      // Remove any existing confirm modal
+      var old = document.getElementById("global-confirm-modal");
+      if (old) old.remove();
+
+      var bd = document.createElement("div");
+      bd.className = "modal-backdrop open";
+      bd.id = "global-confirm-modal";
+      bd.setAttribute("role", "dialog");
+      bd.setAttribute("aria-modal", "true");
+      bd.style.zIndex = "120";
+
+      bd.innerHTML =
+        '<div class="modal confirm-modal" style="box-shadow: var(--shadow-lg);">' +
+          '<div class="modal-handle"></div>' +
+          '<div class="modal-head" style="margin-bottom: 8px;">' +
+            '<div style="display: flex; align-items: center; gap: 10px;">' +
+              '<div class="confirm-modal-icon ' + iconClass + '">' +
+                icon(iconName) +
+              '</div>' +
+              '<div>' +
+                '<span class="kicker" style="font-size: 11px; margin-bottom: 2px; color: var(--' + (isDanger ? "danger" : "primary") + ');">' +
+                  (isDanger ? (currentLang === "en" ? "Action Warning" : "সতর্কতা") : (currentLang === "en" ? "Confirmation" : "নিশ্চিতকরণ")) +
+                '</span>' +
+                '<h3 style="font-size: 17px; margin: 0; font-weight: 700;">' + escapeHtml(title) + '</h3>' +
+              '</div>' +
+            '</div>' +
+            '<button class="icon-btn" type="button" aria-label="Close" data-confirm-action="cancel">' + icon("x") + '</button>' +
+          '</div>' +
+          '<div class="confirm-modal-body">' +
+            escapeHtml(msg) +
+          '</div>' +
+          '<div class="row" style="justify-content: flex-end; gap: 10px; margin-top: 4px;">' +
+            '<button class="btn btn-outline btn-sm" type="button" data-confirm-action="cancel">' + escapeHtml(cancelText) + '</button>' +
+            '<button class="btn ' + (isDanger ? "btn-danger" : "btn-primary") + ' btn-sm" type="button" data-confirm-action="ok">' + escapeHtml(okText) + '</button>' +
+          '</div>' +
+        '</div>';
+
+      document.body.appendChild(bd);
+      renderIcons(bd);
+
+      function closeDialog() {
+        document.removeEventListener("keydown", onKey);
+        bd.classList.remove("open");
+        setTimeout(function () { bd.remove(); }, 200);
+      }
+
+      function onKey(e) {
+        if (e.key === "Escape") {
+          closeDialog();
+          if (typeof options.onCancel === "function") options.onCancel();
+        }
+      }
+      document.addEventListener("keydown", onKey);
+
+      bd.addEventListener("click", function (e) {
+        if (e.target === bd) {
+          closeDialog();
+          if (typeof options.onCancel === "function") options.onCancel();
+        }
+      });
+
+      bd.querySelectorAll('[data-confirm-action="cancel"]').forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          closeDialog();
+          if (typeof options.onCancel === "function") options.onCancel();
+        });
+      });
+
+      var okBtn = bd.querySelector('[data-confirm-action="ok"]');
+      if (okBtn) {
+        okBtn.focus();
+        okBtn.addEventListener("click", function () {
+          closeDialog();
+          if (typeof options.onConfirm === "function") options.onConfirm();
+        });
+      }
+    };
+
+    /* Intercept [data-confirm] buttons and forms with website-themed confirm dialog */
+    document.addEventListener("click", function (e) {
+      var target = e.target.closest("[data-confirm]");
+      if (!target) return;
+
+      if (target._confirmed) {
+        target._confirmed = false;
+        return;
+      }
+
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      var rawMsg = currentLang === "en" 
+        ? (target.dataset.confirmEn || target.dataset.confirm || "") 
+        : (target.dataset.confirmBn || target.dataset.confirm || "");
+
+      if (rawMsg.indexOf(" / ") !== -1) {
+        var parts = rawMsg.split(" / ");
+        rawMsg = currentLang === "en" ? (parts[1] || parts[0]) : parts[0];
+      }
+
+      var rawTitle = currentLang === "en"
+        ? (target.dataset.confirmTitleEn || target.dataset.confirmTitle || "")
+        : (target.dataset.confirmTitleBn || target.dataset.confirmTitle || "");
+
+      if (rawTitle.indexOf(" / ") !== -1) {
+        var tparts = rawTitle.split(" / ");
+        rawTitle = currentLang === "en" ? (tparts[1] || tparts[0]) : tparts[0];
+      }
+
+      var rawOk = currentLang === "en"
+        ? (target.dataset.confirmOkEn || target.dataset.confirmOk || "")
+        : (target.dataset.confirmOkBn || target.dataset.confirmOk || "");
+
+      if (rawOk.indexOf(" / ") !== -1) {
+        var okParts = rawOk.split(" / ");
+        rawOk = currentLang === "en" ? (okParts[1] || okParts[0]) : okParts[0];
+      }
+
+      var rawCancel = currentLang === "en"
+        ? (target.dataset.confirmCancelEn || target.dataset.confirmCancel || "")
+        : (target.dataset.confirmCancelBn || target.dataset.confirmCancel || "");
+
+      if (rawCancel.indexOf(" / ") !== -1) {
+        var cParts = rawCancel.split(" / ");
+        rawCancel = currentLang === "en" ? (cParts[1] || cParts[0]) : cParts[0];
+      }
+
+      var isDanger = target.classList.contains("btn-danger") || 
+                     target.classList.contains("btn-danger-outline") || 
+                     (target.querySelector && target.querySelector(".btn-danger, .btn-danger-outline") !== null) ||
+                     target.dataset.confirmDanger === "true" ||
+                     (target.getAttribute("aria-label") === "Delete") ||
+                     (rawMsg.toLowerCase().indexOf("delete") !== -1 || rawMsg.toLowerCase().indexOf("suspend") !== -1 || rawMsg.toLowerCase().indexOf("refund") !== -1 || rawMsg.toLowerCase().indexOf("withdraw") !== -1);
+
+      window.showConfirmDialog({
+        message: rawMsg,
+        title: rawTitle || (isDanger ? (currentLang === "en" ? "Warning" : "সতর্কতা") : (currentLang === "en" ? "Confirmation" : "নিশ্চিতকরণ")),
+        okText: rawOk || (currentLang === "en" ? "Confirm" : "নিশ্চিত করুন"),
+        cancelText: rawCancel || (currentLang === "en" ? "Cancel" : "বাতিল"),
+        isDanger: isDanger,
+        onConfirm: function () {
+          target._confirmed = true;
+          if (target.tagName === "FORM") {
+            if (typeof target.requestSubmit === "function") {
+              target.requestSubmit(e.target);
+            } else {
+              target.submit();
+            }
+          } else if (target.type === "submit" && target.closest("form")) {
+            var f = target.closest("form");
+            if (typeof f.requestSubmit === "function") {
+              f.requestSubmit(target);
+            } else {
+              f.submit();
+            }
+          } else if (target.tagName === "A" && target.href) {
+            window.location.href = target.href;
+          } else {
+            target.click();
+          }
+        }
+      });
+    }, true);
 
     /* composer autogrow */
     document.querySelectorAll(".composer textarea, textarea.autogrow").forEach(function (ta) {
