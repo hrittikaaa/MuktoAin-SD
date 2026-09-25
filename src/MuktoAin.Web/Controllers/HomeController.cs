@@ -1,6 +1,4 @@
-using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using MuktoAin.Web.Models;
 
 namespace MuktoAin.Web.Controllers;
 
@@ -13,19 +11,56 @@ public class HomeController : Controller
         _logger = logger;
     }
 
+    [HttpGet]
     public IActionResult Index()
     {
         return View();
     }
 
+    [HttpGet("/Chat")]
+    public IActionResult Chat() => View("Index");
+
+    [HttpGet]
+    public IActionResult About()
+    {
+        return View();
+    }
+
+    [HttpGet]
     public IActionResult Privacy()
     {
         return View();
     }
 
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public IActionResult Error()
+    [HttpGet]
+    public IActionResult AccessDenied()
     {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        Response.StatusCode = 403;
+        return View("AccessDenied");
+    }
+
+    [HttpGet]
+    [Route("Home/NotFound")]
+    public new IActionResult NotFound()
+    {
+        Response.StatusCode = 404;
+        return View("NotFound");
+    }
+
+    [HttpGet]
+    public IActionResult ServerError()
+    {
+        Response.StatusCode = 500;
+        return View("ServerError");
+    }
+
+    [Route("/Home/Error")]
+    public IActionResult Error(int? statusCode = null)
+    {
+        if (statusCode == 403) return RedirectToAction("AccessDenied");
+        if (statusCode == 404) return RedirectToAction("NotFound");
+        if (statusCode >= 500) return RedirectToAction("ServerError");
+
+        return View("ServerError");
     }
 }

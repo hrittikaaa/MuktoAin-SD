@@ -1,8 +1,14 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Localization;
+using MuktoAin.Application.Services;
 using MuktoAin.Domain.Entities;
 using MuktoAin.Domain.Enums;
 using MuktoAin.Domain.Interfaces.Repositories;
+using MuktoAin.Web.Auth;
+using MuktoAin.Web.Resources;
 using MuktoAin.Web.ViewModels;
 
 namespace MuktoAin.Web.Controllers;
@@ -12,18 +18,27 @@ public class AccountController : Controller
     private readonly SignInManager<User> _signInManager;
     private readonly UserManager<User> _userManager;
     private readonly IRepository<LawyerProfile> _lawyerProfileRepo;
+    private readonly IChatHistoryRepository _chatHistory;
     private readonly ILogger<AccountController> _logger;
+    private readonly IStringLocalizer<SharedResource> _localizer;
+    private readonly NotificationService _notificationService;
 
     public AccountController(
         SignInManager<User> signInManager,
         UserManager<User> userManager,
         IRepository<LawyerProfile> lawyerProfileRepo,
-        ILogger<AccountController> logger)
+        ILogger<AccountController> logger,
+        IStringLocalizer<SharedResource> localizer,
+        IChatHistoryRepository chatHistory,
+        NotificationService notificationService)
     {
         _signInManager = signInManager;
         _userManager = userManager;
         _lawyerProfileRepo = lawyerProfileRepo;
         _logger = logger;
+        _localizer = localizer;
+        _chatHistory = chatHistory;
+        _notificationService = notificationService;
     }
 
     [HttpGet]
@@ -34,6 +49,7 @@ public class AccountController : Controller
     }
 
     [HttpPost]
+    [EnableRateLimiting("auth")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
     {
@@ -45,13 +61,13 @@ public class AccountController : Controller
         var user = await _userManager.FindByEmailAsync(model.Email);
         if (user == null)
         {
-            ModelState.AddModelError(string.Empty, "ইমেইল অথবা পাসওয়ার্ড সঠিক নয়।");
+            ModelState.AddModelError(string.Empty, _localizer["Account_InvalidCredentials"].Value);
             return View(model);
         }
 
         if (user.AccountStatus == AccountStatus.Suspended)
         {
-            ModelState.AddModelError(string.Empty, "আপনার অ্যাকাউন্টটি সাময়িকভাবে স্থগিত করা হয়েছে।");
+            ModelState.AddModelError(string.Empty, _localizer["Account_Suspended"].Value);
             return View(model);
         }
 
@@ -59,7 +75,12 @@ public class AccountController : Controller
 
         if (result.Succeeded)
         {
+            var chatKey = HttpContext.Session.GetString("mkt-chatkey");
+            if (!string.IsNullOrEmpty(chatKey))
+                await _chatHistory.AdoptGuestSessionsAsync(user.Id, chatKey, HttpContext.RequestAborted);
+
             TempData["Success"] = "লগইন সফল হয়েছে!";
+            TempData["SuccessEn"] = "Login successful!";
 
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             {
@@ -70,17 +91,17 @@ public class AccountController : Controller
             {
                 UserRole.Admin => RedirectToAction("Dashboard", "Admin"),
                 UserRole.Lawyer => RedirectToAction("Queue", "Lawyer"),
-                _ => RedirectToAction("Track", "Case")
+                _ => RedirectToAction("Index", "Home")
             };
         }
 
         if (result.IsLockedOut)
         {
-            ModelState.AddModelError(string.Empty, "অ্যাকাউন্টটি সাময়িকভাবে লক হয়েছে। কিছুক্ষণ পর চেষ্টা করুন।");
+            ModelState.AddModelError(string.Empty, _localizer["Account_Lockout"].Value);
             return View(model);
         }
 
-        ModelState.AddModelError(string.Empty, "ইমেইল অথবা পাসওয়ার্ড সঠিক নয়।");
+        ModelState.AddModelError(string.Empty, _localizer["Account_InvalidCredentials"].Value);
         return View(model);
     }
 
@@ -91,6 +112,7 @@ public class AccountController : Controller
     }
 
     [HttpPost]
+    [EnableRateLimiting("auth")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
@@ -102,7 +124,7 @@ public class AccountController : Controller
         var isLawyer = string.Equals(model.Role, "Lawyer", StringComparison.OrdinalIgnoreCase);
         if (isLawyer && string.IsNullOrWhiteSpace(model.BarRegistrationNumber))
         {
-            ModelState.AddModelError("BarRegistrationNumber", "আইনজীবীদের জন্য বার রেজিস্ট্রেশন নম্বর আবশ্যক।");
+            ModelState.AddModelError("BarRegistrationNumber", _localizer["Account_BarRegistrationRequired"].Value);
             return View(model);
         }
 
@@ -123,7 +145,8 @@ public class AccountController : Controller
         {
             foreach (var error in result.Errors)
             {
-                ModelState.AddModelError(string.Empty, error.Description);
+                var (field, message) = IdentityErrorMapper.Map(error, _localizer);
+                ModelState.AddModelError(field ?? string.Empty, message);
             }
             return View(model);
         }
@@ -140,9 +163,250 @@ public class AccountController : Controller
 
             await _lawyerProfileRepo.AddAsync(profile);
             await _lawyerProfileRepo.SaveChangesAsync();
+
+            await _notificationService.NotifyAllAdminsAsync(NotificationType.NewLawyerApplication,
+                lawyerProfileId: profile.LawyerProfileId);
         }
 
         TempData["Success"] = "নিবন্ধন সম্পন্ন হয়েছে! আপনার একাউন্টে প্রবেশ করুন।";
+        TempData["SuccessEn"] = "Registration complete! Please log in to your account.";
+        return RedirectToAction(nameof(Login));
+    }
+
+    [Authorize]
+    [HttpGet]
+    public async Task<IActionResult> Profile()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return RedirectToAction(nameof(Login));
+        }
+
+        var vm = new ProfileViewModel
+        {
+            UserId = user.Id,
+            Email = user.Email ?? string.Empty,
+            FullName = user.FullName,
+            PhoneNumber = user.PhoneNumber,
+            CurrentPhoneNumber = user.PhoneNumber,
+            Role = user.Role.ToString(),
+            AccountStatus = user.AccountStatus.ToString(),
+            PreferredLanguage = user.PreferredLanguage ?? "bn",
+            CreatedAt = user.CreatedAt
+        };
+
+        if (user.Role == UserRole.Lawyer)
+        {
+            var profiles = await _lawyerProfileRepo.GetAllAsync();
+            var lawyerProfile = profiles.FirstOrDefault(p => p.UserId == user.Id);
+            if (lawyerProfile != null)
+            {
+                vm.BarRegistrationNumber = lawyerProfile.BarRegistrationNumber;
+                vm.Specialization = lawyerProfile.Specialization;
+                vm.VerificationStatus = lawyerProfile.VerificationStatus.ToString();
+                vm.VerifiedAt = lawyerProfile.VerifiedAt;
+                vm.TotalReviewsCompleted = lawyerProfile.Reviews?.Count ?? 0;
+            }
+        }
+
+        return View(vm);
+    }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Profile(ProfileViewModel model)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return RedirectToAction(nameof(Login));
+        }
+
+        if (!ModelState.IsValid)
+        {
+            model.Email = user.Email ?? string.Empty;
+            model.Role = user.Role.ToString();
+            model.AccountStatus = user.AccountStatus.ToString();
+            model.CreatedAt = user.CreatedAt;
+            model.CurrentPhoneNumber = user.PhoneNumber;
+            return View(model);
+        }
+
+        user.FullName = model.FullName.Trim();
+        user.PhoneNumber = model.PhoneNumber?.Trim();
+        user.PreferredLanguage = model.PreferredLanguage ?? "bn";
+
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            foreach (var error in result.Errors)
+            {
+                var (field, msg) = IdentityErrorMapper.Map(error, _localizer);
+                ModelState.AddModelError(field ?? string.Empty, msg);
+            }
+            return View(model);
+        }
+
+        if (user.Role == UserRole.Lawyer)
+        {
+            var profiles = await _lawyerProfileRepo.GetAllAsync();
+            var lawyerProfile = profiles.FirstOrDefault(p => p.UserId == user.Id);
+            if (lawyerProfile != null)
+            {
+                lawyerProfile.Specialization = model.Specialization?.Trim();
+                await _lawyerProfileRepo.SaveChangesAsync();
+            }
+        }
+
+        TempData["Success"] = "প্রোফাইল তথ্য সফলভাবে আপডেট করা হয়েছে!";
+        TempData["SuccessEn"] = "Profile updated successfully!";
+        return RedirectToAction(nameof(Profile));
+    }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return RedirectToAction(nameof(Login));
+        }
+
+        if (!ModelState.IsValid)
+        {
+            TempData["Error"] = "পাসওয়ার্ড পরিবর্তনের তথ্য সঠিক নয়। অনুগ্রহ করে শর্তাবলী মেনে আবার চেষ্টা করুন।";
+            TempData["ErrorEn"] = "Invalid password data. Please check requirements and try again.";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        var result = await _userManager.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
+        if (result.Succeeded)
+        {
+            await _signInManager.RefreshSignInAsync(user);
+            TempData["Success"] = "পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে!";
+            TempData["SuccessEn"] = "Password changed successfully!";
+        }
+        else
+        {
+            var firstErr = result.Errors.FirstOrDefault()?.Description ?? "পাসওয়ার্ড পরিবর্তন ব্যর্থ হয়েছে।";
+            TempData["Error"] = $"পাসওয়ার্ড পরিবর্তন ব্যর্থ হয়েছে: {firstErr}";
+            TempData["ErrorEn"] = $"Password change failed: {firstErr}";
+        }
+
+        return RedirectToAction(nameof(Profile));
+    }
+
+    [HttpGet]
+    [AllowAnonymous]
+    public IActionResult ForgotPassword() => View();
+
+    [HttpPost]
+    [AllowAnonymous]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel vm)
+    {
+        if (!ModelState.IsValid) return View(vm);
+
+        var user = await _userManager.FindByEmailAsync(vm.Email);
+        if (user == null || user.AccountStatus == Domain.Enums.AccountStatus.Suspended)
+        {
+            // Do NOT reveal account existence — generic confirmation either way
+            TempData["Info"] = "যদি অ্যাকাউন্টটি থাকে, রিসেট লিংক ইমেইলে পাঠানো হয়েছে।";
+            TempData["InfoEn"] = "If the account exists, a reset link has been emailed.";
+            return RedirectToAction(nameof(Login));
+        }
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var resetUrl = Url.Action(nameof(ResetPassword), "Account",
+            new { email = vm.Email, token }, Request.Scheme);
+
+        // SMTP is not configured in the academic build. In Development, show
+        // the link directly (dev convenience, honestly labeled); in Production
+        // this is where an email would be sent (documented gap).
+        if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+        {
+            TempData["Info"] = "ডেভ মোড: রিসেট লিংক — " + resetUrl;
+            TempData["InfoEn"] = "Dev mode reset link: " + resetUrl;
+        }
+        else
+        {
+            TempData["Info"] = "যদি অ্যাকাউন্টটি থাকে, রিসেট লিংক ইমেইলে পাঠানো হয়েছে।";
+            TempData["InfoEn"] = "If the account exists, a reset link has been emailed.";
+        }
+        return RedirectToAction(nameof(Login));
+    }
+
+    [HttpGet]
+    [AllowAnonymous]
+    public IActionResult ResetPassword(string email, string token)
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(token))
+        {
+            TempData["Error"] = "রিসেট লিংকটি অসম্পূর্ণ — নতুন লিংকের জন্য আবার অনুরোধ করুন।";
+            TempData["ErrorEn"] = "The reset link is incomplete — please request a new one.";
+            return RedirectToAction(nameof(ForgotPassword));
+        }
+        return View(new ResetPasswordViewModel { Email = email, Token = token });
+    }
+
+    [HttpPost]
+    [AllowAnonymous]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetPassword(ResetPasswordViewModel vm)
+    {
+        if (!ModelState.IsValid) return View(vm);
+
+        // Unknown email and bad/expired token share one message, so the form
+        // never reveals whether an address is registered.
+        const string invalidLink =
+            "রিসেট লিংকটি অবৈধ বা মেয়াদোত্তীর্ণ — নতুন লিংকের জন্য আবার অনুরোধ করুন। / This reset link is invalid or has expired — please request a new one.";
+
+        var user = await _userManager.FindByEmailAsync(vm.Email);
+        if (user == null)
+        {
+            ModelState.AddModelError(string.Empty, invalidLink);
+            return View(vm);
+        }
+
+        var result = await _userManager.ResetPasswordAsync(user, vm.Token, vm.NewPassword);
+        if (result.Succeeded)
+        {
+            TempData["Success"] = "পাসওয়ার্ড পরিবর্তন হয়েছে — সাইন ইন করুন।";
+            TempData["SuccessEn"] = "Password changed — please sign in.";
+            return RedirectToAction(nameof(Login));
+        }
+        foreach (var e in result.Errors)
+        {
+            var message = e.Code == "InvalidToken"
+                ? invalidLink
+                : IdentityErrorMapper.Map(e, _localizer).Message;
+            ModelState.AddModelError(string.Empty, message);
+        }
+        return View(vm);
+    }
+
+    [HttpPost]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> LogoutEverywhere()
+    {
+        var userId = int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var id) ? id : (int?)null;
+        if (userId != null)
+        {
+            var user = await _userManager.FindByIdAsync(userId.Value.ToString());
+            if (user != null)
+            {
+                // Rotating the security stamp invalidates all existing cookies
+                await _userManager.UpdateSecurityStampAsync(user);
+            }
+        }
+        await _signInManager.SignOutAsync();
+        TempData["Info"] = "সব ডিভাইস থেকে লগ আউট হয়েছে।";
+        TempData["InfoEn"] = "Signed out of all devices.";
         return RedirectToAction(nameof(Login));
     }
 
@@ -152,6 +416,7 @@ public class AccountController : Controller
     {
         await _signInManager.SignOutAsync();
         TempData["Info"] = "সফলভাবে লগআউট করা হয়েছে।";
+        TempData["InfoEn"] = "You have been logged out successfully.";
         return RedirectToAction("Index", "Home");
     }
 }
