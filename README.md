@@ -1,107 +1,312 @@
 # ⚖️ MuktoAin (মুক্ত আইন)
 
-> **AI-augmented legal-aid platform for Bangladesh.** 🇧🇩
-> Citizens describe a legal problem in Bangla, English, or mixed Banglish —
-> MuktoAin retrieves the relevant statutes, explains their rights in plain
-> language, and drafts structured legal documents (GD applications, RTI
-> requests, labour & consumer complaints). **Every AI-generated draft is locked
-> behind a mandatory verified-lawyer review gate** before a citizen can use it.
+[![Live site](https://img.shields.io/badge/live%20site-muktoain--kr.azurewebsites.net-0078D4?logo=microsoftazure)](https://muktoain-kr.azurewebsites.net)
+[![CI](https://github.com/hrittikaaa/MuktoAin-SD/actions/workflows/ci.yml/badge.svg)](https://github.com/hrittikaaa/MuktoAin-SD/actions/workflows/ci.yml)
+[![Deploy](https://github.com/hrittikaaa/MuktoAin-SD/actions/workflows/deploy.yml/badge.svg)](https://github.com/hrittikaaa/MuktoAin-SD/actions/workflows/deploy.yml)
+[![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/download/dotnet/8.0)
+[![SQL Server 2022](https://img.shields.io/badge/SQL%20Server-2022-CC2927?logo=microsoftsqlserver)](https://www.microsoft.com/sql-server)
+[![Data: CC BY-SA 4.0](https://img.shields.io/badge/data-CC%20BY--SA%204.0-lightgrey)](https://creativecommons.org/licenses/by-sa/4.0/)
 
-## 👥 Team
+**A legal-aid platform for Bangladesh.** Citizens describe a legal problem in
+Bangla, English, or mixed Banglish. MuktoAin finds the relevant statutes,
+explains their rights in plain language, and drafts structured legal documents
+(GD applications, RTI requests, labour and consumer complaints). Every draft is
+locked behind a **mandatory review by a verified lawyer** before a citizen can
+use it.
 
-| Member | Role | Area |
-|---|---|---|
-| **Shads** | Project Lead | Identity & AI core, RAG ingestion, evaluation, delivery |
-| **Tultul** | Data Foundation | Schema, entities, repositories, search infrastructure |
-| **Arpita** | Document Pipeline | Case/document services, lawyer review gate, admin |
-| **Erin** | Frontend | Razor views, mock-first UI, final integration |
+**🌐 Live site: [muktoain-kr.azurewebsites.net](https://muktoain-kr.azurewebsites.net)**
+
+[Deployment guide](docs/deployment-guide.md) ·
+[Runbook](docs/runbook.md) ·
+[Contributing](CONTRIBUTING.md) ·
+[Report a bug](https://github.com/hrittikaaa/MuktoAin-SD/issues/new) ·
+[Issues](https://github.com/hrittikaaa/MuktoAin-SD/issues)
 
 ---
 
 ## 📑 Table of Contents
-- [1. 🧰 Technology Stack](#1--technology-stack)
-- [2. 🏛️ Architecture Overview](#2-️-architecture-overview)
-- [3. ⚡ Quick Start](#3--quick-start)
-- [4. 🐳 Docker](#4--docker)
-- [5. 📊 Dataset Attribution & Licenses](#5--dataset-attribution--licenses)
-- [6. ⚠️ Legal Disclaimer](#6-️-legal-disclaimer)
-- [7. 🆘 Troubleshooting](#7--troubleshooting)
+
+1. [About the Project](#1-about-the-project)
+2. [Features](#2-features)
+3. [Technology Stack](#3-technology-stack)
+4. [Architecture](#4-architecture)
+5. [Getting Started](#5-getting-started)
+6. [Running with Docker](#6-running-with-docker)
+7. [Testing](#7-testing)
+8. [Deployment](#8-deployment)
+9. [Project Structure](#9-project-structure)
+10. [Troubleshooting](#10-troubleshooting)
+11. [Contributing](#11-contributing)
+12. [Team](#12-team)
+13. [Dataset Attribution](#13-dataset-attribution)
+14. [Legal Disclaimer](#14-legal-disclaimer)
 
 ---
 
-## 1. 🧰 Technology Stack
+## 1. About the Project
 
-Full rationale in [AGENTS.md §2](AGENTS.md).
+Legal help in Bangladesh is expensive and hard to reach, and most statutes are
+written in dense legal language. MuktoAin closes that gap in three steps:
+
+1. **Understand**: a citizen describes their situation in any mix of Bangla
+   and English. The platform retrieves the matching sections from 1,484
+   Bangladesh Acts and explains them in plain language.
+2. **Draft**: for common case types (Labour, General Diary, Right to
+   Information, Consumer), it produces a structured draft document.
+3. **Verify**: a verified lawyer reviews, edits and approves every draft
+   before the citizen can download it. Nothing reaches a citizen unreviewed.
+
+The whole interface is bilingual (বাংলা / English), and a legal disclaimer is
+shown in the UI, attached to every generated answer, and stamped on every
+finalized PDF.
+
+## 2. Features
+
+**Citizens**
+- Conversational legal Q&A in Bangla, English or Banglish, with citations to
+  the exact Act and section
+- Keyword search across all Acts and sections
+- Case creation, draft documents, submission to a lawyer, and live status
+  tracking
+- PDF download of lawyer-approved documents
+- Chat credits and lawyer honorarium payments through bKash or card
+  (SSLCommerz), with a built-in simulator for offline development
+- Real-time notifications
+
+**Lawyers**
+- Verification by bar registration number before gaining access
+- Review queue with a "my field" filter by specialization
+- Claim, edit, approve or return drafts with comments
+- Earnings, payout requests and withdrawal history
+
+**Admins**
+- Lawyer verification and user suspension
+- Category and scenario-mapping management
+- Payment, refund and payout approval
+- Corpus and embedding progress, generation-quota monitoring, audit logs and
+  analytics
+
+**Platform**
+- Field-level encryption of case data (ASP.NET Core Data Protection)
+- Per-user rate limiting on chat and payment endpoints
+- Security headers on every response
+- Idempotent startup seeding, so a fresh database is usable on first run
+
+## 3. Technology Stack
 
 | Layer | Choice |
 |---|---|
-| Backend | ASP.NET Core MVC (.NET 8), C# |
-| Data access | Manual parameterized MSSQL queries (repository layer) + EF Core mapping onto hand-authored schema |
-| Relational DB | Microsoft SQL Server (schema managed via SSMS scripts) |
-| Vector DB | Qdrant (.NET SDK) |
-| Full-text fallback | SQL Server FTS |
-| Embeddings | Google `gemini-embedding-001` (3072-dim) |
-| Generation | Gemini Flash API (multi-key rotation, Polly resilience) |
-| Frontend | Razor Views + Bootstrap 5 + vanilla JS/Fetch |
-| Auth | ASP.NET Core Identity (Citizen / Lawyer / Admin) |
-| PDF | QuestPDF |
+| Backend | [ASP.NET Core MVC](https://learn.microsoft.com/aspnet/core/mvc/overview) (.NET 8), C# |
+| Data access | Parameterized SQL repositories + EF Core mapping onto a hand-written schema (no EF migrations) |
+| Relational database | [Microsoft SQL Server 2022](https://www.microsoft.com/sql-server) with Full-Text Search |
+| Vector database | [Qdrant](https://qdrant.tech/documentation/) via the .NET SDK |
+| Embeddings and generation | [Google Gemini API](https://ai.google.dev/gemini-api/docs) (`gemini-embedding-001`, Gemini Flash), key rotation with [Polly](https://www.pollydocs.org/) |
+| Frontend | Razor Views, [Bootstrap 5](https://getbootstrap.com/), vanilla JS, SignalR |
+| Authentication | [ASP.NET Core Identity](https://learn.microsoft.com/aspnet/core/security/authentication/identity) with Citizen, Lawyer and Admin roles |
+| PDF | [QuestPDF](https://www.questpdf.com/) |
+| Payments | [bKash](https://developer.bka.sh/) tokenized checkout, [SSLCommerz](https://developer.sslcommerz.com/) |
+| Hosting | [Azure App Service](https://learn.microsoft.com/azure/app-service/), Docker |
+| CI/CD | GitHub Actions |
 
-## 2. 🏛️ Architecture Overview
+## 4. Architecture
 
-Clean Architecture, 4 projects:
+The solution follows Clean Architecture across four projects. Dependencies
+point inward: `Web → Application → Domain`, with `Infrastructure` implementing
+the interfaces that `Domain` and `Application` define.
 
 ```text
 src/
- ├── MuktoAin.Domain/         # Entities, enums, interfaces, constants
- ├── MuktoAin.Application/    # DTOs, business logic, AI orchestration
- ├── MuktoAin.Infrastructure/ # SQL repos, Gemini/Qdrant clients, QuestPDF, encryption
- └── MuktoAin.Web/            # MVC controllers, views, viewmodels, localization
+ ├── MuktoAin.Domain/          # Entities, enums, interfaces, constants
+ ├── MuktoAin.Application/     # DTOs, business services, retrieval and drafting orchestration
+ ├── MuktoAin.Infrastructure/  # SQL repositories, Gemini and Qdrant clients, payments, PDF, encryption, seeding
+ └── MuktoAin.Web/             # MVC controllers, views, view models, localization, SignalR hub
 ```
 
-Retrieval flow: **vector-primary** (Qdrant top-k over `ACT_SECTION_CHUNK`
-embeddings) with SQL Server FTS as an explicit **fallback only** (Qdrant outage
-or standalone keyword search, FR-7). Every AI output passes three disclaimer
-surfaces: persistent UI banner → injected into AI responses → stamped into
-finalized documents/PDFs.
+**Retrieval flow.** A question is embedded and matched against section chunks
+in Qdrant (vector search is the primary path). SQL Server Full-Text Search is
+used only as a fallback, when Qdrant is unreachable or for standalone keyword
+search. The retrieved sections are assembled into a prompt, the answer is
+generated, and the disclaimer is attached before it is shown.
 
-Deep dive: [.agent/spec/design.md](.agent/spec/design.md),
-[requirements](.agent/spec/requirements.md),
-[execution plan](.agent/spec/tasks.md), and
-[deployment guide](docs/deployment-guide.md).
-*(A rendered `docs/architecture.md` with ERD lands with Tultul's T-3.5.)*
+## 5. Getting Started
 
----
+### 5.1 Prerequisites
 
-## 3. ⚡ Quick Start
+| Tool | Version | Notes |
+|---|---|---|
+| [.NET SDK](https://dotnet.microsoft.com/download/dotnet/8.0) | 8.0.400 or newer | pinned in [`global.json`](global.json) |
+| [SQL Server](https://www.microsoft.com/sql-server/sql-server-downloads) | 2022 (Express or Developer) | **must include Full-Text Search. LocalDB will not work.** |
+| [SSMS](https://learn.microsoft.com/sql/ssms/download-sql-server-management-studio-ssms) | any recent | optional, for inspecting the database |
+| [LibMan CLI](https://learn.microsoft.com/aspnet/core/client-side/libman/libman-cli) | latest | `dotnet tool install -g Microsoft.Web.LibraryManager.Cli` |
+| [Qdrant](https://cloud.qdrant.io/) | Cloud free tier or local Docker | needed for semantic search |
+| [Gemini API key](https://aistudio.google.com/apikey) | free tier | one or more keys |
 
-> Detailed first-time setup lives below in
-> [Local Development Setup](#-muktoain-মকত-আইন)--local-development-setup;
-> the short version:
+Check that your SQL Server instance has Full-Text Search installed:
 
-1. Install prerequisites: .NET SDK `8.0.400+`, SQL Server 2022 **with
-   Full-Text Search** (not LocalDB!), SSMS, LibMan CLI.
-2. Clone, restore: `dotnet restore src/MuktoAin.Web/MuktoAin.Web.csproj` +
-   `libman restore` in `src/MuktoAin.Web`.
-3. Copy `appsettings.Development.json.template` →
-   `appsettings.Development.json`; fill in DB connection, Gemini keys, Qdrant
-   endpoint/key, seed-admin password.
-4. Apply schema: `.\scripts\run-all.ps1`
-5. Run: `dotnet run --project src/MuktoAin.Web`
+```sql
+SELECT FULLTEXTSERVICEPROPERTY('IsFullTextInstalled') AS IsFTSInstalled;
+```
 
-Everything seeds automatically and idempotently on startup (districts,
-categories, scenario mappings, Acts import when the Kaggle dataset is present,
-section chunking, initial admin user).
+> [!IMPORTANT]
+> This must return `1`. If it returns `0`, rerun the SQL Server installer, choose
+> **Add features to an existing instance**, and tick **Full-Text and Semantic
+> Extractions for Search**.
 
-### 🧪 Tests
+#### What each piece is for
+
+The app starts with only SQL Server, but its search features depend on two
+things that are easy to miss:
+
+| Component | Powers | If it's missing |
+|---|---|---|
+| **SQL Server Full-Text Search** | The keyword search page, and the chat's fallback retrieval when Qdrant is unavailable | `03_fulltext.sql` fails, keyword search returns nothing, and a Qdrant outage leaves the chat with no statutes at all |
+| **Embeddings in Qdrant** (Gemini + Qdrant + the Acts dataset) | The chat's primary retrieval: finding the statute sections that match a question by meaning, in Bangla, English or Banglish | The chat falls back to keyword matching, so answers get fewer and weaker citations |
+
+Full-Text Search is a one-time install. Embeddings need a one-time indexing
+run after setup, covered in [step 5.7](#57-index-the-acts-for-semantic-search).
+
+### 5.2 Clone and restore
 
 ```bash
-dotnet test tests/MuktoAin.UnitTests          # fast, no DB needed
-dotnet test tests/MuktoAin.IntegrationTests   # needs real SQL Server (+ secrets for AI tests)
+git clone https://github.com/hrittikaaa/MuktoAin-SD.git
+cd MuktoAin-SD
+
+dotnet restore src/MuktoAin.sln
+
+cd src/MuktoAin.Web
+libman restore
+cd ../..
 ```
 
----
+### 5.3 Configure
 
-## 4. 🐳 Docker
+Copy the settings template. The copy is git-ignored so your secrets stay local.
+
+```powershell
+# Windows
+copy src\MuktoAin.Web\appsettings.Development.json.template src\MuktoAin.Web\appsettings.Development.json
+```
+
+```bash
+# macOS / Linux
+cp src/MuktoAin.Web/appsettings.Development.json.template src/MuktoAin.Web/appsettings.Development.json
+```
+
+Then fill in:
+
+| Setting | What to put there |
+|---|---|
+| `ConnectionStrings:DefaultConnection` | Works as-is for an instance named `SQLEXPRESS`; otherwise change `Server=` |
+| `Gemini:ApiKeys` | Your Gemini API key(s) |
+| `Qdrant:Endpoint`, `Qdrant:ApiKey` | Your Qdrant cluster URL and key |
+| `Qdrant:Collection` | `act_section_chunks_<your-name>`, so developers don't overwrite each other |
+| `SeedAdmin:Password` | A strong password for the first admin account |
+| `Embedding:RunOnStartup` | Leave `false` for now; see [step 5.7](#57-index-the-acts-for-semantic-search) |
+| `Payments:Mode` | `Simulator` (offline, default) or `Sandbox` (real bKash/SSLCommerz sandboxes) |
+
+The full list of settings and their environment-variable names is in the
+[deployment guide](docs/deployment-guide.md#3-configuration-reference).
+
+### 5.4 Set up the database
+
+The schema is managed with plain SQL scripts in [`scripts/`](scripts), not EF
+Core migrations. Run them all in order:
+
+```powershell
+.\scripts\run-all.ps1
+# custom instance:
+.\scripts\run-all.ps1 -ServerInstance ".\YourInstanceName"
+```
+
+Every script is idempotent, so rerun `run-all.ps1` whenever you pull schema
+changes.
+
+### 5.5 Download the Acts dataset
+
+The Bangladesh Acts dataset is too large for git. Follow
+[`data/README.md`](data/README.md) to download it from Kaggle and verify its
+SHA256. The app starts without it, but there will be no statutes to search or
+cite, and nothing to index in step 5.7.
+
+### 5.6 Run
+
+```bash
+dotnet run --project src/MuktoAin.Web
+```
+
+Open **http://localhost:5250** (check the console's `Now listening on:` line
+for the actual URL).
+
+On startup the app seeds, idempotently: districts, categories, scenario
+mappings, the Acts and their section chunks (if the dataset is present), and
+the super admin account. In the `Development` environment it also seeds demo
+cases, documents and payments, plus the demo accounts below. The login page
+has a **Quick Demo Fill** button for each one.
+
+| Role | Email | Password | Can do |
+|---|---|---|---|
+| **Super Admin** | `admin@muktoain.bd` | the value of `SeedAdmin:Password` | everything an admin can, plus create, suspend and promote admins, refund payments, approve lawyer payouts |
+| Admin | `demoadmin@muktoain.bd` | `DemoAdmin@123` | verify lawyers, manage users, categories and scenarios, view logs and analytics |
+| Lawyer | `lawyer@muktoain.bd` | `Lawyer@123` | review queue, approve or return drafts, earnings and payouts (already verified) |
+| Citizen | `citizen@muktoain.bd` | `Citizen@123` | chat, search, cases and documents, payments (has unpaid finalized cases ready to pay) |
+
+> [!NOTE]
+> The super admin's email and password come from the `SeedAdmin` settings.
+> If `SeedAdmin:Password` is not set at all, it falls back to `Admin@123!`, and
+> the app logs a warning. The super admin is created in every environment, so
+> **always set a strong `SeedAdmin__Password` in production**. The other three
+> accounts exist only in `Development`.
+
+For sandbox payments (`Payments:Mode = Sandbox`), use the bKash test wallet
+`01770618575`, OTP `123456`, PIN `12121`.
+
+### 5.7 Index the Acts for semantic search
+
+The chat needs the Act sections turned into embeddings and stored in Qdrant.
+This is a one-time job per Qdrant collection.
+
+**Before you start:** the Acts dataset is downloaded ([step 5.5](#55-download-the-acts-dataset)),
+the app has run once so the Acts are imported and chunked, and
+`Gemini:ApiKeys`, `Qdrant:Endpoint`, `Qdrant:ApiKey` and `Qdrant:Collection`
+are set.
+
+1. In `appsettings.Development.json`, set `Embedding:RunOnStartup` to `true`.
+2. Run the app again: `dotnet run --project src/MuktoAin.Web`.
+3. Follow progress on the admin dashboard (log in as the super admin), or in
+   the console lines starting with `EmbeddingBatchJob:`.
+4. When the dashboard shows **Completed (All chunks indexed)**, set
+   `Embedding:RunOnStartup` back to `false`.
+
+Things to know:
+
+- **It takes a while on the free tier.** The job paces itself to Gemini's
+  rate limits. If the daily quota runs out, it pauses and resumes by itself
+  after the reset (midnight Pacific time), as long as the app keeps running.
+- **It's resumable.** Stopping the app is safe. The next run with
+  `RunOnStartup=true` skips chunks already indexed.
+- **Use your own collection** (`act_section_chunks_<your-name>`). The shared
+  `act_section_chunks` collection is for production only.
+- Leaving `RunOnStartup` on is harmless but wasteful: every start rescans for
+  unindexed chunks.
+
+## 6. Running with Docker
+
+[`docker-compose.yml`](docker-compose.yml) starts the app together with SQL
+Server and Qdrant for a local end-to-end check:
+
+```bash
+# 1. Start the databases first
+docker compose up -d sqlserver qdrant
+
+# 2. Apply the schema to the containerized SQL Server (host port 1434)
+pwsh ./scripts/run-all.ps1 -ServerInstance "localhost,1434" -User sa -Password 'YourStrong!Passw0rd'
+
+# 3. Build and start the app, then check it responds
+docker compose up -d --build
+curl -f http://localhost:8080/Home
+```
+
+To run only the app image against your own database and services:
 
 ```bash
 docker build -t muktoain-web .
@@ -112,178 +317,184 @@ docker run -p 8080:8080 \
   muktoain-web
 ```
 
-See the [deployment guide](docs/deployment-guide.md) for the full environment
-variable reference, Azure topology, and CI integration-test opt-in.
+> [!WARNING]
+> The compose file uses a throwaway `sa` password and is meant for local use
+> only. Do not deploy it as-is.
 
----
+## 7. Testing
 
-## 5. 📊 Dataset Attribution & Licenses
-
-- **Bangladesh Legal Acts Dataset** — Kaggle (`sakhadib/bangladesh-legal-acts-dataset`),
-  ~50–100MB, git-ignored; download instructions and SHA256 verification in
-  [data/README.md](data/README.md).
-- **Bangladesh Legal QA benchmark** — Kaggle (`momahadi/bangladesh-legal-qa-dataset`),
-  2,165 questions, used by the CP3 evaluation harness.
-
-Full license/attribution document (`docs/attribution-CC-BY-SA-4.0.md`) lands
-with task A-3.6.
-
----
-
-## 6. ⚠️ Legal Disclaimer
-
-> MuktoAin provides general legal information and document drafting assistance.
-> This is **NOT formal legal advice**. Every document must be reviewed by a
-> verified lawyer before use. For urgent legal matters, consult a qualified advocate.
-
-> মুক্ত আইন সাধারণ আইনি তথ্য ও নথি প্রণয়নে সহায়তা প্রদান করে। এটি আনুষ্ঠানিক আইনি
-> পরামর্শ নয়। প্রতিটি নথি ব্যবহারের পূর্বে একজন যাচাইকৃত আইনজীবী দ্বারা পর্যালোচনা
-> করা আবশ্যক।
-
----
-
-# ⚖️ Local Development Setup
-
-This section gets you from a fresh clone to a running local environment in minutes! 🚀
-
-For project background, coding rules, see [AGENTS.md](AGENTS.md). For the full technical specification, explore [.agent/spec/](.agent/spec/).
-
-### 🔍 Verifying SQL Server has Full-Text Search
-
-Open SSMS, connect to your instance, and run:
-```sql
-SELECT FULLTEXTSERVICEPROPERTY('IsFullTextInstalled') AS IsFTSInstalled;
-```
-> [!IMPORTANT]
-> Must return `1`. If it returns `0`, re-run the SQL Server installer. Choose **Installation → Add features to an existing instance of SQL Server** and check **Full-Text and Semantic Extractions for Search**.
-
-### 🚀 First-Time Project Setup
-
-**Step 1: Clone & Restore**
 ```bash
-git clone https://github.com/shads-01/muktoAin-ISD.git
-cd muktoAin-ISD
-git checkout <your-branch>
-
-dotnet restore src/MuktoAin.slnx
-
-cd src/MuktoAin.Web
-libman restore
-cd ../..
+dotnet test tests/MuktoAin.UnitTests          # fast, no database or network needed
+dotnet test tests/MuktoAin.IntegrationTests   # needs SQL Server with the schema applied
 ```
 
-**Step 2: Configure Environment**
-Copy the template to create your local settings (this file is git-ignored to protect secrets):
+| Suite | Covers | Needs |
+|---|---|---|
+| `MuktoAin.UnitTests` | services, controllers, view models, seeding, localization | nothing (in-memory) |
+| `MuktoAin.IntegrationTests/Api`, `Repositories` | HTTP endpoints and SQL repositories | SQL Server |
+| `MuktoAin.IntegrationTests/AiPipeline` | retrieval and answer-quality benchmark | SQL Server, Qdrant, Gemini keys |
+| `MuktoAin.IntegrationTests/Browser` | end-to-end payment flows in a real browser | SQL Server, Playwright Chromium (skipped if missing) |
 
-**Windows (CMD/PowerShell):**
-```cmd
-copy src\MuktoAin.Web\appsettings.Development.json.template src\MuktoAin.Web\appsettings.Development.json
+To enable the browser tests, build once and install Chromium:
+
+```powershell
+pwsh tests/MuktoAin.IntegrationTests/bin/Debug/net8.0/playwright.ps1 install chromium
 ```
-**Mac/Linux (Bash):**
-```bash
-cp src/MuktoAin.Web/appsettings.Development.json.template src/MuktoAin.Web/appsettings.Development.json
+
+In CI, unit tests run on every push and pull request. Integration tests are
+opt-in (see the [deployment guide](docs/deployment-guide.md#6-continuous-integration)).
+
+## 8. Deployment
+
+Every push to `main` runs [`deploy.yml`](.github/workflows/deploy.yml), which
+runs the unit tests, publishes the app and deploys it to **Azure App Service**.
+The workflow stays skipped until the `AZURE_WEBAPP_NAME` repository variable is
+set.
+
+- **[Deployment guide](docs/deployment-guide.md)**: Azure setup, secrets,
+  configuration reference, and how to verify a deploy
+- **[Runbook](docs/runbook.md)**: rollback, monitoring and troubleshooting in
+  production
+
+## 9. Project Structure
+
+```text
+MuktoAin-SD/
+ ├── .github/workflows/   # ci.yml (build + test), deploy.yml (Azure)
+ ├── data/                # seed JSON files; large Kaggle datasets go here (git-ignored)
+ ├── docs/                # deployment guide, runbook
+ ├── scripts/             # numbered SQL schema scripts + run-all.ps1
+ ├── src/                 # the four application projects (see Architecture)
+ ├── tests/
+ │   ├── MuktoAin.UnitTests/
+ │   └── MuktoAin.IntegrationTests/
+ ├── Dockerfile           # multi-stage build, non-root runtime
+ ├── docker-compose.yml   # local app + SQL Server + Qdrant stack
+ ├── global.json          # pinned .NET SDK
+ └── MuktoAin.slnx        # web-only solution (the full solution is src/MuktoAin.sln)
 ```
 
-> [!NOTE]  
-> Edit `src/MuktoAin.Web/appsettings.Development.json`. The `DefaultConnection` string usually works as-is if your SQL Server instance is named `SQLEXPRESS`. If you have a custom named instance, adjust the `Server=` property!
+## 10. Troubleshooting
 
-**Step 3: Database & Schema**
-We use manual SQL scripts (no EF Core migrations). Run them all at once:
+The most common problems, roughly in the order people hit them. Most are
+visible in the console output of `dotnet run`, so read that first.
+
+<details>
+<summary><b>Can't connect to SQL Server (<code>A network-related or instance-specific error</code>)</b></summary>
+<br>
+
+1. Check the SQL Server service is running (Windows: <code>services.msc</code>
+   → <em>SQL Server (SQLEXPRESS)</em>).
+2. Check the instance name in <code>ConnectionStrings:DefaultConnection</code>
+   matches yours. The default is <code>.\SQLEXPRESS</code>. Run
+   <code>sqlcmd -L</code> to list local instances.
+3. Check the database exists: run <code>.\scripts\run-all.ps1</code>.
+</details>
+
+<details>
+<summary><b><code>Invalid object name</code> or <code>Invalid column name</code> errors</b></summary>
+<br>
+Your database schema is older than the code, usually right after pulling.
+Rerun the scripts; they are idempotent and only add what is missing:
 
 ```powershell
 .\scripts\run-all.ps1
 ```
-*(If your instance isn't `SQLEXPRESS`, run: `.\scripts\run-all.ps1 -ServerInstance ".\YourInstanceName"`)*
-
-> [!TIP]
-> Prefer SSMS? Manually run the scripts in order: `01_init_database.sql` → `02_schema.sql` → `03_fulltext.sql`.
-
-**Step 4: Build & Run! 🎉**
-```bash
-dotnet build src/MuktoAin.sln
-dotnet run --project src/MuktoAin.Web
-```
-Open **`http://localhost:5250`** — that's what plain `dotnet run` binds by default (per [launchSettings.json](src/MuktoAin.Web/Properties/launchSettings.json)'s `http` profile). Always check the console output for the actual URL:
-```
-Now listening on: http://localhost:5250
-```
-
-> [!NOTE]
-> **Data seeds automatically on startup — no separate seed command.** Every `dotnet run` seeds districts, categories, and (if `data/bangladesh-acts-dataset.json` is present) the 1,484 Bangladesh Acts into your DB. It's idempotent — safe to run every time, it only inserts what's missing.
->
-> The Acts dataset is large and **not committed to git** — see [data/README.md](data/README.md) to download it from Kaggle. Don't have it yet? That's fine: the app logs a warning and starts normally without it, you just won't have Acts/Sections data until you download it. First import with the file present takes a couple of minutes (1,484 rows, one at a time) — later runs are instant since it skips what's already there.
-
-### 🔄 Daily Dev Workflow
-
-```bash
-# 1. Get the latest code
-git fetch origin main
-git merge origin/main          # (or rebase, per your team's convention)
-
-# 2. Re-run DB scripts if they changed (they are idempotent & safe!)
-.\scripts\run-all.ps1
-
-# 3. Build and run
-dotnet build src/MuktoAin.slnx
-dotnet run --project src/MuktoAin.Web
-
-# 4. Commit your work to a feature branch (never directly to main)
-git checkout -b your-feature-branch
-git add .
-git commit -m "Your descriptive message"
-git push -u origin your-feature-branch
-```
-
-## 7. 🆘 Troubleshooting
+</details>
 
 <details>
-<summary><b>Build fails with MSB3027/MSB3021 (file locked)</b></summary>
+<summary><b>The site loads without any styling</b></summary>
 <br>
-A previous <code>dotnet run</code> is still running in the background. Kill it:
+<code>wwwroot/lib/</code> is missing. Run:
+
+```bash
+cd src/MuktoAin.Web
+libman restore
+```
+</details>
+
+<details>
+<summary><b>Keyword search returns nothing, or <code>03_fulltext.sql</code> fails</b></summary>
+<br>
+
+- If the Acts aren't loaded yet, the startup log shows
+  <code>'bangladesh-acts-dataset.json' not found -- skipping</code>. Download the
+  dataset following <a href="data/README.md">data/README.md</a> and restart.
+- If the Acts are loaded, your SQL Server has no Full-Text Search. Run the check
+  in <a href="#51-prerequisites">Prerequisites</a>. LocalDB never supports it.
+</details>
+
+<details>
+<summary><b>Chat answers have no citations, or are poor</b></summary>
+<br>
+Semantic search isn't working, so the app is falling back to keyword search.
+
+- **Startup log shows <code>Qdrant collection check failed</code>:** Qdrant is
+  unreachable. Check <code>Qdrant:Endpoint</code> and <code>Qdrant:ApiKey</code>,
+  and resume the cluster if Qdrant Cloud suspended it.
+- **No warning, but still no citations:** your collection is empty or
+  only partly indexed. Run the indexing job in
+  <a href="#57-index-the-acts-for-semantic-search">step 5.7</a>.
+- **Startup error <code>EmbeddingOutputDimensionality != Qdrant:VectorSize</code>:**
+  make the two settings equal (3072 by default).
+</details>
+
+<details>
+<summary><b>Chat fails, hangs, or logs <code>429</code> errors</b></summary>
+<br>
+Your Gemini keys are invalid or out of free-tier quota. The admin
+dashboard shows the status of each key. Add more keys to
+<code>Gemini:ApiKeys</code> or wait for the quota to reset. Keys from the same
+Google Cloud project share one quota, so extra keys only help if they come from
+different projects.
+</details>
+
+<details>
+<summary><b>Build fails with MSB3027 / MSB3021 (file locked)</b></summary>
+<br>
+A previous <code>dotnet run</code> is still running. Stop it:
 
 ```powershell
 Get-Process MuktoAin.Web -ErrorAction SilentlyContinue | Stop-Process -Force
 ```
 </details>
 
-<details>
-<summary><b>scripts/03_fulltext.sql fails or Acts search returns no results</b></summary>
-<br>
-Your SQL Server instance lacks Full-Text Search. See the verification query above. Remember: LocalDB does not support this!
-</details>
+Production issues (failed deploys, crashes, quota limits) are covered in the
+[runbook](docs/runbook.md).
 
-<details>
-<summary><b>"ActImportService: 'bangladesh-acts-dataset.json' not found -- skipping" warning on startup</b></summary>
-<br>
-This is expected if you haven't downloaded the Acts dataset yet — it's optional for most tasks. See <a href="data/README.md">data/README.md</a> for the Kaggle link and SHA256 to verify it. The app runs fine without it; you just won't have Acts/Sections data until it's in place.
-</details>
+## 11. Contributing
 
-<details>
-<summary><b>Filtered index errors (QUOTED_IDENTIFIER) in SSMS</b></summary>
-<br>
-If you copy-paste parts of <code>02_schema.sql</code> into a fresh query window, make sure to include <code>SET QUOTED_IDENTIFIER ON;</code> at the top before running any filtered <code>CREATE INDEX</code> statements.
-</details>
+`main` is protected, so all changes go through pull requests that pass CI. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for the branch workflow, coding conventions
+and the pull request checklist.
 
-<details>
-<summary><b>git push to main is rejected</b></summary>
-<br>
-<code>main</code> is protected! Move your work to a branch:
+## 12. Team
 
-```bash
-git branch your-branch-name
-git reset --hard origin/main
-git checkout your-branch-name
-git push -u origin your-feature-branch
-```
-</details>
+| Member | Role | Area |
+|---|---|---|
+| **Shads** | Project Lead | Identity, retrieval and drafting core, evaluation, delivery |
+| **Hrittika** | Data Foundation | Schema, entities, repositories, search infrastructure, deployment |
+| **Arpita** | Document Pipeline | Case and document services, lawyer review gate, admin |
 
-<details>
-<summary><b>Frontend looks completely unstyled</b></summary>
-<br>
-Your <code>wwwroot/lib/</code> might be missing. Run:
+## 13. Dataset Attribution
 
-```bash
-cd src/MuktoAin.Web
-libman restore
-```
-</details>
+- **Bangladesh Legal Acts Dataset** by sakhadib, from
+  [Kaggle](https://www.kaggle.com/datasets/sakhadib/bangladesh-legal-acts-dataset),
+  licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+  1,484 Acts, used as the statute corpus.
+- **Bangladesh Legal QA Dataset** by momahadi, from
+  [Kaggle](https://www.kaggle.com/datasets/momahadi/bangladesh-legal-qa-dataset).
+  2,165 question-answer pairs, used for evaluation.
+
+Download and verification steps are in [data/README.md](data/README.md).
+
+## 14. Legal Disclaimer
+
+> MuktoAin provides general legal information and document drafting assistance.
+> This is **not formal legal advice**. Every document must be reviewed by a
+> verified lawyer before use. For urgent legal matters, consult a qualified
+> advocate.
+
+> মুক্ত আইন সাধারণ আইনি তথ্য ও নথি প্রণয়নে সহায়তা প্রদান করে। এটি আনুষ্ঠানিক আইনি
+> পরামর্শ নয়। প্রতিটি নথি ব্যবহারের পূর্বে একজন যাচাইকৃত আইনজীবী দ্বারা পর্যালোচনা
+> করা আবশ্যক।

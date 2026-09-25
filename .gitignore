@@ -526,6 +526,8 @@ Copy_Paste_Plan.md
 docs/*
 !docs/architecture.md
 !docs/deployment-plan.md
+!docs/deployment-guide.md
+!docs/runbook.md
 
 # Scratch files
 .agent/scratch/
