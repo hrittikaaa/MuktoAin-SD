@@ -174,7 +174,7 @@
 
                 @if (startPage > 1)
                 {
-                    <a asp-action="Corpus" asp-route-page="1" asp-route-q="@Model.SearchQuery" class="btn btn-outline btn-sm" style="min-width:32px; padding:4px 8px;">১</a>
+                    <a asp-action="Corpus" asp-route-page="1" asp-route-q="@Model.SearchQuery" class="btn btn-outline btn-sm" style="min-width:32px; padding:4px 8px;" data-bn="১" data-en="1">১</a>
                     @if (startPage > 2)
                     {
                         <span style="padding: 0 4px; color: var(--muted);">…</span>
@@ -185,11 +185,11 @@
                 {
                     if (p == Model.CurrentPage)
                     {
-                        <span class="btn btn-primary btn-sm" style="min-width:32px; padding:4px 8px; font-weight:bold;">@ToBn(p)</span>
+                        <span class="btn btn-primary btn-sm" style="min-width:32px; padding:4px 8px; font-weight:bold;" data-bn="@ToBn(p)" data-en="@p">@ToBn(p)</span>
                     }
                     else
                     {
-                        <a asp-action="Corpus" asp-route-page="@p" asp-route-q="@Model.SearchQuery" class="btn btn-outline btn-sm" style="min-width:32px; padding:4px 8px;">@ToBn(p)</a>
+                        <a asp-action="Corpus" asp-route-page="@p" asp-route-q="@Model.SearchQuery" class="btn btn-outline btn-sm" style="min-width:32px; padding:4px 8px;" data-bn="@ToBn(p)" data-en="@p">@ToBn(p)</a>
                     }
                 }
 
@@ -199,7 +199,7 @@
                     {
                         <span style="padding: 0 4px; color: var(--muted);">…</span>
                     }
-                    <a asp-action="Corpus" asp-route-page="@Model.TotalPages" asp-route-q="@Model.SearchQuery" class="btn btn-outline btn-sm" style="min-width:32px; padding:4px 8px;">@ToBn(Model.TotalPages)</a>
+                    <a asp-action="Corpus" asp-route-page="@Model.TotalPages" asp-route-q="@Model.SearchQuery" class="btn btn-outline btn-sm" style="min-width:32px; padding:4px 8px;" data-bn="@ToBn(Model.TotalPages)" data-en="@Model.TotalPages">@ToBn(Model.TotalPages)</a>
                 }
 
                 @if (Model.CurrentPage < Model.TotalPages)
