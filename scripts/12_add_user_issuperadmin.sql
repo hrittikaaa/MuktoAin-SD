@@ -3,6 +3,8 @@
    IDEMPOTENT: safe to re-run; the ALTER is guarded.
    Execute in SSMS against the MuktoAin database.
    ============================================================ */
+USE MuktoAin;
+GO
 SET NOCOUNT ON;
 SET QUOTED_IDENTIFIER ON;
 SET ANSI_NULLS ON;

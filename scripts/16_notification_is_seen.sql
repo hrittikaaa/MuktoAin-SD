@@ -4,6 +4,8 @@
      My Cases' unread-activity dot is not cleared just by opening the bell.
    Existing read rows are backfilled as seen.
    Safe to re-run in SSMS (adds the column only when missing). */
+USE MuktoAin;
+GO
 SET NOCOUNT ON;
 SET QUOTED_IDENTIFIER ON;
 SET ANSI_NULLS ON;

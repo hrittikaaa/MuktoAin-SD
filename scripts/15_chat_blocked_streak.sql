@@ -2,6 +2,8 @@
    - BlockedStreak: consecutive safety-blocked turns; at 3, Status flips to 2 (Blocked).
    - Status column now also stores 2 = ChatSessionStatus.Blocked (no schema change needed for the enum).
    Safe to re-run in SSMS (adds the column only when missing). */
+USE MuktoAin;
+GO
 SET NOCOUNT ON;
 SET QUOTED_IDENTIFIER ON;
 SET ANSI_NULLS ON;

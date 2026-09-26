@@ -3,6 +3,8 @@
    IDEMPOTENT: safe to re-run; the CREATE is guarded.
    Execute in SSMS against the MuktoAin database.
    ============================================================ */
+USE MuktoAin;
+GO
 SET NOCOUNT ON;
 GO
 

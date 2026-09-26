@@ -38,10 +38,10 @@ if ($sqlFiles.Count -eq 0) {
 foreach ($file in $sqlFiles) {
     Write-Host "==> Running $($file.Name) against $ServerInstance ..." -ForegroundColor Cyan
     if ($User) {
-        & sqlcmd -S $ServerInstance -U $User -P $Password -C -i $file.FullName
+        & sqlcmd -S $ServerInstance -d MuktoAin -U $User -P $Password -C -i $file.FullName
     }
     else {
-        & sqlcmd -S $ServerInstance -E -C -i $file.FullName
+        & sqlcmd -S $ServerInstance -d MuktoAin -E -C -i $file.FullName
     }
     if ($LASTEXITCODE -ne 0) {
         Write-Error "$($file.Name) failed with exit code $LASTEXITCODE -- stopping."

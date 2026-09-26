@@ -4,9 +4,10 @@
    user, verified/rejected a lawyer, refunded/marked-paid an
    order, deleted a scenario mapping (docs/PROJECT_AUDIT_REPORT.md
    — Admin Scope #5).
-   IDEMPOTENT: safe to re-run; CREATE is guarded.
    Execute in SSMS against the MuktoAin database.
    ============================================================ */
+USE MuktoAin;
+GO
 SET NOCOUNT ON;
 GO
 
