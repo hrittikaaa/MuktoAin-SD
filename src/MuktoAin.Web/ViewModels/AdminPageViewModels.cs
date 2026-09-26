@@ -113,6 +113,7 @@ public class AdminCategoryRowViewModel
     public string Name { get; set; } = string.Empty;
     public string NameBn { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string DescriptionBn { get; set; } = string.Empty;
     public string TemplateBadge { get; set; } = string.Empty;
 }
 

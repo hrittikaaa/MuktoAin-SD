@@ -617,17 +617,24 @@ public class AdminController : Controller
                 Name = c.Name,
                 NameBn = c.NameBn,
                 Description = c.Description,
-                TemplateBadge = c.CategoryId switch
-                {
-                    1 => "labour_complaint.v1",
-                    2 => "gd_application.v1",
-                    3 => "rti_request.v1",
-                    4 => "consumer_complaint.v1",
-                    _ => "custom.v1"
-                }
+                DescriptionBn = c.DescriptionBn,
+                TemplateBadge = ResolveTemplateBadge(c)
             }).ToList()
         };
         return View(vm);
+    }
+
+    private static string ResolveTemplateBadge(Domain.Entities.CaseCategory c)
+    {
+        var name = (c.Name ?? string.Empty).ToLowerInvariant();
+        if (name.Contains("labour") || name.Contains("labor")) return "labour_complaint.v1";
+        if (name.Contains("general diary") || name.Contains("gd")) return "gd_application.v1";
+        if (name.Contains("rti") || name.Contains("information")) return "rti_request.v1";
+        if (name.Contains("consumer")) return "consumer_complaint.v1";
+
+        var slug = new string(name.Select(ch => char.IsLetterOrDigit(ch) ? ch : '_').ToArray())
+            .Trim('_');
+        return string.IsNullOrEmpty(slug) ? "custom.v1" : $"{slug}.v1";
     }
 
     private const int AdminAiLogsPageSize = 50;
