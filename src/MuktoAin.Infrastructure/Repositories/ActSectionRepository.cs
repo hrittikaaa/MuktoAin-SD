@@ -20,12 +20,28 @@ public class ActSectionRepository : Repository<ActSection>, IActSectionRepositor
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<ActSection>> FullTextSearchAsync(string query, int maxResults)
+    public Task<IEnumerable<ActSection>> FullTextSearchAsync(string query, int maxResults)
+        => FullTextSearchAsync(query, maxResults, null);
+
+    public async Task<IEnumerable<ActSection>> FullTextSearchAsync(string query, int maxResults, int? actId)
     {
         // Manual MSSQL FTS query using CONTAINSTABLE ranking against the
         // MuktoAinCatalog index (scripts/03_fulltext.sql). That index covers
         // SectionText only -- ACT_SECTION has no ActTitle column -- so [dbo].[ACT]
         // is joined in here to expose the title for filtering/display.
+        if (actId.HasValue)
+        {
+            return await _dbSet.FromSqlInterpolated($@"
+                SELECT TOP({maxResults}) s.*
+                FROM [dbo].[ACT_SECTION] s
+                INNER JOIN CONTAINSTABLE([dbo].[ACT_SECTION], SectionText, {query}) AS ft
+                    ON s.SectionId = ft.[KEY]
+                WHERE s.ActId = {actId.Value}
+                ORDER BY ft.[RANK] DESC")
+                .Include(s => s.Act)
+                .ToListAsync();
+        }
+
         return await _dbSet.FromSqlInterpolated($@"
             SELECT TOP({maxResults}) s.*
             FROM [dbo].[ACT_SECTION] s

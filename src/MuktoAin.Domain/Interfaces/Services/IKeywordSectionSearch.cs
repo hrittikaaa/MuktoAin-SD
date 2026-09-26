@@ -9,4 +9,5 @@ namespace MuktoAin.Domain.Interfaces.Services;
 public interface IKeywordSectionSearch
 {
     Task<IEnumerable<RetrievedSection>> SearchAsync(string query, int maxResults = 20);
+    Task<IEnumerable<RetrievedSection>> SearchAsync(string query, int maxResults, int? actId);
 }

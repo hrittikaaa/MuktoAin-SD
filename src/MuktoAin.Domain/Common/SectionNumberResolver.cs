@@ -18,7 +18,10 @@ namespace MuktoAin.Domain.Common;
 public static class SectionNumberResolver
 {
     private static readonly Regex LeadingSectionNumberPattern =
-        new(@"^\s*(\d{1,4})\s*[.।]\s+", RegexOptions.Compiled);
+        new(@"^\s*(?:(?:Section|Sec\.?|ধারা)\s+)?([০-৯0-9]{1,4}(?:[-–][a-zA-Zক-হ0-9০-৯]+|[a-zA-Zক-হ]|\([০-৯0-9a-zA-Zক-হ]+\))?)\s*[.।:\)]\s*", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    private static readonly Regex ParenthesizedNumberPattern =
+        new(@"^\s*[\(\[]([০-৯0-9]{1,4}[a-zA-Zক-হ]?)[\]\)]\s*", RegexOptions.Compiled);
 
     public static string Resolve(string? storedNumber, string sectionText)
     {
@@ -27,7 +30,18 @@ public static class SectionNumberResolver
             return storedNumber;
         }
 
+        if (string.IsNullOrWhiteSpace(sectionText))
+        {
+            return string.Empty;
+        }
+
         var match = LeadingSectionNumberPattern.Match(sectionText);
-        return match.Success ? match.Groups[1].Value : string.Empty;
+        if (match.Success)
+        {
+            return match.Groups[1].Value;
+        }
+
+        var parenMatch = ParenthesizedNumberPattern.Match(sectionText);
+        return parenMatch.Success ? parenMatch.Groups[1].Value : string.Empty;
     }
 }

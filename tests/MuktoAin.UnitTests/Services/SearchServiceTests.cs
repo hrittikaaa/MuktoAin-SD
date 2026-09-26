@@ -43,16 +43,8 @@ public class SearchServiceTests
         var results = new List<RetrievedSection>
         {
             Section(1, "Labour Act, 2006"),
-            Section(2, "Consumer Rights Act, 2009"),
         };
-        _keywordSearch.Setup(s => s.SearchAsync("dispute", 100)).ReturnsAsync(results);
-
-        var actWithSections = new Act
-        {
-            ActId = 10,
-            Sections = new List<ActSection> { new() { SectionId = 1 } },
-        };
-        _actRepo.Setup(r => r.GetWithSectionsAsync(10)).ReturnsAsync(actWithSections);
+        _keywordSearch.Setup(s => s.SearchAsync("dispute", 100, 10)).ReturnsAsync(results);
 
         var dto = await _service.SearchActsAsync("dispute", actId: 10);
 
@@ -63,9 +55,8 @@ public class SearchServiceTests
     [Fact]
     public async Task SearchActsAsync_UnknownActId_ReturnsEmpty()
     {
-        _keywordSearch.Setup(s => s.SearchAsync("dispute", 100))
-            .ReturnsAsync(new[] { Section(1) });
-        _actRepo.Setup(r => r.GetWithSectionsAsync(999)).ReturnsAsync((Act?)null);
+        _keywordSearch.Setup(s => s.SearchAsync("dispute", 100, 999))
+            .ReturnsAsync(Enumerable.Empty<RetrievedSection>());
 
         var dto = await _service.SearchActsAsync("dispute", actId: 999);
 

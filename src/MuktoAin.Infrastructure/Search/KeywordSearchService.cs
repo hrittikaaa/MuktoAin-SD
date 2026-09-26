@@ -21,7 +21,13 @@ public class KeywordSearchService : IKeywordSectionSearch
         _sectionRepo = sectionRepo;
     }
 
-    public async Task<IEnumerable<RetrievedSection>> SearchAsync(string query, int maxResults = 20)
+    public Task<IEnumerable<RetrievedSection>> SearchAsync(string query, int maxResults = 20)
+        => SearchCoreAsync(query, maxResults, null, callWithActId: false);
+
+    public Task<IEnumerable<RetrievedSection>> SearchAsync(string query, int maxResults, int? actId)
+        => SearchCoreAsync(query, maxResults, actId, callWithActId: true);
+
+    private async Task<IEnumerable<RetrievedSection>> SearchCoreAsync(string query, int maxResults, int? actId, bool callWithActId)
     {
         if (string.IsNullOrWhiteSpace(query))
         {
@@ -38,7 +44,9 @@ public class KeywordSearchService : IKeywordSectionSearch
             return Enumerable.Empty<RetrievedSection>();
         }
 
-        var sections = await _sectionRepo.FullTextSearchAsync(ftsQuery, maxResults);
+        var sections = callWithActId
+            ? await _sectionRepo.FullTextSearchAsync(ftsQuery, maxResults, actId)
+            : await _sectionRepo.FullTextSearchAsync(ftsQuery, maxResults);
 
         // FTS doesn't hand back a usable relevance score through FromSqlInterpolated's
         // entity projection (CONTAINSTABLE's RANK column is consumed inside the query
