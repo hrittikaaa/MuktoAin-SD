@@ -107,6 +107,8 @@ public class AdminController : Controller
             overallHealthBadgeClass = model.OverallHealthBadgeClass,
             totalUsersCount = model.TotalUsersCount,
             totalActsCount = model.TotalActsCount,
+            verificationsWaiting = model.VerificationsWaiting,
+            pendingReviews = model.PendingReviews,
             lastChecked = DateTime.Now.ToString("T")
         });
     }
