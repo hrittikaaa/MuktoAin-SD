@@ -161,8 +161,14 @@ public class LawyerController : Controller
         if (profile == null || profile.VerificationStatus != VerificationStatus.Approved)
             return RedirectToAction(nameof(Status));
 
-        var ws = await _reviewService.GetForReviewAsync(id);
-        if (ws == null) return NotFound();
+        // Opens only the lawyer's own active claim (Claim from the queue first).
+        var ws = await _reviewService.GetForReviewAsync(id, profile.LawyerProfileId);
+        if (ws == null)
+        {
+            TempData["Error"] = "এই নথিটি আপনার নেওয়া পর্যালোচনাধীন নথি নয় — সারি থেকে খুলুন।";
+            TempData["ErrorEn"] = "This document isn't under review in your name — open it from the queue.";
+            return RedirectToAction(nameof(Queue));
+        }
 
         var doc = ws; // workspace dto
         var vm = new LawyerReviewViewModel

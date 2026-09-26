@@ -472,7 +472,8 @@ public class LawyerReviewServiceTests
         var doc = new GeneratedDocument
         {
             DocumentId = 1, CaseId = 10, ContentDraft = "AI Draft",
-            ContentFinal = null, VersionNo = 1, CitizenEdited = false
+            ContentFinal = null, VersionNo = 1, CitizenEdited = false,
+            Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 5
         };
         _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(doc);
         SetUpCase(10, "ENC_Title", 1, "Labour", 1, "Dhaka", "ENC_Description");
@@ -484,7 +485,7 @@ public class LawyerReviewServiceTests
         _sectionRepo.Setup(r => r.GetByIdAsync(100)).ReturnsAsync(new ActSection { SectionId = 100, ActId = 50, SectionNumber = "Section 33", SectionText = "Wages payment" });
         _actRepo.Setup(r => r.GetByIdAsync(50)).ReturnsAsync(new Act { ActId = 50, Title = "Labour Act 2006", ActNumber = "XLII", Year = 2006 });
 
-        var workspace = await _service.GetForReviewAsync(1);
+        var workspace = await _service.GetForReviewAsync(1, lawyerProfileId: 5);
 
         Assert.NotNull(workspace);
         Assert.Equal(1, workspace!.DocumentId);
@@ -504,9 +505,30 @@ public class LawyerReviewServiceTests
     {
         _docRepo.Setup(r => r.GetByIdAsync(404)).ReturnsAsync((GeneratedDocument?)null);
 
-        var result = await _service.GetForReviewAsync(404);
+        var result = await _service.GetForReviewAsync(404, lawyerProfileId: 5);
 
         Assert.Null(result);
+    }
+
+    // #2: the workspace exposes the decrypted citizen narrative, so it opens
+    // only for a document under review that THIS lawyer has claimed.
+    [Theory]
+    [InlineData(DocumentStatus.UnderReview, null)]   // unclaimed -- must Claim first
+    [InlineData(DocumentStatus.UnderReview, 99)]     // another lawyer's claim
+    [InlineData(DocumentStatus.Approved, 5)]         // already decided
+    [InlineData(DocumentStatus.Rejected, 5)]
+    [InlineData(DocumentStatus.Draft, 5)]            // never sent to review
+    public async Task GetForReviewAsync_NotMyActiveClaim_ReturnsNull(DocumentStatus status, int? assignedTo)
+    {
+        _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new GeneratedDocument
+        {
+            DocumentId = 1, CaseId = 10, ContentDraft = "AI Draft",
+            Status = status, AssignedLawyerProfileId = assignedTo
+        });
+        SetUpCase(10, "Title", 1, "Labour", 1, "Dhaka", "Private narrative");
+
+        Assert.Null(await _service.GetForReviewAsync(1, lawyerProfileId: 5));
+        _encryptionService.Verify(e => e.Decrypt(It.IsAny<string>()), Times.Never);
     }
 
     // ── SubmitReviewAsync Business Logic & Security Edge-Case Tests ──────
@@ -679,7 +701,7 @@ public class LawyerReviewServiceTests
     [Fact]
     public async Task SubmitReviewAsync_NotifiesTheCaseOwner()
     {
-        var doc = new GeneratedDocument { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview };
+        var doc = new GeneratedDocument { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 3 };
         _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(doc);
         var owner = new Case { CaseId = 10, UserId = 55, IsAnonymous = false };
         _caseRepo.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(owner);
@@ -701,7 +723,7 @@ public class LawyerReviewServiceTests
     [Fact]
     public async Task SubmitReviewAsync_SkipsNotification_WhenCaseIsAnonymous()
     {
-        var doc = new GeneratedDocument { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview };
+        var doc = new GeneratedDocument { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 3 };
         _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(doc);
         var anon = new Case { CaseId = 10, UserId = null, IsAnonymous = true };
         _caseRepo.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(anon);
@@ -710,6 +732,22 @@ public class LawyerReviewServiceTests
             Decision: ReviewDecision.Approved, Comments: "ok", EditedContent: null));
 
         _notificationRepo.Verify(n => n.AddAsync(It.IsAny<Notification>()), Times.Never);
+    }
+
+    // #2: no implicit claim on submit -- a decision needs the lawyer's own claim.
+    [Fact]
+    public async Task SubmitReviewAsync_UnclaimedDocument_FailsAndChangesNothing()
+    {
+        var doc = new GeneratedDocument { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, ContentDraft = "draft" };
+        _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(doc);
+
+        var ok = await _service.SubmitReviewAsync(new SubmitReviewDto(1, LawyerProfileId: 3,
+            Decision: ReviewDecision.Approved, Comments: "ok", EditedContent: null));
+
+        Assert.False(ok);
+        Assert.Null(doc.AssignedLawyerProfileId);
+        Assert.Equal(DocumentStatus.UnderReview, doc.Status);
+        _reviewRepo.Verify(r => r.AddAsync(It.IsAny<LawyerReview>()), Times.Never);
     }
 
     private void SetUpCase(

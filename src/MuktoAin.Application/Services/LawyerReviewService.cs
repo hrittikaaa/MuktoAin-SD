@@ -153,10 +153,13 @@ public class LawyerReviewService
         }
     }
 
-    public async Task<ReviewWorkspaceDto?> GetForReviewAsync(int documentId)
+    // The workspace carries the decrypted citizen narrative, so it opens only
+    // for a document under review that this lawyer has claimed (Claim first).
+    public async Task<ReviewWorkspaceDto?> GetForReviewAsync(int documentId, int lawyerProfileId)
     {
         var d = await _docRepo.GetByIdAsync(documentId);
-        if (d == null) return null;
+        if (d == null || d.Status != DocumentStatus.UnderReview
+            || d.AssignedLawyerProfileId != lawyerProfileId) return null;
         var c = await _caseRepo.GetWithDocumentsAsync(d.CaseId);
         if (c == null) return null;
 
@@ -202,10 +205,8 @@ public class LawyerReviewService
 
         var d = await _docRepo.GetByIdAsync(dto.DocumentId);
         if (d == null || d.Status != DocumentStatus.UnderReview) return false;
-        if (d.AssignedLawyerProfileId.HasValue
-            && d.AssignedLawyerProfileId != dto.LawyerProfileId) return false;
-        // Auto-claim if somehow unclaimed (defensive)
-        d.AssignedLawyerProfileId = dto.LawyerProfileId;
+        // A decision needs this lawyer's own claim -- no implicit claim here.
+        if (d.AssignedLawyerProfileId != dto.LawyerProfileId) return false;
 
         var review = new LawyerReview
         {

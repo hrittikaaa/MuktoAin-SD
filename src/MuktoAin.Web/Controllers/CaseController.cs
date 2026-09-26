@@ -7,11 +7,13 @@ using MuktoAin.Application.Services;
 using MuktoAin.Domain.Entities;
 using MuktoAin.Domain.Enums;
 using MuktoAin.Domain.Interfaces.Repositories;
+using MuktoAin.Web.Auth;
 using MuktoAin.Web.Session;
 using MuktoAin.Web.ViewModels;
 
 namespace MuktoAin.Web.Controllers;
 
+[RedirectLawyers]
 public class CaseController : Controller
 {
     private readonly CaseService _caseService;

@@ -22,9 +22,12 @@
                     <span class="cat-en" style="font-size: 14px;">@Model.NameEn</span>
                 </div>
             </div>
-            <a class="btn btn-primary btn-lg" asp-controller="Case" asp-action="Submit" asp-route-cat="@Model.CategoryId">
-                <i data-lucide="edit-3"></i> <span class="cat-submit-text">এই বিভাগে মামলা দাখিল করুন</span>
-            </a>
+            @if (!User.IsInRole("Lawyer"))
+            {
+                <a class="btn btn-primary btn-lg" asp-controller="Case" asp-action="Submit" asp-route-cat="@Model.CategoryId">
+                    <i data-lucide="edit-3"></i> <span class="cat-submit-text">এই বিভাগে মামলা দাখিল করুন</span>
+                </a>
+            }
         </div>
 
         <hr class="divider" />
