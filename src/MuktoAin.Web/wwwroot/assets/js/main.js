@@ -941,15 +941,10 @@
         var enSpan = card.querySelector(".cat-en");
         var descP = card.querySelector(".cat-desc, p.muted");
 
+        // h2 text itself is swapped by the data-bn/data-en sweep (step 2b);
+        // caching h2.textContent here would capture the already-swapped text.
         if (h2 && enSpan) {
-          if (currentLang === "en") {
-            if (!card.dataset.bnTitle) card.dataset.bnTitle = h2.textContent;
-            h2.textContent = enSpan.textContent;
-            enSpan.style.display = "none";
-          } else {
-            if (card.dataset.bnTitle) h2.textContent = card.dataset.bnTitle;
-            enSpan.style.display = "";
-          }
+          enSpan.style.display = currentLang === "en" ? "none" : "";
         }
 
         if (descP) {
