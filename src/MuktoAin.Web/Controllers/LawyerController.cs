@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using MuktoAin.Application.DTOs;
 using MuktoAin.Application.Services;
 using MuktoAin.Domain.Entities;
@@ -161,34 +162,7 @@ public class LawyerController : Controller
         if (profile == null || profile.VerificationStatus != VerificationStatus.Approved)
             return RedirectToAction(nameof(Status));
 
-        // Opens only the lawyer's own active claim (Claim from the queue first).
-        var ws = await _reviewService.GetForReviewAsync(id, profile.LawyerProfileId);
-        if (ws == null)
-        {
-            TempData["Error"] = "এই নথিটি আপনার নেওয়া পর্যালোচনাধীন নথি নয় — সারি থেকে খুলুন।";
-            TempData["ErrorEn"] = "This document isn't under review in your name — open it from the queue.";
-            return RedirectToAction(nameof(Queue));
-        }
-
-        var doc = ws; // workspace dto
-        var vm = new LawyerReviewViewModel
-        {
-            DocumentId = doc.DocumentId,
-            CaseId = doc.CaseId,
-            CaseTitle = doc.CaseTitle,
-            CategoryName = doc.CategoryName,
-            ContentDraft = doc.OriginalDraft,
-            EditedContent = doc.CitizenEditedDraft ?? doc.OriginalDraft,
-            Decision = nameof(ReviewDecision.EditedApproved),
-            Comments = string.Empty
-        };
-        // Context extras for the view
-        ViewData["DistrictName"] = doc.DistrictName;
-        ViewData["CitizenNarrative"] = doc.CitizenNarrative;
-        ViewData["Citations"] = doc.Citations;
-        ViewData["VersionNo"] = doc.VersionNo;
-        ViewData["CitizenEdited"] = doc.CitizenEdited;
-        return View(vm);
+        return await ReviewWorkspaceAsync(id, profile.LawyerProfileId, posted: null);
     }
 
     [HttpPost]
@@ -199,26 +173,74 @@ public class LawyerController : Controller
         if (profile == null || profile.VerificationStatus != VerificationStatus.Approved)
             return RedirectToAction(nameof(Status));
 
-        if (!Enum.TryParse<ReviewDecision>(vm.Decision, out var decision))
-            decision = ReviewDecision.EditedApproved;
+        // Decision/Comments rules live on LawyerReviewViewModel (DataAnnotations).
+        // An unknown decision is an error, never a silent default (#8).
+        var isDecision = Enum.GetNames<ReviewDecision>().Contains(vm.Decision);
+        if (!isDecision && ModelState.GetFieldValidationState(nameof(vm.Decision)) != ModelValidationState.Invalid)
+            ModelState.AddModelError(nameof(vm.Decision),
+                "সিদ্ধান্ত অবশ্যই Approved, EditedApproved অথবা Rejected হতে হবে / Decision must be Approved, EditedApproved or Rejected");
+        if (vm.Decision == nameof(ReviewDecision.EditedApproved) && string.IsNullOrWhiteSpace(vm.EditedContent))
+            ModelState.AddModelError(nameof(vm.EditedContent),
+                "সম্পাদনাসহ অনুমোদনের জন্য সম্পাদিত পাঠ্য আবশ্যক / Edited text is required to approve with edits");
 
+        // Re-show the workspace with the lawyer's own text and comment instead
+        // of redirecting (a redirect reloads the document and loses them, #6).
+        if (!ModelState.IsValid)
+            return await ReviewWorkspaceAsync(vm.DocumentId, profile.LawyerProfileId, posted: vm);
+
+        var decision = Enum.Parse<ReviewDecision>(vm.Decision);
         var ok = await _reviewService.SubmitReviewAsync(new SubmitReviewDto(
             vm.DocumentId,
             profile.LawyerProfileId,
             decision,
-            vm.Comments ?? string.Empty,
+            vm.Comments.Trim(),
             decision == ReviewDecision.EditedApproved ? vm.EditedContent : null));
 
         if (!ok)
         {
-            TempData["Error"] = "পর্যালোচনা সংরক্ষণ হয়নি — মন্তব্য আবশ্যক (এবং সম্পাদনার সাথে অনুমোদনের ক্ষেত্রে সম্পাদিত পাঠ্য)। অন্য কেউ নথিটি বদলে থাকলে পাতাটি আবার লোড করুন।";
-            TempData["ErrorEn"] = "Review not saved — comments are mandatory (and edited text for approve-with-edits). If someone else changed this document, reload and try again.";
+            // Input was valid, so the document changed underneath (claim lost,
+            // already decided, or a concurrent save) -- reload is correct here.
+            TempData["Error"] = "পর্যালোচনা সংরক্ষণ হয়নি — নথিটি ইতিমধ্যে পরিবর্তিত হয়েছে। সারি থেকে আবার খুলুন।";
+            TempData["ErrorEn"] = "Review not saved — the document changed in the meantime. Open it again from the queue.";
             return RedirectToAction(nameof(Review), new { id = vm.DocumentId });
         }
 
         TempData["Success"] = "পর্যালোচনা সম্পন্ন — পরবর্তী নথিতে যাচ্ছেন।";
         TempData["SuccessEn"] = "Review saved — advancing to the next document.";
         return RedirectToAction(nameof(Queue));
+    }
+
+    // Builds the review page from the lawyer's own active claim. `posted`
+    // (an invalid submission) keeps the lawyer's decision, edited text and
+    // comment on top of the freshly loaded workspace context.
+    private async Task<IActionResult> ReviewWorkspaceAsync(int documentId, int lawyerProfileId, LawyerReviewViewModel? posted)
+    {
+        var ws = await _reviewService.GetForReviewAsync(documentId, lawyerProfileId);
+        if (ws == null)
+        {
+            TempData["Error"] = "এই নথিটি আপনার নেওয়া পর্যালোচনাধীন নথি নয় — সারি থেকে খুলুন।";
+            TempData["ErrorEn"] = "This document isn't under review in your name — open it from the queue.";
+            return RedirectToAction(nameof(Queue));
+        }
+
+        var vm = new LawyerReviewViewModel
+        {
+            DocumentId = ws.DocumentId,
+            CaseId = ws.CaseId,
+            CaseTitle = ws.CaseTitle,
+            CategoryName = ws.CategoryName,
+            ContentDraft = ws.OriginalDraft,
+            EditedContent = posted != null ? posted.EditedContent : ws.CitizenEditedDraft ?? ws.OriginalDraft,
+            Decision = posted?.Decision ?? nameof(ReviewDecision.EditedApproved),
+            Comments = posted?.Comments ?? string.Empty
+        };
+        // Context extras for the view
+        ViewData["DistrictName"] = ws.DistrictName;
+        ViewData["CitizenNarrative"] = ws.CitizenNarrative;
+        ViewData["Citations"] = ws.Citations;
+        ViewData["VersionNo"] = ws.VersionNo;
+        ViewData["CitizenEdited"] = ws.CitizenEdited;
+        return View(nameof(Review), vm);
     }
 
     private const int HistoryPageSize = 20;

@@ -533,6 +533,28 @@ public class LawyerReviewServiceTests
 
     // ── SubmitReviewAsync Business Logic & Security Edge-Case Tests ──────
 
+    // #4: "Approve" publishes the version under review -- the citizen's edit
+    // when there is one -- not the original AI draft.
+    [Fact]
+    public async Task SubmitReviewAsync_Approved_CitizenEditedDraft_KeepsCitizenVersion()
+    {
+        var doc = new GeneratedDocument
+        {
+            DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 5,
+            ContentDraft = "AI Draft", ContentFinal = "Citizen's corrected draft", CitizenEdited = true
+        };
+        _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(doc);
+        _caseRepo.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(new Case { CaseId = 10, Status = CaseStatus.UnderReview });
+
+        var ok = await _service.SubmitReviewAsync(new SubmitReviewDto(1, LawyerProfileId: 5,
+            Decision: ReviewDecision.Approved, Comments: "Approved as edited by the citizen", EditedContent: null));
+
+        Assert.True(ok);
+        Assert.Equal(DocumentStatus.Approved, doc.Status);
+        Assert.Equal("Citizen's corrected draft", doc.ContentFinal);
+        Assert.Equal("AI Draft", doc.ContentDraft);
+    }
+
     [Fact]
     public async Task SubmitReviewAsync_Approved_SetsStatusApproved_FinalEqualsDraft_TransitionsCaseFinalized()
     {

@@ -308,14 +308,15 @@ public class LawyerReviewService
 
     private static void ApplyDocumentDecision(GeneratedDocument d, DocumentStatus status, string? edited)
     {
-        // Mirrors DocumentService.UpdateStatusAsync semantics (verified):
-        // EditedApproved -> ContentFinal = edited; Approved -> final = draft.
+        // EditedApproved -> ContentFinal = the lawyer's edit. Approved -> the
+        // version under review is published unchanged: the citizen's edit when
+        // there is one (same rule as GetForReviewAsync), else the AI draft.
         // Saved by the caller together with the review (see SubmitReviewAsync).
         d.Status = status;
         if (edited != null)
             d.ContentFinal = edited;
         else if (status == DocumentStatus.Approved)
-            d.ContentFinal = d.ContentDraft;
+            d.ContentFinal = d.CitizenEdited && d.ContentFinal != null ? d.ContentFinal : d.ContentDraft;
     }
 
     // Case.Title/Description are field-level-encrypted PII (S-1.7). Decrypt
