@@ -119,10 +119,11 @@ public static class CategoryIntakeFields
         sb.AppendLine();
         sb.AppendLine($"CATEGORY DETECTED: {categoryKey}");
         sb.AppendLine("THE FOLLOWING CRITICAL DETAILS ARE STILL MISSING FROM THE CASE FILE.");
-        sb.AppendLine("YOUR NEXT QUESTION MUST ASK ABOUT ONE OF THESE MISSING FIELDS.");
-        sb.AppendLine("Store the citizen's answer in the caseFile JSON under the field key shown.");
+        sb.AppendLine("YOUR NEXT RESPONSE MUST ASK ABOUT ALL OF THESE REMAINING MISSING DETAILS TOGETHER IN A CLEAR NUMBERED LIST SO THE CITIZEN CAN ANSWER IN ONE REPLY.");
+        sb.AppendLine("Store the citizen's answers in the caseFile JSON under the field keys shown.");
         sb.AppendLine();
 
+        int index = 1;
         foreach (var key in missingFieldKeys)
         {
             var field = fields.FirstOrDefault(f => f.Key == key);
@@ -130,7 +131,7 @@ public static class CategoryIntakeFields
 
             var name = language == "en" ? field.NameEn : field.NameBn;
             var example = language == "en" ? field.ExampleEn : field.ExampleBn;
-            sb.AppendLine($"  - Field key: \"{field.Key}\" — {name} ({example})");
+            sb.AppendLine($"  {index++}. Field key: \"{field.Key}\" — {name} ({example})");
         }
         sb.AppendLine();
         sb.AppendLine("DO NOT set readyToExplain=true until ALL the above fields have values in the caseFile.");

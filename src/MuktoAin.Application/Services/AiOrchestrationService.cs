@@ -103,7 +103,7 @@ public class AiOrchestrationService : IAiOrchestrationService
         var finalResponse = _disclaimerInjector.InjectDisclaimer(rawResponse, @case.Language);
 
         // 5. Estimate tokens and Log
-        var tokensEstimated = Math.Max(1, (prompt.Length + rawResponse.Length) / 4);
+        var tokensEstimated = Math.Max(1, (prompt.Length + (rawResponse?.Length ?? 0)) / 4);
         var caseId = @case.CaseId > 0 ? (int?)@case.CaseId : null;
 
         await _aiLogService.LogAsync(

@@ -115,12 +115,13 @@ public class CaseController : Controller
         {
             // AUD-9: documentType was threaded here but never read — the
             // DocumentGenerator re-derives the real type from Case.CategoryId.
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
             result = await chatService.CommitToCaseAsync(
                 session.ChatSessionId,
                 vm.CategoryId,
                 vm.DistrictId,
                 vm.Title,
-                notificationEmail: null,
+                notificationEmail: userEmail,
                 vm.IsAnonymous,
                 currentUserId,
                 lang);
