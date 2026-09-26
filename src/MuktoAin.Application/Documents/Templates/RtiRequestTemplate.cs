@@ -18,12 +18,16 @@ public class RtiRequestTemplate : IDocumentTemplate, IBanglaDocumentVariant
     public Task<string> RenderAsync(Case caseEntity, RightsExplanationDto explanation)
     {
         var districtName = caseEntity.District?.Name ?? "________";
+        var authority = CaseFileReader.Read(caseEntity.Description, "targetAuthority", "Designated Public Authority / Department");
+        var infoSought = CaseFileReader.Read(caseEntity.Description, "informationSought");
+        var prevAttempt = CaseFileReader.ReadOrNull(caseEntity.Description, "previousAttempt");
+
         var sb = new StringBuilder();
 
         // ── Header ──────────────────────────────────────────────
         sb.AppendLine("TO");
         sb.AppendLine("The Designated Officer / RTI Officer");
-        sb.AppendLine("[Public Authority / Government Department Name]");
+        sb.AppendLine(authority);
         sb.AppendLine($"{districtName}, Bangladesh");
         sb.AppendLine();
 
@@ -38,11 +42,21 @@ public class RtiRequestTemplate : IDocumentTemplate, IBanglaDocumentVariant
         // ── Applicant Introduction ──────────────────────────────
         sb.AppendLine($"Under the provisions of Section 8 of the Right to Information Act, 2009 (Act No. XX of 2009), " +
                        $"I, the undersigned citizen of Bangladesh, resident of {districtName}, do hereby request the following " +
-                       "official information and documents from your designated office:");
+                       $"official information and documents from your office ({authority}):");
         sb.AppendLine();
 
         // ── Information Requested ───────────────────────────────
-        sb.AppendLine("INFORMATION REQUESTED:");
+        sb.AppendLine("SPECIFIC INFORMATION SOUGHT:");
+        sb.AppendLine(new string('─', 40));
+        sb.AppendLine($"  Details: {infoSought}");
+        if (prevAttempt != null)
+        {
+            sb.AppendLine($"  Prior Request History: {prevAttempt}");
+        }
+        sb.AppendLine();
+
+        // ── Detailed Background ─────────────────────────────────
+        sb.AppendLine("BACKGROUND CONTEXT / CASE DESCRIPTION:");
         sb.AppendLine(new string('─', 40));
         sb.AppendLine(caseEntity.Description);
         sb.AppendLine();
@@ -108,11 +122,15 @@ public class RtiRequestTemplate : IDocumentTemplate, IBanglaDocumentVariant
     public async Task<string> RenderBanglaOnlyAsync(Case caseEntity, RightsExplanationDto explanation)
     {
         var districtName = caseEntity.District?.Name;
+        var authority = CaseFileReader.Read(caseEntity.Description, "targetAuthority", "দায়িত্বপ্রাপ্ত সরকারি কর্তৃপক্ষ / দপ্তর");
+        var infoSought = CaseFileReader.Read(caseEntity.Description, "informationSought");
+        var prevAttempt = CaseFileReader.ReadOrNull(caseEntity.Description, "previousAttempt");
+
         var sb = new StringBuilder();
 
         sb.AppendLine("বরাবর");
         sb.AppendLine("দায়িত্বপ্রাপ্ত কর্মকর্তা / তথ্য কর্মকর্তা");
-        sb.AppendLine("[সরকারি সংস্থা / দপ্তরের নাম]");
+        sb.AppendLine(authority);
         sb.AppendLine($"{districtName ?? BanglaOnlyRender.Placeholder}, বাংলাদেশ");
         sb.AppendLine();
 
@@ -123,11 +141,20 @@ public class RtiRequestTemplate : IDocumentTemplate, IBanglaDocumentVariant
         sb.AppendLine();
 
         sb.AppendLine($"তথ্য অধিকার আইন, ২০০৯-এর ধারা ৮-এর বিধান অনুসারে, আমি, স্বাক্ষরকারী বাংলাদেশি নাগরিক, " +
-                       $"{districtName ?? BanglaOnlyRender.Placeholder}-এর বাসিন্দা, আপনার দায়িত্বপ্রাপ্ত দপ্তর হতে " +
+                       $"{districtName ?? BanglaOnlyRender.Placeholder}-এর বাসিন্দা, আপনার দপ্তর ({authority}) হতে " +
                        "নিম্নলিখিত সরকারি তথ্য ও নথি প্রার্থনা করছি:");
         sb.AppendLine();
 
-        sb.AppendLine("প্রার্থিত তথ্য:");
+        sb.AppendLine("নির্দিষ্ট প্রার্থিত তথ্য:");
+        sb.AppendLine(BanglaOnlyRender.Rule);
+        sb.AppendLine($"  তথ্য: {infoSought}");
+        if (prevAttempt != null)
+        {
+            sb.AppendLine($"  পূর্ববর্তী পদক্ষেপ/চেষ্টা: {prevAttempt}");
+        }
+        sb.AppendLine();
+
+        sb.AppendLine("প্রেক্ষাপট ও ঘটনার বিবরণ:");
         sb.AppendLine(BanglaOnlyRender.Rule);
         sb.AppendLine(caseEntity.Description);
         sb.AppendLine();

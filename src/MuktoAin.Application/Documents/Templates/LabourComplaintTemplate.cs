@@ -18,6 +18,11 @@ public class LabourComplaintTemplate : IDocumentTemplate, IBanglaDocumentVariant
     public Task<string> RenderAsync(Case caseEntity, RightsExplanationDto explanation)
     {
         var districtName = caseEntity.District?.Name ?? "________";
+        var employer = CaseFileReader.Read(caseEntity.Description, "employerName");
+        var wage = CaseFileReader.Read(caseEntity.Description, "monthlyWage");
+        var complaintType = CaseFileReader.ReadOrNull(caseEntity.Description, "natureOfComplaint");
+        var unpaidPeriod = CaseFileReader.ReadOrNull(caseEntity.Description, "unpaidPeriod");
+
         var sb = new StringBuilder();
 
         // ── Header ──────────────────────────────────────────────
@@ -31,7 +36,8 @@ public class LabourComplaintTemplate : IDocumentTemplate, IBanglaDocumentVariant
         var sectionRef = primarySection != null
             ? $"Section {primarySection.SectionNumber} of"
             : string.Empty;
-        sb.AppendLine($"Subject: Complaint Under {sectionRef} the Bangladesh Labour Act, 2006");
+        var complaintLabel = complaintType ?? "Labour Act Violation";
+        sb.AppendLine($"Subject: Complaint regarding {complaintLabel} against {employer}, Under {sectionRef} the Bangladesh Labour Act, 2006");
         sb.AppendLine();
 
         // ── Salutation ──────────────────────────────────────────
@@ -39,8 +45,14 @@ public class LabourComplaintTemplate : IDocumentTemplate, IBanglaDocumentVariant
         sb.AppendLine();
 
         // ── Complainant Introduction ────────────────────────────
-        sb.AppendLine($"I, the undersigned, resident of {districtName}, do hereby submit this complaint " +
+        sb.AppendLine($"I, the undersigned, resident of {districtName}, employed by {employer} " +
+                       $"at a monthly wage of {wage}, do hereby submit this complaint " +
                        "for the following violation(s) of the Bangladesh Labour Act, 2006:");
+        if (unpaidPeriod != null)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"Period of violation: {unpaidPeriod}");
+        }
         sb.AppendLine();
 
         // ── Facts of the Case ───────────────────────────────────
@@ -81,7 +93,7 @@ public class LabourComplaintTemplate : IDocumentTemplate, IBanglaDocumentVariant
         sb.AppendLine(new string('─', 40));
         sb.AppendLine("Based on the above facts and the applicable legal provisions cited herein,");
         sb.AppendLine("the complainant respectfully prays for appropriate relief including but not");
-        sb.AppendLine("limited to compensation, reinstatement, and/or any other remedy the");
+        sb.AppendLine("limited to compensation, recovery of unpaid dues, and/or any other remedy the");
         sb.AppendLine("Honourable Court deems fit and proper.");
         sb.AppendLine();
 
@@ -111,6 +123,11 @@ public class LabourComplaintTemplate : IDocumentTemplate, IBanglaDocumentVariant
     public async Task<string> RenderBanglaOnlyAsync(Case caseEntity, RightsExplanationDto explanation)
     {
         var districtName = caseEntity.District?.Name;
+        var employer = CaseFileReader.Read(caseEntity.Description, "employerName");
+        var wage = CaseFileReader.Read(caseEntity.Description, "monthlyWage");
+        var complaintType = CaseFileReader.ReadOrNull(caseEntity.Description, "natureOfComplaint");
+        var unpaidPeriod = CaseFileReader.ReadOrNull(caseEntity.Description, "unpaidPeriod");
+
         var sb = new StringBuilder();
 
         // ── Header ──────────────────────────────────────────────
@@ -124,7 +141,8 @@ public class LabourComplaintTemplate : IDocumentTemplate, IBanglaDocumentVariant
         var sectionRef = primarySection != null
             ? $"ধারা {primarySection.SectionNumber} (বাংলাদেশ শ্রম আইন, ২০০৬)-এর অধীনে"
             : "বাংলাদেশ শ্রম আইন, ২০০৬-এর অধীনে";
-        sb.AppendLine($"বিষয়: {sectionRef} অভিযোগ");
+        var complaintLabel = complaintType ?? "শ্রম আইন লঙ্ঘন সংক্রান্ত";
+        sb.AppendLine($"বিষয়: {employer}-এর বিরুদ্ধে {complaintLabel} বিষয়ে {sectionRef} অভিযোগ");
         sb.AppendLine();
 
         // ── Salutation ──────────────────────────────────────────
@@ -132,8 +150,13 @@ public class LabourComplaintTemplate : IDocumentTemplate, IBanglaDocumentVariant
         sb.AppendLine();
 
         // ── Complainant Introduction ────────────────────────────
-        sb.AppendLine($"আমি, স্বাক্ষরকারী, {districtName ?? BanglaOnlyRender.Placeholder}-এর বাসিন্দা, " +
-                       "বাংলাদেশ শ্রম আইন, ২০০৬-এর নিম্নলিখিত লঙ্ঘনের বিষয়ে এই অভিযোগ জমা দিচ্ছি:");
+        sb.AppendLine($"আমি, স্বাক্ষরকারী, {districtName ?? BanglaOnlyRender.Placeholder}-এর বাসিন্দা, {employer}-এ " +
+                       $"মাসিক {wage} বেতনে কর্মরত, বাংলাদেশ শ্রম আইন, ২০০৬-এর নিম্নলিখিত লঙ্ঘনের বিষয়ে এই অভিযোগ জমা দিচ্ছি:");
+        if (unpaidPeriod != null)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"লঙ্ঘন/বকেয়ার সময়কাল: {unpaidPeriod}");
+        }
         sb.AppendLine();
 
         // ── Facts ───────────────────────────────────────────────
@@ -172,8 +195,8 @@ public class LabourComplaintTemplate : IDocumentTemplate, IBanglaDocumentVariant
         // ── Relief ──────────────────────────────────────────────
         sb.AppendLine("প্রার্থিত প্রতিকার:");
         sb.AppendLine(BanglaOnlyRender.Rule);
-        sb.AppendLine("উপরোক্ত ঘটনা ও উদ্ধৃত আইনি বিধানের ভিত্তিতে, অভিযোগকারী ক্ষতিপূরণ, " +
-                       "পুনর্বহাল এবং/অথবা মাননীয় আদালত যথাযথ মনে করেন এমন অন্য যেকোনো প্রতিকার প্রার্থনা করছেন।");
+        sb.AppendLine("উপরোক্ত ঘটনা ও উদ্ধৃত আইনি বিধানের ভিত্তিতে, অভিযোগকারী বকেয়া পাওনা আদায়, ক্ষতিপূরণ " +
+                       "এবং/অথবা মাননীয় আদালত যথাযথ মনে করেন এমন অন্য যেকোনো প্রতিকার প্রার্থনা করছেন।");
         sb.AppendLine();
 
         // ── Declaration ─────────────────────────────────────────

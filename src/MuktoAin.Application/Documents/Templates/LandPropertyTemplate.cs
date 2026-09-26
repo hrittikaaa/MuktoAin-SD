@@ -17,6 +17,12 @@ public class LandPropertyTemplate : IDocumentTemplate, IBanglaDocumentVariant
     public Task<string> RenderAsync(Case caseEntity, RightsExplanationDto explanation)
     {
         var districtName = caseEntity.District?.Name ?? "________";
+        var landLoc = CaseFileReader.Read(caseEntity.Description, "landLocation");
+        var deedInfo = CaseFileReader.Read(caseEntity.Description, "deedOrDocumentInfo");
+        var area = CaseFileReader.Read(caseEntity.Description, "landArea");
+        var disputeType = CaseFileReader.ReadOrNull(caseEntity.Description, "natureOfDispute");
+        var opponent = CaseFileReader.ReadOrNull(caseEntity.Description, "opponentRelation");
+
         var sb = new StringBuilder();
 
         // ── Header ──────────────────────────────────────────────
@@ -28,9 +34,10 @@ public class LandPropertyTemplate : IDocumentTemplate, IBanglaDocumentVariant
         // ── Subject ─────────────────────────────────────────────
         var primarySection = explanation.CitedSections.FirstOrDefault();
         var sectionRef = primarySection != null
-            ? $" Under Section {primarySection.SectionNumber} of"
+            ? $" Under Section {primarySection.SectionNumber} of {primarySection.ActTitle}"
             : string.Empty;
-        sb.AppendLine($"Subject: Application / Complaint regarding Land & Property Dispute{sectionRef}");
+        var disputeLabel = disputeType ?? "Land & Property Dispute";
+        sb.AppendLine($"Subject: Application / Complaint regarding {disputeLabel}{sectionRef}");
         sb.AppendLine();
 
         // ── Salutation ──────────────────────────────────────────
@@ -39,8 +46,14 @@ public class LandPropertyTemplate : IDocumentTemplate, IBanglaDocumentVariant
 
         // ── Applicant Introduction ──────────────────────────────
         sb.AppendLine($"I, the undersigned applicant/landholder, resident of {districtName}, do hereby submit this formal " +
-                       "application/complaint regarding unlawful interference, dispossession, mutation dispute, or boundary violation " +
-                       "concerning my lawful immovable property:");
+                       "application/complaint regarding the following land dispute:");
+        sb.AppendLine();
+        sb.AppendLine("PROPERTY DETAILS:");
+        sb.AppendLine(new string('─', 40));
+        sb.AppendLine($"  Location (Mouza/Plot/Upazila): {landLoc}");
+        sb.AppendLine($"  Deed / Ownership Document: {deedInfo}");
+        sb.AppendLine($"  Land Area: {area}");
+        if (opponent != null) sb.AppendLine($"  Opponent: {opponent}");
         sb.AppendLine();
 
         // ── Facts of the Dispute ────────────────────────────────
@@ -88,7 +101,7 @@ public class LandPropertyTemplate : IDocumentTemplate, IBanglaDocumentVariant
         // ── Supporting Evidence / Attachments ───────────────────
         sb.AppendLine("SUPPORTING EVIDENCE / ATTACHMENTS:");
         sb.AppendLine(new string('─', 40));
-        sb.AppendLine("• Title deed (Kabala) / Registered inheritance documents / Waqf-Trust deed");
+        sb.AppendLine($"• Title deed / Document: {deedInfo}");
         sb.AppendLine("• Latest Khatian (CS/SA/RS/City/BS), DCR, and land development tax (Khajna) receipts");
         sb.AppendLine("• Land sketch / site map / demarcation survey report (if available)");
         sb.AppendLine("• Mutation (Namjari) proposal or rejection copy (if applicable)");
@@ -119,6 +132,12 @@ public class LandPropertyTemplate : IDocumentTemplate, IBanglaDocumentVariant
     public async Task<string> RenderBanglaOnlyAsync(Case caseEntity, RightsExplanationDto explanation)
     {
         var districtName = caseEntity.District?.Name;
+        var landLoc = CaseFileReader.Read(caseEntity.Description, "landLocation");
+        var deedInfo = CaseFileReader.Read(caseEntity.Description, "deedOrDocumentInfo");
+        var area = CaseFileReader.Read(caseEntity.Description, "landArea");
+        var disputeType = CaseFileReader.ReadOrNull(caseEntity.Description, "natureOfDispute");
+        var opponent = CaseFileReader.ReadOrNull(caseEntity.Description, "opponentRelation");
+
         var sb = new StringBuilder();
 
         sb.AppendLine("বরাবর");
@@ -130,15 +149,23 @@ public class LandPropertyTemplate : IDocumentTemplate, IBanglaDocumentVariant
         var sectionRef = primarySection != null
             ? $" {primarySection.ActTitle}-এর ধারা {primarySection.SectionNumber}-এর অধীনে"
             : string.Empty;
-        sb.AppendLine($"বিষয়: ভূমি ও সম্পত্তি বিরোধ সংক্রান্ত প্রতিকারের আবেদন{sectionRef}");
+        var disputeLabel = disputeType != null ? $" ({disputeType})" : "";
+        sb.AppendLine($"বিষয়: ভূমি ও সম্পত্তি বিরোধ সংক্রান্ত প্রতিকারের আবেদন{disputeLabel}{sectionRef}");
         sb.AppendLine();
 
         sb.AppendLine("মহোদয়,");
         sb.AppendLine();
 
         sb.AppendLine($"আমি, নিম্নস্বাক্ষরকারী আবেদনকারী/জমির বৈধ স্বত্বাধিকারী, {districtName ?? BanglaOnlyRender.Placeholder}-এর বাসিন্দা, " +
-                       "আমার বৈধ স্বত্বাধীন স্থাবর সম্পত্তির অবৈধ দখল, সীমানা বিরোধ, নামজারি জটিলতা বা বেদখলের বিষয়ে " +
-                       "আইনগত প্রতিকার চেয়ে এই আবেদন পেশ করছি:");
+                       "আমার বৈধ স্বত্বাধীন স্থাবর সম্পত্তির বিরোধের বিষয়ে নিম্নোক্ত তথ্য উপস্থাপনপূর্বক আইনগত প্রতিকার চেয়ে এই আবেদন পেশ করছি:");
+        sb.AppendLine();
+
+        sb.AppendLine("সম্পত্তির বিবরণ:");
+        sb.AppendLine(BanglaOnlyRender.Rule);
+        sb.AppendLine($"  অবস্থান (মৌজা/দাগ/উপজেলা): {landLoc}");
+        sb.AppendLine($"  দলিল / মালিকানার কাগজ: {deedInfo}");
+        sb.AppendLine($"  জমির পরিমাণ: {area}");
+        if (opponent != null) sb.AppendLine($"  প্রতিপক্ষ: {opponent}");
         sb.AppendLine();
 
         sb.AppendLine("বিরোধের ঘটনাবলি:");
@@ -181,7 +208,7 @@ public class LandPropertyTemplate : IDocumentTemplate, IBanglaDocumentVariant
 
         sb.AppendLine("সংযুক্ত প্রমাণপত্র:");
         sb.AppendLine(BanglaOnlyRender.Rule);
-        sb.AppendLine("• মূল বা সার্টিফাইড রেজিস্ট্রি দলিল (কবালা / হেবা / বণ্টননামা / ওয়ারিশান সনদ)");
+        sb.AppendLine($"• মূল বা সার্টিফাইড রেজিস্ট্রি দলিল / কাগজপত্র: {deedInfo}");
         sb.AppendLine("• হালনাগাদ খতিয়ান (সিএস/এসএ/আরএস/সিটি/বিএস), ডিসিআর ও ভূমি উন্নয়ন কর (খাজনা) দাখিলা");
         sb.AppendLine("• সীমানা নকশা / মৌজা ম্যাপের চিহ্নিত অংশ (যদি থাকে)");
         sb.AppendLine("• নামজারি আবেদন বা পূর্ববর্তী আদেশের অনুলিপি");

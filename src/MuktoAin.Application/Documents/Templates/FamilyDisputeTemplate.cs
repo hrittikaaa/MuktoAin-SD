@@ -17,6 +17,12 @@ public class FamilyDisputeTemplate : IDocumentTemplate, IBanglaDocumentVariant
     public Task<string> RenderAsync(Case caseEntity, RightsExplanationDto explanation)
     {
         var districtName = caseEntity.District?.Name ?? "________";
+        var disputeType = CaseFileReader.Read(caseEntity.Description, "disputeType");
+        var relation = CaseFileReader.Read(caseEntity.Description, "relationToOpponent");
+        var marriageDate = CaseFileReader.Read(caseEntity.Description, "marriageDate");
+        var children = CaseFileReader.ReadOrNull(caseEntity.Description, "childrenInfo");
+        var demandOrViolence = CaseFileReader.Read(caseEntity.Description, "demandOrViolenceDetails");
+
         var sb = new StringBuilder();
 
         // ── Header ──────────────────────────────────────────────
@@ -29,7 +35,7 @@ public class FamilyDisputeTemplate : IDocumentTemplate, IBanglaDocumentVariant
         var sectionRef = primarySection != null
             ? $" Under Section {primarySection.SectionNumber} of {primarySection.ActTitle}"
             : " Under the Family Courts Act / Muslim Family Laws";
-        sb.AppendLine($"Subject: Application / Plaint regarding Family Dispute & Maintenance / Custody / Protection{sectionRef}");
+        sb.AppendLine($"Subject: Application / Plaint regarding {disputeType} (Against {relation}){sectionRef}");
         sb.AppendLine();
 
         // ── Salutation ──────────────────────────────────────────
@@ -38,6 +44,14 @@ public class FamilyDisputeTemplate : IDocumentTemplate, IBanglaDocumentVariant
 
         // ── Petitioner Introduction ─────────────────────────────
         sb.AppendLine($"The humble petition of the petitioner, resident of {districtName}, most respectfully states:");
+        sb.AppendLine();
+        sb.AppendLine("FAMILY & MARITAL PARTICULARS:");
+        sb.AppendLine(new string('─', 40));
+        sb.AppendLine($"  Dispute Type: {disputeType}");
+        sb.AppendLine($"  Opponent Relationship: {relation}");
+        sb.AppendLine($"  Date of Marriage: {marriageDate}");
+        if (children != null) sb.AppendLine($"  Children: {children}");
+        sb.AppendLine($"  Specific Harm / Demand / Dispute: {demandOrViolence}");
         sb.AppendLine();
 
         // ── Facts of the Case ───────────────────────────────────
@@ -85,8 +99,8 @@ public class FamilyDisputeTemplate : IDocumentTemplate, IBanglaDocumentVariant
         // ── Supporting Evidence / Attachments ───────────────────
         sb.AppendLine("SUPPORTING EVIDENCE / ATTACHMENTS:");
         sb.AppendLine(new string('─', 40));
-        sb.AppendLine("• Nikahnama / Marriage Registration Certificate / Dissolution notice (if applicable)");
-        sb.AppendLine("• Birth certificate(s) of minor child(ren)");
+        sb.AppendLine($"• Nikahnama / Marriage Certificate dated {marriageDate} (if available)");
+        if (children != null) sb.AppendLine("• Birth certificate(s) of minor child(ren)");
         sb.AppendLine("• Evidence of respondent's income / employment details");
         sb.AppendLine("• Medical reports / General Diary records (in cases of domestic violence or harassment)");
         sb.AppendLine();
@@ -116,6 +130,12 @@ public class FamilyDisputeTemplate : IDocumentTemplate, IBanglaDocumentVariant
     public async Task<string> RenderBanglaOnlyAsync(Case caseEntity, RightsExplanationDto explanation)
     {
         var districtName = caseEntity.District?.Name;
+        var disputeType = CaseFileReader.Read(caseEntity.Description, "disputeType");
+        var relation = CaseFileReader.Read(caseEntity.Description, "relationToOpponent");
+        var marriageDate = CaseFileReader.Read(caseEntity.Description, "marriageDate");
+        var children = CaseFileReader.ReadOrNull(caseEntity.Description, "childrenInfo");
+        var demandOrViolence = CaseFileReader.Read(caseEntity.Description, "demandOrViolenceDetails");
+
         var sb = new StringBuilder();
 
         sb.AppendLine("বিজ্ঞ সহকারী জজ / পারিবারিক আদালত সমীপে");
@@ -126,14 +146,23 @@ public class FamilyDisputeTemplate : IDocumentTemplate, IBanglaDocumentVariant
         var sectionRef = primarySection != null
             ? $" {primarySection.ActTitle}-এর ধারা {primarySection.SectionNumber}-এর অধীনে"
             : " পারিবারিক আদালত আইনের অধীনে";
-        sb.AppendLine($"বিষয়: পারিবারিক বিরোধ, ভরণপোষণ, দেনমোহর বা সন্তানের হেফাজত সংক্রান্ত আরজি/আবেদন{sectionRef}");
+        sb.AppendLine($"বিষয়: {relation}-এর বিরুদ্ধে {disputeType} সংক্রান্ত আরজি/আবেদন{sectionRef}");
         sb.AppendLine();
 
         sb.AppendLine("বিনীত নিবেদন এই যে,");
         sb.AppendLine();
 
         sb.AppendLine($"আমি, নিম্নস্বাক্ষরকারী আবেদনকারী/বাদী, {districtName ?? BanglaOnlyRender.Placeholder}-এর বাসিন্দা, " +
-                       "বিবাদীর বিরুদ্ধে নিম্নবর্ণিত পারিবারিক অধিকার ক্ষুণ্ণ ও প্রতিকার প্রার্থনায় এই আবেদন পেশ করছি:");
+                       $"বিবাদীর ({relation}) বিরুদ্ধে নিম্নবর্ণিত পারিবারিক অধিকার ক্ষুণ্ণ ও প্রতিকার প্রার্থনায় এই আবেদন পেশ করছি:");
+        sb.AppendLine();
+
+        sb.AppendLine("পারিবারিক ও বৈবাহিক বিবরণ:");
+        sb.AppendLine(BanglaOnlyRender.Rule);
+        sb.AppendLine($"  বিরোধের ধরন: {disputeType}");
+        sb.AppendLine($"  বিবাদীর সাথে সম্পর্ক: {relation}");
+        sb.AppendLine($"  বিবাহের তারিখ: {marriageDate}");
+        if (children != null) sb.AppendLine($"  সন্তান: {children}");
+        sb.AppendLine($"  দাবি বা নির্যাতনের বিবরণ: {demandOrViolence}");
         sb.AppendLine();
 
         sb.AppendLine("মামলার ঘটনাবলি:");
@@ -176,8 +205,8 @@ public class FamilyDisputeTemplate : IDocumentTemplate, IBanglaDocumentVariant
 
         sb.AppendLine("সংযুক্ত প্রমাণপত্র:");
         sb.AppendLine(BanglaOnlyRender.Rule);
-        sb.AppendLine("• নিকাহনামা / বিবাহ নিবন্ধন সনদ / তালাকের নোটিশ (যদি থাকে)");
-        sb.AppendLine("• সন্তানের জন্ম নিবন্ধন সনদ");
+        sb.AppendLine($"• {marriageDate} তারিখের নিকাহনামা / বিবাহ নিবন্ধন সনদ (যদি থাকে)");
+        if (children != null) sb.AppendLine("• সন্তানের জন্ম নিবন্ধন সনদ");
         sb.AppendLine("• বিবাদীর পেশা ও আয়ের প্রমাণক");
         sb.AppendLine("• চিকিৎসা সনদ / পূর্ববর্তী জিডির কপি (সহিংসতা বা নির্যাতনের ক্ষেত্রে)");
         sb.AppendLine();

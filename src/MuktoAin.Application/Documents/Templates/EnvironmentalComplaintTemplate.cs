@@ -17,6 +17,11 @@ public class EnvironmentalComplaintTemplate : IDocumentTemplate, IBanglaDocument
     public Task<string> RenderAsync(Case caseEntity, RightsExplanationDto explanation)
     {
         var districtName = caseEntity.District?.Name ?? "________";
+        var pollutionType = CaseFileReader.Read(caseEntity.Description, "pollutionType");
+        var source = CaseFileReader.Read(caseEntity.Description, "sourceOfPollution");
+        var area = CaseFileReader.Read(caseEntity.Description, "affectedArea");
+        var duration = CaseFileReader.ReadOrNull(caseEntity.Description, "duration");
+
         var sb = new StringBuilder();
 
         // ── Header ──────────────────────────────────────────────
@@ -31,7 +36,7 @@ public class EnvironmentalComplaintTemplate : IDocumentTemplate, IBanglaDocument
         var sectionRef = primarySection != null
             ? $" Under Section {primarySection.SectionNumber} of {primarySection.ActTitle}"
             : " Under the Bangladesh Environment Conservation Act, 1995";
-        sb.AppendLine($"Subject: Formal Complaint / Report on Environmental Violation and Pollution Hazards{sectionRef}");
+        sb.AppendLine($"Subject: Complaint regarding {pollutionType} by {source} in {area}{sectionRef}");
         sb.AppendLine();
 
         // ── Salutation ──────────────────────────────────────────
@@ -40,12 +45,18 @@ public class EnvironmentalComplaintTemplate : IDocumentTemplate, IBanglaDocument
 
         // ── Complainant Introduction ────────────────────────────
         sb.AppendLine($"I/We, the undersigned citizen(s)/affected resident(s) of {districtName}, do hereby draw your urgent attention " +
-                       "and lodge this formal complaint regarding severe environmental destruction, industrial pollution, unauthorized hill cutting, " +
-                       "wetland/river encroachment, or ecological damage occurring in our locality:");
+                       $"and lodge this formal complaint regarding {pollutionType} caused by {source}:");
+        sb.AppendLine();
+        sb.AppendLine("POLLUTION & HAZARD DETAILS:");
+        sb.AppendLine(new string('─', 40));
+        sb.AppendLine($"  Type of Violation: {pollutionType}");
+        sb.AppendLine($"  Pollution Source / Offender: {source}");
+        sb.AppendLine($"  Affected Locality / Population: {area}");
+        if (duration != null) sb.AppendLine($"  Duration: {duration}");
         sb.AppendLine();
 
         // ── Facts of the Violation ──────────────────────────────
-        sb.AppendLine("FACTS OF THE ENVIRONMENTAL VIOLATION:");
+        sb.AppendLine("DETAILED FACTS OF THE ENVIRONMENTAL VIOLATION:");
         sb.AppendLine(new string('─', 40));
         sb.AppendLine(caseEntity.Description);
         sb.AppendLine();
@@ -81,16 +92,16 @@ public class EnvironmentalComplaintTemplate : IDocumentTemplate, IBanglaDocument
         sb.AppendLine("RELIEF / ENFORCEMENT SOUGHT:");
         sb.AppendLine(new string('─', 40));
         sb.AppendLine("In consideration of public health, ecological safety, and constitutional rights to life and clean environment, the complainant prays:");
-        sb.AppendLine("1. That an immediate on-spot mobile court / enforcement drive and environmental impact assessment be executed;");
-        sb.AppendLine("2. That closure orders, environmental clearance cancellation, or stop-work notices be issued against the offending entity;");
-        sb.AppendLine("3. That ecological restoration, decontamination, and statutory environmental compensation be mandated.");
+        sb.AppendLine($"1. That an immediate on-spot mobile court / enforcement drive be conducted at {source};");
+        sb.AppendLine($"2. That closure orders, environmental clearance cancellation, or stop-work notices be issued against {source};");
+        sb.AppendLine($"3. That ecological restoration, decontamination of {area}, and statutory environmental compensation be mandated.");
         sb.AppendLine();
 
         // ── Supporting Evidence / Attachments ───────────────────
         sb.AppendLine("SUPPORTING EVIDENCE / ATTACHMENTS:");
         sb.AppendLine(new string('─', 40));
-        sb.AppendLine("• Photographic / Video evidence showing environmental violation, smoke, chemical discharge, or encroachment");
-        sb.AppendLine("• Location coordinates / Google Maps pin / Mouza details of the site");
+        sb.AppendLine($"• Photographic / Video evidence showing {pollutionType} and chemical discharge");
+        sb.AppendLine($"• Location coordinates / site details: {area}");
         sb.AppendLine("• Local collective petitions / Newspaper or media investigative reports (if available)");
         sb.AppendLine();
 
@@ -118,6 +129,11 @@ public class EnvironmentalComplaintTemplate : IDocumentTemplate, IBanglaDocument
     public async Task<string> RenderBanglaOnlyAsync(Case caseEntity, RightsExplanationDto explanation)
     {
         var districtName = caseEntity.District?.Name;
+        var pollutionType = CaseFileReader.Read(caseEntity.Description, "pollutionType");
+        var source = CaseFileReader.Read(caseEntity.Description, "sourceOfPollution");
+        var area = CaseFileReader.Read(caseEntity.Description, "affectedArea");
+        var duration = CaseFileReader.ReadOrNull(caseEntity.Description, "duration");
+
         var sb = new StringBuilder();
 
         sb.AppendLine("বরাবর");
@@ -130,18 +146,25 @@ public class EnvironmentalComplaintTemplate : IDocumentTemplate, IBanglaDocument
         var sectionRef = primarySection != null
             ? $" {primarySection.ActTitle}-এর ধারা {primarySection.SectionNumber}-এর অধীনে"
             : " বাংলাদেশ পরিবেশ সংরক্ষণ আইন, ১৯৯৫-এর অধীনে";
-        sb.AppendLine($"বিষয়: পরিবেশ দূষণ, বেআইনি দখল বা পরিবেশ বিধ্বংসী কার্যকলাপ প্রতিকারের অভিযোগ{sectionRef}");
+        sb.AppendLine($"বিষয়: {source} কর্তৃক {pollutionType} প্রতিকারের অভিযোগ{sectionRef}");
         sb.AppendLine();
 
         sb.AppendLine("মহোদয়,");
         sb.AppendLine();
 
         sb.AppendLine($"আমি/আমরা, {districtName ?? BanglaOnlyRender.Placeholder}-এর সচেতন নাগরিক ও ভুক্তভোগী অধিবাসী, " +
-                       "আমাদের এলাকায় পরিবেশ আইন লঙ্ঘন, ক্ষতিকর বর্জ্য নির্গমন, অবৈধ নদী/জলাশয় দখল বা বৃক্ষ নিধনের বিরুদ্ধে " +
-                       "জরুরি প্রশাসনিক পদক্ষেপ গ্রহণের জন্য এই অভিযোগ দাখিল করছি:");
+                       $"{source} কর্তৃক সৃষ্ট {pollutionType}-এর বিরুদ্ধে জরুরি প্রশাসনিক পদক্ষেপ গ্রহণের জন্য এই অভিযোগ দাখিল করছি:");
         sb.AppendLine();
 
-        sb.AppendLine("পরিবেশ লঙ্ঘনের বিবরণ:");
+        sb.AppendLine("দূষণ ও পরিবেশগত ক্ষতির বিবরণ:");
+        sb.AppendLine(BanglaOnlyRender.Rule);
+        sb.AppendLine($"  দূষণের ধরন: {pollutionType}");
+        sb.AppendLine($"  দূষণের উৎস/প্রতিষ্ঠান: {source}");
+        sb.AppendLine($"  ক্ষতিগ্রস্ত এলাকা/জনসংখ্যা: {area}");
+        if (duration != null) sb.AppendLine($"  স্থায়িত্ব/সময়কাল: {duration}");
+        sb.AppendLine();
+
+        sb.AppendLine("পরিবেশ লঙ্ঘনের বিস্তারিত বিবরণ:");
         sb.AppendLine(BanglaOnlyRender.Rule);
         sb.AppendLine(caseEntity.Description);
         sb.AppendLine();
@@ -174,15 +197,15 @@ public class EnvironmentalComplaintTemplate : IDocumentTemplate, IBanglaDocument
         sb.AppendLine("প্রার্থিত প্রতিকার ও আইনি পদক্ষেপ:");
         sb.AppendLine(BanglaOnlyRender.Rule);
         sb.AppendLine("জনস্বাস্থ্য ও প্রতিবেশ সুরক্ষায় পরিবেশ অধিদপ্তরের প্রতি বিনীত প্রার্থনা:");
-        sb.AppendLine("১. তাৎক্ষণিকভাবে সরজমিন পরিদর্শন এবং ভ্রাম্যমাণ আদালত (মোবাইল কোর্ট) পরিচালনা করা হোক;");
-        sb.AppendLine("২. দূষণকারী/লঙ্ঘনকারী প্রতিষ্ঠানের বিরুদ্ধে পরিবেশ ছাড়পত্র বাতিল বা কার্যক্রম স্থগিতাদেশ জারি করা হোক;");
-        sb.AppendLine("৩. পরিবেশগত ক্ষতিপূরণ নির্ধারণ এবং পূর্বাবস্থায় ফিরিয়ে আনার প্রয়োজনীয় নির্দেশ প্রদান করা হোক।");
+        sb.AppendLine($"১. তাৎক্ষণিকভাবে {source}-এ সরজমিন পরিদর্শন এবং ভ্রাম্যমাণ আদালত (মোবাইল কোর্ট) পরিচালনা করা হোক;");
+        sb.AppendLine($"২. দূষণকারী প্রতিষ্ঠান ({source})-এর বিরুদ্ধে পরিবেশ ছাড়পত্র বাতিল বা কার্যক্রম স্থগিতাদেশ জারি করা হোক;");
+        sb.AppendLine($"৩. {area}-এর পরিবেশগত ক্ষতিপূরণ নির্ধারণ এবং পুনর্বাসনের নির্দেশ প্রদান করা হোক।");
         sb.AppendLine();
 
         sb.AppendLine("সংযুক্ত প্রমাণক:");
         sb.AppendLine(BanglaOnlyRender.Rule);
-        sb.AppendLine("• দূষণ, বর্জ্য নির্গমন বা দখলের আলোকচিত্র / ভিডিও ফুটেজ");
-        sb.AppendLine("• ঘটনাস্থলের সঠিক ভৌগোলিক অবস্থান / গুগল ম্যাপ লোকেশন");
+        sb.AppendLine($"• {pollutionType}-এর আলোকচিত্র / ভিডিও ফুটেজ");
+        sb.AppendLine($"• ঘটনাস্থলের অবস্থান: {area}");
         sb.AppendLine("• স্থানীয় বাসিন্দাদের গণস্বাক্ষর বা সংবাদপত্রের প্রতিবেদন (যদি থাকে)");
         sb.AppendLine();
 
