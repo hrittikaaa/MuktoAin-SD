@@ -32,6 +32,38 @@
     });
   }
 
+  /* ---------- Admin dashboard health strings (server sends English only) ---------- */
+  function localizeHealth(text, lang) {
+    if (lang === "en" || !text) return text;
+    var rules = [
+      [/^Operational \(Qdrant Vector Store · '(.+)' Online\)$/, "সচল (Qdrant ভেক্টর স্টোর · '$1' অনলাইন)"],
+      [/^Connected \(Collection '(.+)' Not Found\)$/, "সংযুক্ত (কালেকশন '$1' পাওয়া যায়নি)"],
+      [/^Offline \/ Unreachable \(SQL FTS Fallback Active · (.+)\)$/, "অফলাইন / সংযোগ পাওয়া যাচ্ছে না (SQL FTS ফলব্যাক সক্রিয় · $1)"],
+      [/^Unconfigured \/ Missing in appsettings \(SQL FTS Fallback Active\)$/, "কনফিগার করা নেই (SQL FTS ফলব্যাক সক্রিয়)"],
+      [/^Connected \(SQL Server · (\d+) Users, (\d+) Acts\)$/, function (m, u, a) { return "সংযুক্ত (SQL Server · " + toBengaliDigits(u) + " জন ব্যবহারকারী, " + toBengaliDigits(a) + "টি আইন)"; }],
+      [/^Disconnected \/ Error \((.+)\)$/, "সংযোগ বিচ্ছিন্ন / ত্রুটি ($1)"],
+      [/^Unconfigured \/ Missing ConnectionString in appsettings$/, "কনফিগার করা নেই (ConnectionString পাওয়া যায়নি)"],
+      [/^Unconfigured \/ Missing Gemini API Key in appsettings$/, "কনফিগার করা নেই (Gemini API Key পাওয়া যায়নি)"],
+      [/^Healthy \((.+) · (\d+) Key\(s\) Configured\)$/, function (m, model, n) { return "সুস্থ (" + model + " · " + toBengaliDigits(n) + "টি কী কনফিগার করা আছে)"; }]
+    ];
+    for (var i = 0; i < rules.length; i++) {
+      if (rules[i][0].test(text)) return text.replace(rules[i][0], rules[i][1]);
+    }
+    return text;
+  }
+
+  function setHealthText(el, raw) {
+    el.dataset.raw = raw;
+    el.textContent = localizeHealth(raw, currentLang);
+  }
+
+  function healthBadgeText(cls, bnText) {
+    if (currentLang !== "en") return bnText;
+    if (cls.indexOf("badge-success") !== -1) return "All Services Operational";
+    if (cls.indexOf("badge-gold") !== -1) return "Degraded · Fallback Active";
+    return "Service Disrupted";
+  }
+
   /* ---------- Lucide render helper ---------- */
   function renderIcons(root) {
     if (window.lucide) window.lucide.createIcons(root ? { nameAttr: "data-lucide", attrs: {}, root: root } : undefined);
@@ -978,10 +1010,15 @@
       if (pulseHead && pulseHead.parentElement) {
         pulseHead.parentElement.innerHTML = '<i data-lucide="server" style="width:16px;height:16px;color:var(--gold);"></i> ' + (currentLang === "en" ? "Live Infrastructure & Service Pulse (System Health)" : "লাইভ ইনফ্রাস্ট্রাকচার ও সার্ভিস পালস (System Health)");
       }
-      var pulseBadge = document.querySelector(".card span.badge-success");
-      if (pulseBadge && (pulseBadge.textContent.indexOf("সচল") !== -1 || pulseBadge.textContent.indexOf("Operational") !== -1)) {
-        pulseBadge.textContent = currentLang === "en" ? "All Services Operational" : "সকল সার্ভিস সচল (Operational)";
+      var pulseBadgeEl = document.getElementById("pulse-badge");
+      if (pulseBadgeEl) {
+        if (!pulseBadgeEl.dataset.bn) pulseBadgeEl.dataset.bn = pulseBadgeEl.textContent.trim();
+        pulseBadgeEl.textContent = healthBadgeText(pulseBadgeEl.className, pulseBadgeEl.dataset.bn);
       }
+      ["db-status-text", "qdrant-status-text", "gemini-status-text"].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) setHealthText(el, el.dataset.raw || el.textContent);
+      });
 
       var kpis = document.querySelectorAll(".grid-4 .kpi");
       if (kpis.length >= 4) {
@@ -1047,7 +1084,7 @@
             if (dbDot && dbText) {
               dbDot.style.background = data.isDatabaseHealthy ? "#16a34a" : "#dc2626";
               dbDot.style.boxShadow = data.isDatabaseHealthy ? "0 0 8px #16a34a" : "0 0 8px #dc2626";
-              dbText.textContent = data.databaseStatus;
+              setHealthText(dbText, data.databaseStatus);
               dbText.style.color = data.isDatabaseHealthy ? "" : "#dc2626";
               dbText.style.fontWeight = data.isDatabaseHealthy ? "" : "600";
             }
@@ -1057,7 +1094,7 @@
             if (qdrantDot && qdrantText) {
               qdrantDot.style.background = data.isVectorDbHealthy ? "#16a34a" : "#d97706";
               qdrantDot.style.boxShadow = data.isVectorDbHealthy ? "0 0 8px #16a34a" : "0 0 8px #d97706";
-              qdrantText.textContent = data.vectorDbStatus;
+              setHealthText(qdrantText, data.vectorDbStatus);
               qdrantText.style.color = data.isVectorDbHealthy ? "" : "#b45309";
               qdrantText.style.fontWeight = data.isVectorDbHealthy ? "" : "600";
             }
@@ -1067,7 +1104,7 @@
             if (geminiDot && geminiText) {
               geminiDot.style.background = data.isAiServiceHealthy ? "#16a34a" : "#dc2626";
               geminiDot.style.boxShadow = data.isAiServiceHealthy ? "0 0 8px #16a34a" : "0 0 8px #dc2626";
-              geminiText.textContent = data.aiServiceStatus;
+              setHealthText(geminiText, data.aiServiceStatus);
               geminiText.style.color = data.isAiServiceHealthy ? "" : "#dc2626";
               geminiText.style.fontWeight = data.isAiServiceHealthy ? "" : "600";
             }
@@ -1075,9 +1112,8 @@
             var pulseBadge = document.getElementById("pulse-badge");
             if (pulseBadge) {
               pulseBadge.className = "badge " + data.overallHealthBadgeClass;
-              pulseBadge.textContent = currentLang === "en" 
-                ? (data.isDatabaseHealthy && data.isVectorDbHealthy && data.isAiServiceHealthy ? "All Services Operational" : "Degraded · Fallback Active")
-                : data.overallHealthBadgeText;
+              pulseBadge.dataset.bn = data.overallHealthBadgeText;
+              pulseBadge.textContent = healthBadgeText(pulseBadge.className, data.overallHealthBadgeText);
             }
 
             if (updatedSpan) {

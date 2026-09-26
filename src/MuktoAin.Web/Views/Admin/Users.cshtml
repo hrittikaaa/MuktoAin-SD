@@ -189,11 +189,11 @@
                     {
                         @if (p == Model.Page)
                         {
-                            <span class="btn btn-primary btn-sm" style="min-width: 32px; padding: 4px 8px; font-weight: bold;">@ToBn(p)</span>
+                            <span class="btn btn-primary btn-sm" style="min-width: 32px; padding: 4px 8px; font-weight: bold;" data-bn="@ToBn(p)" data-en="@p">@ToBn(p)</span>
                         }
                         else
                         {
-                            <a asp-action="Users" asp-route-role="@Model.RoleFilter" asp-route-page="@p" class="btn btn-outline btn-sm" style="min-width: 32px; padding: 4px 8px;">@ToBn(p)</a>
+                            <a asp-action="Users" asp-route-role="@Model.RoleFilter" asp-route-page="@p" class="btn btn-outline btn-sm" style="min-width: 32px; padding: 4px 8px;" data-bn="@ToBn(p)" data-en="@p">@ToBn(p)</a>
                         }
                     }
                     @if (Model.Page < totalPages)
