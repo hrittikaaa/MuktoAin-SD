@@ -195,7 +195,7 @@
             </div>
             
             <div style="margin-top: 16px; text-align: right;">
-                <a asp-controller="Search" asp-action="Index" class="btn btn-outline btn-sm" style="font-size: 12.5px;">
+                <a asp-controller="Admin" asp-action="Lawyers" class="btn btn-outline btn-sm" style="font-size: 12.5px;">
                     <i data-lucide="external-link"></i> <span data-bn="সকল আইনজীবী অডিট রেকর্ড দেখুন" data-en="View All Advocate Audit Records">সকল আইনজীবী অডিট রেকর্ড দেখুন</span>
                 </a>
             </div>
@@ -218,7 +218,7 @@
                             <strong style="font-size: 15px; display: block;"><i data-lucide="users" style="width: 16px; height: 16px; display: inline; vertical-align: text-bottom;"></i> <span data-bn="ব্যবহারকারী ও রোল ব্যবস্থাপনা (FR-17)" data-en="User & Role Management (FR-17)">ব্যবহারকারী ও রোল ব্যবস্থাপনা (FR-17)</span></strong>
                             <span class="muted tiny" data-bn="নাগরিক ও আইনজীবী একাউন্ট সক্রিয়/স্থগিতকরণ ও অ্যাক্সেস নিয়ন্ত্রণ" data-en="Citizen and advocate account status and access control">নাগরিক ও আইনজীবী একাউন্ট সক্রিয়/স্থগিতকরণ ও অ্যাক্সেস নিয়ন্ত্রণ</span>
                         </div>
-                        <a asp-controller="Search" asp-action="Index" class="btn btn-outline btn-sm" data-bn="ম্যানেজ" data-en="Manage">ম্যানেজ</a>
+                        <a asp-controller="Admin" asp-action="Users" class="btn btn-outline btn-sm" data-bn="ম্যানেজ" data-en="Manage">ম্যানেজ</a>
                     </div>
 
                     <!-- 2. Legislative Corpus & Indexing -->
@@ -227,7 +227,7 @@
                             <strong style="font-size: 15px; display: block;"><i data-lucide="book-open-check" style="width: 16px; height: 16px; display: inline; vertical-align: text-bottom;"></i> <span data-bn="আইন করপাস ও ভেক্টর রি-ইনডেক্সিং (FR-18)" data-en="Corpus & Vector Re-indexing (FR-18)">আইন করপাস ও ভেক্টর রি-ইনডেক্সিং (FR-18)</span></strong>
                             <span class="muted tiny" data-bn="১,৪৮৪টি আইন, সেকশন চাঙ্ক এবং SHA256 ইন্টিগ্রিটি রি-সিঙ্ক" data-en="1,484 Acts, section chunks, and SHA256 integrity re-sync">১,৪৮৪টি আইন, সেকশন চাঙ্ক এবং SHA256 ইন্টিগ্রিটি রি-সিঙ্ক</span>
                         </div>
-                        <a asp-controller="Search" asp-action="Index" class="btn btn-outline btn-sm" data-bn="করপাস" data-en="Corpus">করপাস</a>
+                        <a asp-controller="Admin" asp-action="Corpus" class="btn btn-outline btn-sm" data-bn="করপাস" data-en="Corpus">করপাস</a>
                     </div>
 
                     <!-- 3. Scenario Mappings & Legal Boosts -->
@@ -236,7 +236,7 @@
                             <strong style="font-size: 15px; display: block;"><i data-lucide="zap" style="width: 16px; height: 16px; display: inline; vertical-align: text-bottom;"></i> <span data-bn="সিনারিও কি-ওয়ার্ড বুস্ট ম্যাপিং (FR-18)" data-en="Scenario Keyword Boosts (FR-18)">সিনারিও কি-ওয়ার্ড বুস্ট ম্যাপিং (FR-18)</span></strong>
                             <span class="muted tiny" data-bn="আইনি সমস্যার ধরন ও সেকশন র্যাংকিং বুস্টিং রুলস" data-en="Legal scenario rules and statutory ranking weights">আইনি সমস্যার ধরন ও সেকশন র্যাংকিং বুস্টিং রুলস</span>
                         </div>
-                        <a asp-controller="Category" asp-action="Index" class="btn btn-outline btn-sm" data-bn="কনফিগার" data-en="Configure">কনফিগার</a>
+                        <a asp-controller="Admin" asp-action="Scenarios" class="btn btn-outline btn-sm" data-bn="কনফিগার" data-en="Configure">কনফিগার</a>
                     </div>
 
                     <!-- 4. Deep Analytics Suite -->
