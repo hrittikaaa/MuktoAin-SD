@@ -6,6 +6,32 @@
     var district = Model.DistrictName;
     var versionNo = Model.VersionNo;
     var citizenEdited = Model.CitizenEdited;
+
+    static bool IsBengali(string? text) =>
+        !string.IsNullOrEmpty(text) && text.Any(c => c >= '\u0980' && c <= '\u09FF');
+
+    static string ToBnDigits(string? text) =>
+        string.IsNullOrEmpty(text)
+            ? string.Empty
+            : text.Select(c => (c >= '0' && c <= '9') ? (char)(c - '0' + '০') : c)
+                  .Aggregate(new System.Text.StringBuilder(), (sb, c) => sb.Append(c))
+                  .ToString();
+
+    static string ToEnDigits(string? text) =>
+        string.IsNullOrEmpty(text)
+            ? string.Empty
+            : text.Select(c => (c >= '০' && c <= '৯') ? (char)(c - '০' + '0') : c)
+                  .Aggregate(new System.Text.StringBuilder(), (sb, c) => sb.Append(c))
+                  .ToString();
+
+    static string FormatCitationRef(string actTitle, string? sectionNumber)
+    {
+        if (string.IsNullOrWhiteSpace(sectionNumber)) return actTitle;
+        var isBn = IsBengali(actTitle);
+        var secFormatted = isBn ? ToBnDigits(sectionNumber) : ToEnDigits(sectionNumber);
+        var prefix = isBn ? "· ধারা" : "· Section";
+        return $"{actTitle} {prefix} {secFormatted}";
+    }
 }
 
 <main class="container" id="main">
@@ -63,7 +89,7 @@
             <div class="chip-row">
                 @foreach (var c in citations)
                 {
-                    <span class="citation-chip">@c.ActTitle @(string.IsNullOrWhiteSpace(c.SectionNumber) ? "" : "· ধারা " + c.SectionNumber)</span>
+                    <span class="citation-chip">@FormatCitationRef(c.ActTitle, c.SectionNumber)</span>
                 }
             </div>
         }
@@ -191,7 +217,7 @@
                 <div class="chip-row">
                     @foreach (var c in citations)
                     {
-                        <span class="citation-chip">@c.ActTitle @(string.IsNullOrWhiteSpace(c.SectionNumber) ? "" : "· ধারা " + c.SectionNumber)</span>
+                        <span class="citation-chip">@FormatCitationRef(c.ActTitle, c.SectionNumber)</span>
                     }
                 </div>
             </div>

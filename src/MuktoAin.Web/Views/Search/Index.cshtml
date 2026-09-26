@@ -2,12 +2,43 @@
 @{
     ViewData["Title"] = "আইন অনুসন্ধান — Search Acts";
 
-    // Display-only Bengali numeral rendering (page numbers stay real ints in the
-    // querystring/asp-route-page -- only the rendered label switches script).
-    static string ToBn(int n) => n.ToString()
-        .Select(c => char.IsDigit(c) ? (char)(c - '0' + '০') : c)
-        .Aggregate(new System.Text.StringBuilder(), (sb, c) => sb.Append(c))
-        .ToString();
+    // Display-only numeral and title script helpers
+    static bool IsBengali(string? text) =>
+        !string.IsNullOrEmpty(text) && text.Any(c => c >= '\u0980' && c <= '\u09FF');
+
+    static string ToBnDigits(string? text) =>
+        string.IsNullOrEmpty(text)
+            ? string.Empty
+            : text.Select(c => (c >= '0' && c <= '9') ? (char)(c - '0' + '০') : c)
+                  .Aggregate(new System.Text.StringBuilder(), (sb, c) => sb.Append(c))
+                  .ToString();
+
+    static string ToEnDigits(string? text) =>
+        string.IsNullOrEmpty(text)
+            ? string.Empty
+            : text.Select(c => (c >= '০' && c <= '৯') ? (char)(c - '০' + '0') : c)
+                  .Aggregate(new System.Text.StringBuilder(), (sb, c) => sb.Append(c))
+                  .ToString();
+
+    static string ToBn(int n) => ToBnDigits(n.ToString());
+
+    static string FormatSectionRef(string actTitle, string? sectionNumber)
+    {
+        if (string.IsNullOrWhiteSpace(sectionNumber)) return actTitle;
+        var isBn = IsBengali(actTitle);
+        var secFormatted = isBn ? ToBnDigits(sectionNumber) : ToEnDigits(sectionNumber);
+        var prefix = isBn ? "ধারা" : "Section";
+        return $"{actTitle}, {prefix} {secFormatted}";
+    }
+
+    static string FormatSectionLabel(string actTitle, string? sectionNumber)
+    {
+        if (string.IsNullOrWhiteSpace(sectionNumber)) return actTitle;
+        var isBn = IsBengali(actTitle);
+        var secFormatted = isBn ? ToBnDigits(sectionNumber) : ToEnDigits(sectionNumber);
+        var prefix = isBn ? "ধারা" : "Section";
+        return $"{prefix} {secFormatted}";
+    }
 
     var totalPages = Model.PageSize > 0
         ? (int)Math.Ceiling(Model.TotalResults / (double)Model.PageSize)
@@ -33,7 +64,7 @@
                 <input name="q" value="@Model.Query" class="search-box-input" placeholder="কীওয়ার্ড লিখুন... (যেমন: মজুরি, ক্ষতিপূরণ, ধারা ১২৩, ট্রেড ইউনিয়ন)" autocomplete="off" autofocus />
                 @if (!string.IsNullOrEmpty(Model.Query))
                 {
-                    <a asp-action="Index" asp-route-actId="@Model.ActId" class="search-box-clear" title="ক্লিয়ার করুন" aria-label="Clear query">
+                    <a asp-action="Index" class="search-box-clear" title="ক্লিয়ার করুন" aria-label="Clear query">
                         <i data-lucide="x"></i>
                     </a>
                 }
@@ -42,7 +73,8 @@
                 </button>
             </div>
 
-            @{
+            @if (Model.HasSearched)
+            {
                 var allActs = (List<MuktoAin.Domain.Entities.Act>)ViewBag.Acts;
                 var selectedAct = allActs.FirstOrDefault(a => a.ActId == Model.ActId);
                 var isActFiltered = selectedAct != null;
@@ -72,74 +104,74 @@
                     ("🚔 ফৌজদারি ও দণ্ডবিধি", new[] { "দণ্ডবিধি", "penal", "ফৌজদারি", "criminal", "অস্ত্র", "মাদক", "পুলিশ" }),
                     ("👩‍👧 নারী, শিশু ও পরিবার", new[] { "নারী", "শিশু", "পারিবারিক", "যৌতুক", "বিবাহ", "তালাক", "অভিভাবক", "বাল্যবিবাহ" }),
                     ("💳 ব্যাংক, চেক ও অর্থ ঋণ", new[] { "অর্থ ঋণ", "ব্যাংক", "হস্তান্তরযোগ্য দলিল", "চেক", "মানিলন্ডারিং", "বীমা" }),
-                    ("💻 সাইবার ও ডিজিটাল", new[] { "সাইবার", "ডিজিটাল", "তথ্য ও যোগাযোগ", "টেলিকমিউনিকেশন" })
+                    ("💻 সাইবার ও ডিজিটাল", new[] { "সাইবার", "ডিজিটাল", "তথ্য ও যোগাযোগ", "টেলিকমিউনিケーション" })
                 };
-            }
 
-            <div class="search-meta-line">
-                <div class="act-filter" data-act-filter>
-                    <input type="hidden" name="actId" id="actId-value" value="@Model.ActId" />
-                    <button type="button" class="act-filter-btn @(isActFiltered ? "active-filter" : "")" id="actId-btn" aria-haspopup="listbox" aria-expanded="false" title="@selectedLabel">
-                        <i data-lucide="book" class="act-filter-icon"></i>
-                        <span id="actId-label">@selectedLabel</span>
-                        <i data-lucide="chevron-down" class="act-filter-chevron"></i>
-                    </button>
-                    <div class="act-filter-panel" id="actId-panel" hidden>
-                        <div class="act-filter-list" id="actId-list" role="listbox" tabindex="-1">
-                            <div class="act-filter-item @(selectedAct == null ? "selected" : "")" role="option" data-value="">
-                                <i data-lucide="layers" class="item-icon"></i>
-                                <span class="item-text"><b>সব আইন / All acts</b></span>
-                            </div>
-
-                            <div class="act-filter-section-header">
-                                <i data-lucide="star" class="section-icon"></i>
-                                <span>শীর্ষ প্রধান আইনসমূহ / Key Statutes</span>
-                            </div>
-                            @foreach (var act in topActs)
-                            {
-                                var label = $"{act.Title} ({act.Year})";
-                                var isSelected = act.ActId == Model.ActId;
-                                <div class="act-filter-item @(isSelected ? "selected" : "")" role="option" data-value="@act.ActId" title="@label">
-                                    <i data-lucide="bookmark" class="item-icon item-star"></i>
-                                    <span class="item-text">@label</span>
+                <div class="search-meta-line">
+                    <div class="act-filter" data-act-filter>
+                        <input type="hidden" name="actId" id="actId-value" value="@Model.ActId" />
+                        <button type="button" class="act-filter-btn @(isActFiltered ? "active-filter" : "")" id="actId-btn" aria-haspopup="listbox" aria-expanded="false" title="@selectedLabel">
+                            <i data-lucide="book" class="act-filter-icon"></i>
+                            <span id="actId-label">@selectedLabel</span>
+                            <i data-lucide="chevron-down" class="act-filter-chevron"></i>
+                        </button>
+                        <div class="act-filter-panel" id="actId-panel" hidden>
+                            <div class="act-filter-list" id="actId-list" role="listbox" tabindex="-1">
+                                <div class="act-filter-item @(selectedAct == null ? "selected" : "")" role="option" data-value="">
+                                    <i data-lucide="layers" class="item-icon"></i>
+                                    <span class="item-text"><b>সব আইন / All acts</b></span>
                                 </div>
-                            }
 
-                            <div class="act-filter-section-header">
-                                <i data-lucide="folder" class="section-icon"></i>
-                                <span>আইনের প্রধান ক্ষেত্রসমূহ / Legal Domains</span>
-                            </div>
-                            @foreach (var cat in categoryGroups)
-                            {
-                                var actsInCat = allActs
-                                    .Where(a => cat.Keywords.Any(k => a.Title.Contains(k, StringComparison.OrdinalIgnoreCase)))
-                                    .Take(8)
-                                    .ToList();
-
-                                if (actsInCat.Count > 0)
+                                <div class="act-filter-section-header">
+                                    <i data-lucide="star" class="section-icon"></i>
+                                    <span>শীর্ষ প্রধান আইনসমূহ / Key Statutes</span>
+                                </div>
+                                @foreach (var act in topActs)
                                 {
-                                    <div class="act-category-header">
-                                        <span>@cat.Name</span>
-                                        <span class="cat-count">(@actsInCat.Count)</span>
+                                    var label = $"{act.Title} ({act.Year})";
+                                    var isSelected = act.ActId == Model.ActId;
+                                    <div class="act-filter-item @(isSelected ? "selected" : "")" role="option" data-value="@act.ActId" title="@label">
+                                        <i data-lucide="bookmark" class="item-icon item-star"></i>
+                                        <span class="item-text">@label</span>
                                     </div>
-                                    @foreach (var act in actsInCat)
+                                }
+
+                                <div class="act-filter-section-header">
+                                    <i data-lucide="folder" class="section-icon"></i>
+                                    <span>আইনের প্রধান ক্ষেত্রসমূহ / Legal Domains</span>
+                                </div>
+                                @foreach (var cat in categoryGroups)
+                                {
+                                    var actsInCat = allActs
+                                        .Where(a => cat.Keywords.Any(k => a.Title.Contains(k, StringComparison.OrdinalIgnoreCase)))
+                                        .Take(8)
+                                        .ToList();
+
+                                    if (actsInCat.Count > 0)
                                     {
-                                        var label = $"{act.Title} ({act.Year})";
-                                        var isSelected = act.ActId == Model.ActId;
-                                        <div class="act-filter-item act-filter-subitem @(isSelected ? "selected" : "")" role="option" data-value="@act.ActId" title="@label">
-                                            <i data-lucide="file-text" class="item-icon"></i>
-                                            <span class="item-text">@label</span>
+                                        <div class="act-category-header">
+                                            <span>@cat.Name</span>
+                                            <span class="cat-count">(@actsInCat.Count)</span>
                                         </div>
+                                        @foreach (var act in actsInCat)
+                                        {
+                                            var label = $"{act.Title} ({act.Year})";
+                                            var isSelected = act.ActId == Model.ActId;
+                                            <div class="act-filter-item act-filter-subitem @(isSelected ? "selected" : "")" role="option" data-value="@act.ActId" title="@label">
+                                                <i data-lucide="file-text" class="item-icon"></i>
+                                                <span class="item-text">@label</span>
+                                            </div>
+                                        }
                                     }
                                 }
-                            }
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                @if (!Model.HasSearched)
-                {
-                    <span class="meta-divider" aria-hidden="true"></span>
+            }
+            else
+            {
+                <div class="search-meta-line">
                     <div class="popular-chips-wrap">
                         <span class="tiny muted popular-label">জনপ্রিয়:</span>
                         <a class="chip chip-sm" asp-action="Index" asp-route-q="মজুরি পরিশোধ">মজুরি পরিশোধ</a>
@@ -147,8 +179,8 @@
                         <a class="chip chip-sm" asp-action="Index" asp-route-q="তথ্য অধিকার">তথ্য অধিকার</a>
                         <a class="chip chip-sm" asp-action="Index" asp-route-q="দণ্ডবিধি ৪২০">দণ্ডবিধি ৪২০</a>
                     </div>
-                }
-            </div>
+                </div>
+            }
         </form>
     </div>
 
@@ -176,9 +208,9 @@
                     <div class="stack" style="gap: 14px;">
                         @foreach (var res in Model.Results)
                         {
-                            var formattedTitle = string.IsNullOrWhiteSpace(res.SectionNumber)
-                                ? res.ActTitle
-                                : $"{res.ActTitle}, ধারা {res.SectionNumber}";
+                            var formattedTitle = FormatSectionRef(res.ActTitle, res.SectionNumber);
+                            var sectionLabel = FormatSectionLabel(res.ActTitle, res.SectionNumber);
+                            var isBnTitle = IsBengali(res.ActTitle);
 
                             <div class="card result-item">
                                 <div class="row spread wrap" style="margin-bottom: 6px;">
@@ -189,8 +221,8 @@
                                     @if (!string.IsNullOrWhiteSpace(res.ActNumber) && res.ActNumber != "NaN" && res.ActYear > 0)
                                     {
                                         <span class="badge badge-neutral">
-                                            <span class="i18n-bn">আইন নং @res.ActNumber/@ToBn(res.ActYear)</span>
-                                            <span class="i18n-en" style="display:none">Act No. @res.ActNumber/@res.ActYear</span>
+                                            <span class="i18n-bn">আইন নং @ToBnDigits(res.ActNumber)/@ToBn(res.ActYear)</span>
+                                            <span class="i18n-en" style="display:none">Act No. @ToEnDigits(res.ActNumber)/@res.ActYear</span>
                                         </span>
                                     }
                                 </div>
@@ -230,8 +262,8 @@
                                     <div class="row wrap" style="gap: 14px;">
                                         <a class="tiny" href="#"
                                            data-copy="@formattedTitle"
-                                           data-copy-msg-bn="@(string.IsNullOrWhiteSpace(res.SectionNumber) ? res.ActTitle : $"ধারা {res.SectionNumber}") ক্লিপবোর্ডে কপি হয়েছে"
-                                           data-copy-msg-en="@(string.IsNullOrWhiteSpace(res.SectionNumber) ? res.ActTitle : $"Section {res.SectionNumber}") copied to clipboard"
+                                           data-copy-msg-bn="@(string.IsNullOrWhiteSpace(res.SectionNumber) ? res.ActTitle : (isBnTitle ? sectionLabel : $"Section {ToEnDigits(res.SectionNumber)}")) ক্লিপবোর্ডে কপি হয়েছে"
+                                           data-copy-msg-en="@(string.IsNullOrWhiteSpace(res.SectionNumber) ? res.ActTitle : $"Section {ToEnDigits(res.SectionNumber)}") copied to clipboard"
                                            onclick="return false;">
                                             <i data-lucide="copy"></i> <span data-bn="ধারা উদ্ধৃতি কপি" data-en="Copy Section Citation">ধারা উদ্ধৃতি কপি</span>
                                         </a>
@@ -246,7 +278,7 @@
                                         @if (!User.IsInRole("Lawyer"))
                                         {
                                             <a class="chip chip-sm" asp-controller="Home" asp-action="Index"
-                                               asp-route-prefill='@($"এই ধারাটি আমার মামলায় প্রযোজ্য কি? {res.ActTitle} {(string.IsNullOrWhiteSpace(res.SectionNumber) ? "" : "ধারা " + res.SectionNumber)}")'>
+                                               asp-route-prefill='@($"এই ধারাটি আমার মামলায় প্রযোজ্য কি? {res.ActTitle} {(string.IsNullOrWhiteSpace(res.SectionNumber) ? "" : sectionLabel)}")'>
                                                 AI-কে জিজ্ঞেস করুন
                                             </a>
                                         }
@@ -379,7 +411,29 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    var form = document.querySelector("form.search-bar");
+    var searchInput = document.querySelector(".search-box-input");
     var root = document.querySelector("[data-act-filter]");
+
+    // If searching something new via the search box (typing or submitting), reset act filter to all acts
+    if (form) {
+        form.addEventListener("submit", function () {
+            var valueInput = document.getElementById("actId-value");
+            if (valueInput) {
+                valueInput.value = "";
+            }
+        });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener("input", function () {
+            var valueInput = document.getElementById("actId-value");
+            if (valueInput) {
+                valueInput.value = "";
+            }
+        });
+    }
+
     if (!root) return;
     var btn = document.getElementById("actId-btn");
     var label = document.getElementById("actId-label");
@@ -426,6 +480,11 @@ document.addEventListener("DOMContentLoaded", function () {
         markSelected();
         closePanel();
         btn.focus();
+
+        var parentForm = root.closest("form");
+        if (parentForm) {
+            parentForm.submit();
+        }
     });
 
     document.addEventListener("click", function (e) {

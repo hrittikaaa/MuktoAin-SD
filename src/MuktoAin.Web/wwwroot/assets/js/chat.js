@@ -39,6 +39,20 @@
         return navigationVersion === version && state.chatSessionId === id;
     }
 
+    function formatCitationLabel(actTitle, sectionNumber, separator) {
+        if (!sectionNumber) return actTitle || "";
+        var sep = separator != null ? separator : " · ";
+        var isBn = /[\u0980-\u09FF]/.test(actTitle || "");
+        var sec = String(sectionNumber);
+        if (isBn) {
+            sec = sec.replace(/\d/g, function (d) { return String.fromCharCode(d.charCodeAt(0) - 48 + 0x09E6); });
+            return (actTitle ? actTitle + sep : "") + "ধারা " + sec;
+        } else {
+            sec = sec.replace(/[\u09E6-\u09EF]/g, function (d) { return String.fromCharCode(d.charCodeAt(0) - 0x09E6 + 48); });
+            return (actTitle ? actTitle + sep : "") + "Section " + sec;
+        }
+    }
+
     function markActiveHistory() {
         var sideList = el("chat-history");
         if (!sideList) return;
@@ -582,8 +596,7 @@
                 var b = document.createElement("button");
                 b.className = "citation-chip";
                 b.type = "button";
-                b.textContent = (s.actTitle || "") +
-                    (s.sectionNumber ? " · ধারা " + s.sectionNumber : "");
+                b.textContent = formatCitationLabel(s.actTitle, s.sectionNumber, " · ");
                 b.addEventListener("click", function () { openCitation(s); });
                 chips.appendChild(b);
             });
@@ -749,8 +762,7 @@
         var version = navigationVersion;
         var title = el("cite-title");
         var text = el("cite-text");
-        if (title) title.textContent = (s.actTitle || "") +
-            (s.sectionNumber ? " — ধারা " + s.sectionNumber : "");
+        if (title) title.textContent = formatCitationLabel(s.actTitle, s.sectionNumber, " — ");
         if (text) {
             // A6: replayed messages carry no section text (CitedJson stores
             // only id/title/number) — fetch the authoritative text on open.
@@ -1028,8 +1040,12 @@
                 if (child._citedSections && child._citedSections.length) {
                     sectionLines.push("\n\n**Citations:**");
                     child._citedSections.forEach(function (s) {
+                        var isBn = /[\u0980-\u09FF]/.test(s.actTitle || "");
+                        var sec = s.sectionNumber ? (isBn
+                            ? String(s.sectionNumber).replace(/\d/g, function (d) { return String.fromCharCode(d.charCodeAt(0) - 48 + 0x09E6); })
+                            : String(s.sectionNumber).replace(/[\u09E6-\u09EF]/g, function (d) { return String.fromCharCode(d.charCodeAt(0) - 0x09E6 + 48); })) : "";
                         var line = "- *" + (s.actTitle || "Act") + "*";
-                        if (s.sectionNumber) line += " — ধারা " + s.sectionNumber;
+                        if (sec) line += " — " + (isBn ? "ধারা " : "Section ") + sec;
                         sectionLines.push(line);
                     });
                 }
