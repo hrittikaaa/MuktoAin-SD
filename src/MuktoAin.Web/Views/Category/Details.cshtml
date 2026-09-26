@@ -38,14 +38,21 @@
             @if (Model.CommonActions != null && Model.CommonActions.Count > 0)
             {
                 <div style="background: var(--surface-2); padding: 18px; border-radius: var(--radius); border: 1px solid var(--border);">
-                    <h4 class="cat-claims-h" style="font-size: 15px; margin-bottom: 10px;"><i data-lucide="check-square"></i> এই বিভাগে সচরাচর দাখিলযোগ্য অভিযোগসমূহ (ক্লিক করে চ্যাট শুরু করুন):</h4>
+                    <h4 class="cat-claims-h" style="font-size: 15px; margin-bottom: 10px;"><i data-lucide="check-square"></i> এই বিভাগে সচরাচর দাখিলযোগ্য অভিযোগসমূহ@(User.IsInRole("Lawyer") ? "" : " (ক্লিক করে চ্যাট শুরু করুন)"):</h4>
                     <div class="row wrap" style="gap: 8px; margin-top: 8px;">
                         @for (var i = 0; i < Model.CommonActions.Count; i++)
                         {
                             var enText = i < Model.CommonActionsEn.Count ? Model.CommonActionsEn[i] : Model.CommonActions[i];
                             var action = Model.CommonActions[i];
-                            <a class="chip" asp-controller="Home" asp-action="Index"
-                               asp-route-prefill="@action" data-bn="@action" data-en="@enText">@action</a>
+                            @if (User.IsInRole("Lawyer"))
+                            {
+                                <span class="chip" data-bn="@action" data-en="@enText">@action</span>
+                            }
+                            else
+                            {
+                                <a class="chip" asp-controller="Home" asp-action="Index"
+                                   asp-route-prefill="@action" data-bn="@action" data-en="@enText">@action</a>
+                            }
                         }
                     </div>
                 </div>

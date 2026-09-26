@@ -150,10 +150,13 @@
                                         }
                                     </div>
                                     <div class="row wrap" style="gap: 8px;">
-                                        <a class="chip chip-sm" asp-controller="Home" asp-action="Index"
-                                           asp-route-prefill='@($"এই ধারাটি আমার মামলায় প্রযোজ্য কি? {res.ActTitle} {(string.IsNullOrWhiteSpace(res.SectionNumber) ? "" : "ধারা " + res.SectionNumber)}")'>
-                                            AI-কে জিজ্ঞেস করুন
-                                        </a>
+                                        @if (!User.IsInRole("Lawyer"))
+                                        {
+                                            <a class="chip chip-sm" asp-controller="Home" asp-action="Index"
+                                               asp-route-prefill='@($"এই ধারাটি আমার মামলায় প্রযোজ্য কি? {res.ActTitle} {(string.IsNullOrWhiteSpace(res.SectionNumber) ? "" : "ধারা " + res.SectionNumber)}")'>
+                                                AI-কে জিজ্ঞেস করুন
+                                            </a>
+                                        }
                                         <a class="btn btn-quiet btn-sm" asp-controller="Case" asp-action="Submit"
                                            data-bn="এই ধারা উদ্ধৃত করে মামলা দাখিল →" data-en="File a Case Citing This Section →">
                                             এই ধারা উদ্ধৃত করে মামলা দাখিল →
