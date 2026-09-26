@@ -531,9 +531,20 @@ public class AdminController : Controller
             .Take(pageSize)
             .ToList();
 
+        var availableActs = acts
+            .OrderBy(a => a.Title)
+            .Select(a => new AdminActOptionViewModel
+            {
+                ActId = a.ActId,
+                Title = a.Title,
+                Year = a.Year
+            })
+            .ToList();
+
         var vm = new AdminScenariosViewModel
         {
             Mappings = pagedRows,
+            AvailableActs = availableActs,
             SearchQuery = q,
             Page = page,
             PageSize = pageSize,
@@ -544,25 +555,53 @@ public class AdminController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddScenario(string keyword, string? notes, int? sectionId)
+    public async Task<IActionResult> AddScenario(string keyword, int actId, string? notes, int? sectionId)
     {
         if (string.IsNullOrWhiteSpace(keyword))
         {
-            TempData["Error"] = "কি-ওয়ার্ড (Keyword) বাধ্যতামূলক। / Keyword is required.";
+            TempData["Error"] = "কি-ওয়ার্ড (Keyword) বাধ্যতামূলক।";
+            TempData["ErrorEn"] = "Keyword is required.";
             return RedirectToAction(nameof(Scenarios));
         }
 
-        var secId = sectionId ?? 0;
+        if (actId <= 0 && (sectionId == null || sectionId <= 0))
+        {
+            TempData["Error"] = "আইন (Act) নির্বাচন বাধ্যতামূলক।";
+            TempData["ErrorEn"] = "Act selection is required.";
+            return RedirectToAction(nameof(Scenarios));
+        }
+
+        int secId = sectionId ?? 0;
         if (secId <= 0)
         {
-            var firstSection = (await _sectionRepo.GetAllAsync()).FirstOrDefault();
-            if (firstSection != null)
+            var allSections = await _sectionRepo.GetAllAsync();
+            var sectionForAct = allSections.FirstOrDefault(s => s.ActId == actId);
+
+            if (sectionForAct != null)
             {
-                secId = firstSection.SectionId;
+                secId = sectionForAct.SectionId;
             }
             else
             {
-                secId = await EnsureFallbackSectionAsync();
+                var act = await _actRepo.GetByIdAsync(actId);
+                if (act == null)
+                {
+                    TempData["Error"] = "নির্বাচিত আইনটি পাওয়া যায়নি।";
+                    TempData["ErrorEn"] = "Selected Act was not found.";
+                    return RedirectToAction(nameof(Scenarios));
+                }
+
+                var newSection = new Domain.Entities.ActSection
+                {
+                    ActId = actId,
+                    SectionNumber = "General",
+                    SectionTitle = "General Statutory Reference",
+                    SectionText = $"{act.Title} - General statutory reference",
+                    OrdinalPosition = 1
+                };
+                await _sectionRepo.AddAsync(newSection);
+                await _sectionRepo.SaveChangesAsync();
+                secId = newSection.SectionId;
             }
         }
 
@@ -573,7 +612,8 @@ public class AdminController : Controller
             Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim()
         });
         await _scenarioRepo.SaveChangesAsync();
-        TempData["Success"] = "নতুন সিনারিও ম্যাপিং যুক্ত হয়েছে। / Scenario mapping added.";
+        TempData["Success"] = "নতুন সিনারিও ম্যাপিং যুক্ত হয়েছে।";
+        TempData["SuccessEn"] = "Scenario mapping added successfully.";
         return RedirectToAction(nameof(Scenarios));
     }
 
