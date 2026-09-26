@@ -152,3 +152,29 @@ public class AdminAiLogRowViewModel
     public string PromptPreview { get; set; } = string.Empty;
     public string ResponsePreview { get; set; } = string.Empty;
 }
+
+public class AdminAuditLogsViewModel
+{
+    public List<AdminAuditLogRowViewModel> Logs { get; set; } = new();
+    public List<string> AvailableActions { get; set; } = new();
+    public string? ActionFilter { get; set; }
+    public string? SearchQuery { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+    public int TotalCount { get; set; }
+    public int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalCount / (double)PageSize));
+}
+
+public class AdminAuditLogRowViewModel
+{
+    public int AdminAuditLogId { get; set; }
+    public int AdminUserId { get; set; }
+    public string AdminName { get; set; } = string.Empty;
+    public string AdminEmail { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public int? TargetUserId { get; set; }
+    public string? TargetUserName { get; set; }
+    public int? TargetEntityId { get; set; }
+    public string? Details { get; set; }
+    public DateTime CreatedAt { get; set; }
+}

@@ -80,19 +80,21 @@
             <nav class="nav-links" aria-label="প্রধান মেনু">
                 @if (isAdmin)
                 {
-                    <a asp-controller="Admin" asp-action="Dashboard">Dashboard</a>
-                    <a asp-controller="Admin" asp-action="Users">Users</a>
-                    <a asp-controller="Admin" asp-action="Lawyers">Lawyers</a>
-                    <a asp-controller="Admin" asp-action="Corpus">Corpus</a>
+                    <a asp-controller="Admin" asp-action="Dashboard" data-bn="ড্যাশবোর্ড" data-en="Dashboard">Dashboard</a>
+                    <a asp-controller="Admin" asp-action="Users" data-bn="ব্যবহারকারী" data-en="Users">Users</a>
+                    <a asp-controller="Admin" asp-action="Lawyers" data-bn="আইনজীবী" data-en="Lawyers">Lawyers</a>
+                    <a asp-controller="Admin" asp-action="Corpus" data-bn="আইন সংকলন" data-en="Corpus">Corpus</a>
+                    <a asp-controller="Admin" asp-action="Analytics" data-bn="অ্যানালিটিক্স" data-en="Analytics">Analytics</a>
                     <div class="pop-wrap">
                         <button class="nav-more-btn" type="button" data-pop="admin-more-pop" aria-haspopup="true">
-                            More<i data-lucide="chevron-down"></i>
+                            <span data-bn="আরো" data-en="More">More</span><i data-lucide="chevron-down"></i>
                         </button>
                         <div class="menu-pop" id="admin-more-pop">
-                            <a asp-controller="Admin" asp-action="Scenarios">Scenario Mappings</a>
-                            <a asp-controller="Admin" asp-action="Categories">Categories</a>
-                            <a asp-controller="Admin" asp-action="AiLogs">AI Logs</a>
-                            <a asp-controller="Admin" asp-action="Transactions">Transactions</a>
+                            <a asp-controller="Admin" asp-action="Scenarios" data-bn="সিনারিও ম্যাপিং" data-en="Scenario Mappings">Scenario Mappings</a>
+                            <a asp-controller="Admin" asp-action="Categories" data-bn="মামলার ক্যাটাগরি" data-en="Categories">Categories</a>
+                            <a asp-controller="Admin" asp-action="Transactions" data-bn="লেনদেনসমূহ" data-en="Transactions">Transactions</a>
+                            <a asp-controller="Admin" asp-action="AuditLogs" data-bn="অডিট হিস্ট্রি" data-en="Audit Logs">Audit Logs</a>
+                            <a asp-controller="Admin" asp-action="AiLogs" data-bn="এআই সিস্টেম লগ" data-en="AI Logs">AI Logs</a>
                         </div>
                     </div>
                 }

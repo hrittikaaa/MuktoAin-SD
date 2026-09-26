@@ -288,7 +288,12 @@
                 <h2 style="font-size: 18px; margin: 0;"><i data-lucide="history" style="display: inline; vertical-align: middle; color: var(--gold);"></i> <span data-bn="সাম্প্রতিক সিস্টেম অডিট ও সিকিউরিটি লগ" data-en="Recent System Audit & Security Logs">সাম্প্রতিক সিস্টেম অডিট ও সিকিউরিটি লগ</span></h2>
                 <span class="muted tiny" data-bn="প্ল্যাটফর্মের গুরুত্বপূর্ণ প্রশাসনিক ও স্বয়ংক্রিয় অ্যাকশন রেকর্ডসমূহ" data-en="Key platform administrative and automated event stream">প্ল্যাটফর্মের গুরুত্বপূর্ণ প্রশাসনিক ও স্বয়ংক্রিয় অ্যাকশন রেকর্ডসমূহ</span>
             </div>
-            <span class="badge badge-primary" data-bn="লাইভ অডিট ট্রেইল" data-en="Live Audit Trail">লাইভ অডিট ট্রেইল</span>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <a asp-controller="Admin" asp-action="AuditLogs" class="btn btn-outline btn-sm" style="text-decoration:none">
+                    <span data-bn="সকল হিস্ট্রি দেখুন →" data-en="View All Logs →">View All Logs →</span>
+                </a>
+                <span class="badge badge-primary" data-bn="লাইভ অডিট ট্রেইল" data-en="Live Audit Trail">লাইভ অডিট ট্রেইল</span>
+            </div>
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 10px;">
