@@ -147,10 +147,16 @@ public class LawyerReviewService
                 d.ClaimedAt,
                 CanOpen: !claimActive || isMine,
                 IsClaimed: claimActive || isMine,
-                IsMine: isMine));
+                IsMine: isMine,
+                CategoryNameBn: BanglaName(category)));
         }
         return new QueuePageDto(totalCount, result, fieldFallback, page, poolCount);
     }
+
+    // Bangla category name for the language switch; falls back to the English
+    // name for categories seeded before NameBn existed.
+    private static string BanglaName(CaseCategory? category) =>
+        string.IsNullOrEmpty(category?.NameBn) ? category?.Name ?? "" : category.NameBn;
 
     // A claim is active while it is younger than ClaimTtl. Claims written
     // without a ClaimedAt (old rows) are treated as lapsed.
@@ -278,7 +284,8 @@ public class LawyerReviewService
             d.CitizenEdited ? d.ContentFinal : null,
             d.VersionNo,
             d.CitizenEdited,
-            claimedByMe);
+            claimedByMe,
+            BanglaName(category));
     }
 
     public async Task<bool> SubmitReviewAsync(SubmitReviewDto dto)
@@ -425,7 +432,8 @@ public class LawyerReviewService
                 r.ReviewId, r.DocumentId, c.CaseId, SafeDecrypt(c.Title),
                 category?.Name ?? "", district?.Name ?? "", r.Decision, r.Comments, r.ReviewedAt,
                 r.ReviewedVersionNo ?? d.VersionNo,
-                r.ReviewedContent ?? d.ContentFinal ?? d.ContentDraft));
+                r.ReviewedContent ?? d.ContentFinal ?? d.ContentDraft,
+                BanglaName(category)));
         }
         return result;
     }

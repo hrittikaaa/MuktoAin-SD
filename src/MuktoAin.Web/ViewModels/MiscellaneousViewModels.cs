@@ -73,6 +73,7 @@ public class LawyerReviewViewModel
     public int CaseId { get; set; }
     public string CaseTitle { get; set; } = string.Empty;
     public string CategoryName { get; set; } = string.Empty;
+    public string CategoryNameBn { get; set; } = string.Empty;
     public string ContentDraft { get; set; } = string.Empty;
     public string? EditedContent { get; set; }
 
@@ -222,6 +223,7 @@ public class LawyerQueueItemViewModel
     public int CaseId { get; set; }
     public string CaseTitle { get; set; } = string.Empty;
     public string CategoryName { get; set; } = string.Empty;
+    public string CategoryNameBn { get; set; } = string.Empty;
     public string DistrictName { get; set; } = string.Empty;
     public bool CitizenEdited { get; set; }
     public int VersionNo { get; set; }
@@ -253,6 +255,7 @@ public class LawyerHistoryItemViewModel
     public int CaseId { get; set; }
     public string CaseTitle { get; set; } = string.Empty;
     public string CategoryName { get; set; } = string.Empty;
+    public string CategoryNameBn { get; set; } = string.Empty;
     public string DistrictName { get; set; } = string.Empty;
     public string Decision { get; set; } = string.Empty;
     public string Comments { get; set; } = string.Empty;
