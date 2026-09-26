@@ -16,8 +16,12 @@
         var data;
         try { data = await response.json(); } catch (e) { data = null; }
         if (!response.ok || !data || data.error) {
-            var error = new Error(data && data.error ? data.error : "Request failed (" + response.status + ").");
+            var msg = data && data.error ? data.error : "Request failed (" + response.status + ").";
+            var msgBn = data && data.errorBn ? data.errorBn : null;
+            var error = new Error(msg);
             error.status = response.status;
+            error.errorBn = msgBn;
+            error.data = data;
             throw error;
         }
         return data;
@@ -192,12 +196,25 @@
     }
 
     // Envelope draft-type value → DB category id (mirrors ChatService.MapCategory)
-    var CATEGORY_BY_DRAFT_TYPE = { LabourComplaint: 1, GeneralDiary: 2, RtiRequest: 3, ConsumerComplaint: 4 };
+    var CATEGORY_BY_DRAFT_TYPE = {
+        LabourComplaint: 1,
+        GeneralDiary: 2,
+        RtiRequest: 3,
+        ConsumerComplaint: 4,
+        LandPropertyDispute: 5,
+        FamilyDispute: 6,
+        CyberCrime: 7,
+        EnvironmentalComplaint: 8
+    };
     var CATEGORY_NAMES = {
         1: { bn: "শ্রম অধিকার ও অভিযোগ", en: "Labour Rights & Complaint" },
         2: { bn: "সাধারণ ডায়েরি (GD)", en: "General Diary (GD)" },
         3: { bn: "তথ্য অধিকার", en: "Right to Information" },
-        4: { bn: "ভোক্তা অধিকার", en: "Consumer Rights" }
+        4: { bn: "ভোক্তা অধিকার", en: "Consumer Rights" },
+        5: { bn: "ভূমি ও সম্পত্তি বিরোধ", en: "Land & Property Dispute" },
+        6: { bn: "পারিবারিক বিরোধ ও ভরণপোষণ", en: "Family & Domestic Dispute" },
+        7: { bn: "সাইবার অপরাধ ও ডিজিটাল অভিযোগ", en: "Cyber Crime & Digital Complaint" },
+        8: { bn: "পরিবেশ অভিযোগ", en: "Environmental Complaint" }
     };
     function mapCategory(v) { return CATEGORY_BY_DRAFT_TYPE[v] || null; }
     function caseFile() {
@@ -800,15 +817,19 @@
     // A4: distinct AI-style error bubble with a Retry button that resends the
     // failed question. Never rendered as a user bubble (that used to look like
     // the citizen said it).
-    function errorBubble(message, retryQuestion) {
+    function errorBubble(messageBn, messageEn, retryQuestion) {
+        if (typeof messageEn === "string" && !retryQuestion && typeof arguments[1] !== "string") {
+            retryQuestion = messageEn;
+            messageEn = messageBn;
+        }
         var wrap = document.createElement("div");
         wrap.className = "bubble ai error-bubble";
 
         var p = document.createElement("div");
         p.className = "ai-reply-text";
         bilingual(p,
-            message || "⚠ সংযোগ সমস্যা — উত্তর আনা যায়নি।",
-            message || "Connection error — couldn't fetch the answer.");
+            messageBn || "⚠ সংযোগ সমস্যা — উত্তর আনা যায়নি।",
+            messageEn || (typeof messageBn === "string" ? messageBn : "Connection error — couldn't fetch the answer."));
         wrap.appendChild(p);
 
         var actions = document.createElement("div");
@@ -888,10 +909,17 @@
                 if (!active(version, id)) return;
                 dots.remove();
                 if (error.status === 409) { navigateChat(id, false); return; }
-                // A4: a connection failure must not render as if the citizen typed
-                // it — show a distinct AI-style error bubble with a Retry button
-                // that resends the exact failed question.
-                errorBubble(null, question);
+                if (error.status === 401 || error.status === 403) {
+                    errorBubble(
+                        "আপনার সেশনের মেয়াদ শেষ হয়েছে বা অনুমতির সমস্যা হয়েছে। অনুগ্রহ করে পেজটি রিফ্রেশ বা পুনরায় লগইন করুন।",
+                        "Your session has expired or permission was denied. Please refresh the page or log in again.",
+                        question
+                    );
+                    return;
+                }
+                var bnMsg = error.errorBn || (error.data && error.data.errorBn) || (error.status === 400 && error.message ? error.message : null);
+                var enMsg = (error.data && error.data.error) || (error.status === 400 && error.message ? error.message : null);
+                errorBubble(bnMsg, enMsg, question);
             } finally {
                 if (active(version, id)) {
                     state.asking = false;
@@ -973,6 +1001,13 @@
                 isAnonymous: el("draft-anonymous").checked,
                 language: curLang()
             });
+            if (data && data.success === false) {
+                var errMsg = curLang() === "en"
+                    ? (data.error || "Could not generate document.")
+                    : (data.errorBn || data.error || "নথি তৈরি করা যায়নি।");
+                if (window.showToast) window.showToast(errMsg);
+                return;
+            }
             loadHistory(null);
             if (!active(version, id)) return;
             var target = safeCaseUrl(data.redirectUrl, data.caseId);
@@ -980,7 +1015,7 @@
             window.location.href = target;
         } catch (error) {
             if (!active(version, id)) return;
-            if (window.showToast) window.showToast(curLang() === "en" ? "Could not open the case. Try again." : "মামলা খোলা যায়নি। আবার চেষ্টা করুন।");
+            if (window.showToast) window.showToast(curLang() === "en" ? (error.message || "Could not open the case. Try again.") : "মামলা খোলা যায়নি। আবার চেষ্টা করুন।");
         } finally {
             if (active(version, id)) {
                 state.committing = false;

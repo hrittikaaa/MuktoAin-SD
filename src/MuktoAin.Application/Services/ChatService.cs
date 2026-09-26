@@ -40,6 +40,7 @@ public class ChatService
     private readonly IChatHistoryRepository _historyRepo;
     private readonly ChatSafetyFilter _safetyFilter = new();
     private readonly IRepository<Notification> _notificationRepo;
+    private readonly IEmailService? _emailService;
 
     public ChatService(
         IRepository<ChatSession> sessionRepo,
@@ -56,7 +57,8 @@ public class ChatService
         IAiService aiService,
         IAiLogService aiLogService,
         IChatHistoryRepository historyRepo,
-        IRepository<Notification> notificationRepo)
+        IRepository<Notification> notificationRepo,
+        IEmailService? emailService = null)
     {
         _sessionRepo = sessionRepo;
         _messageRepo = messageRepo;
@@ -73,6 +75,7 @@ public class ChatService
         _aiLogService = aiLogService;
         _historyRepo = historyRepo;
         _notificationRepo = notificationRepo;
+        _emailService = emailService;
     }
 
     // ---------- session management ----------
@@ -611,6 +614,24 @@ public class ChatService
             }
         }
 
+        if (!string.IsNullOrWhiteSpace(caseEntity.NotificationEmail) && _emailService != null)
+        {
+            try
+            {
+                await _emailService.SendCaseSubmittedAsync(
+                    caseEntity.NotificationEmail,
+                    title,
+                    caseEntity.AnonymousTrackingCode,
+                    caseEntity.CaseId,
+                    caseEntity.Language,
+                    ct);
+            }
+            catch
+            {
+                // Email sending failure must not fail the case commit.
+            }
+        }
+
         return new ChatCommitResultDto(caseEntity.CaseId, trackingCode, doc.DocumentId, doc.ContentDraft);
     }
 
@@ -633,7 +654,11 @@ public class ChatService
             ["LabourComplaint"] = 1,
             ["GeneralDiary"] = 2,
             ["RtiRequest"] = 3,
-            ["ConsumerComplaint"] = 4
+            ["ConsumerComplaint"] = 4,
+            ["LandPropertyDispute"] = 5,
+            ["FamilyDispute"] = 6,
+            ["CyberCrime"] = 7,
+            ["EnvironmentalComplaint"] = 8
         };
 
     public static int? MapCategory(string? draftType)

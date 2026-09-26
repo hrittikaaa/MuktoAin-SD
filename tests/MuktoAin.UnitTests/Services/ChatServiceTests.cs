@@ -803,6 +803,41 @@ public class ChatServiceTests
 
         _notificationRepo.Verify(n => n.AddAsync(It.IsAny<Notification>()), Times.Never);
     }
+
+    [Fact]
+    public async Task CommitToCaseAsync_SendsEmail_WhenNotificationEmailProvided()
+    {
+        const int sessionId = 1;
+        const int categoryId = 3;
+        SetUpSuccessfulCommitPipeline(sessionId, sessionUserId: null);
+
+        var emailServiceMock = new Mock<IEmailService>();
+        var documentService = new DocumentService(
+            new DocumentGenerator(new[] { _template.Object }),
+            _docRepo.Object, _caseRepoTyped.Object, _districtRepo.Object, _categoryRepo.Object,
+            _pdfExporter.Object);
+
+        var serviceWithEmail = new ChatService(
+            _sessionRepo.Object, _messageRepo.Object, _caseRepo.Object, _caseRepoTyped.Object,
+            _cacheRepo.Object, _rightsService.Object, documentService, _encryptionService.Object,
+            _scenarioRepo.Object, _keywordSearch.Object, _districtRepo.Object,
+            _aiService.Object, _aiLogService.Object, _historyRepo.Object, _notificationRepo.Object,
+            emailServiceMock.Object);
+
+        await serviceWithEmail.CommitToCaseAsync(
+            chatSessionId: sessionId, categoryId: categoryId, districtId: 1, title: "ভাড়াটিয়া বিরোধ",
+            notificationEmail: "tenant@example.com", isAnonymous: true, userId: null);
+
+        emailServiceMock.Verify(
+            e => e.SendCaseSubmittedAsync(
+                "tenant@example.com",
+                "ভাড়াটিয়া বিরোধ",
+                It.IsAny<string>(),
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 }
 
 

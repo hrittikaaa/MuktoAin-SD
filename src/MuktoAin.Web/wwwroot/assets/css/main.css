@@ -500,9 +500,15 @@ a.card.click { color: var(--ink); }
 .cat-icon-lg[data-accent="info"] { background: var(--info-soft); color: var(--info); }
 .cat-card[data-accent="success"] .cat-icon,
 .cat-icon-lg[data-accent="success"] { background: var(--success-soft); color: var(--success); }
+.cat-card[data-accent="warning"] .cat-icon,
+.cat-icon-lg[data-accent="warning"] { background: var(--warn-bg); color: var(--warn-text); }
+.cat-card[data-accent="danger"] .cat-icon,
+.cat-icon-lg[data-accent="danger"] { background: var(--danger-soft); color: var(--danger); }
 .card.click.cat-card[data-accent="primary"]:hover { border-color: var(--primary); }
 .card.click.cat-card[data-accent="info"]:hover { border-color: var(--info); }
 .card.click.cat-card[data-accent="success"]:hover { border-color: var(--success); }
+.card.click.cat-card[data-accent="warning"]:hover { border-color: var(--warn-border); }
+.card.click.cat-card[data-accent="danger"]:hover { border-color: var(--danger); }
 
 /* Large category icon (detail headers) */
 .cat-icon-lg { width: 64px; height: 64px; border-radius: 15px; }
