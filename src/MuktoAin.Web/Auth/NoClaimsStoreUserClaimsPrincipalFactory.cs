@@ -58,9 +58,14 @@ public class NoClaimsStoreUserClaimsPrincipalFactory : UserClaimsPrincipalFactor
                 await UserManager.GetSecurityStampAsync(user)));
         }
 
+        identity.AddClaim(new Claim(Options.ClaimsIdentity.RoleClaimType, user.Role.ToString()));
+        if (user.IsSuperAdmin)
+        {
+            identity.AddClaim(new Claim("IsSuperAdmin", "true"));
+        }
+
         // Deliberately omitted: UserManager.SupportsUserClaim / GetClaimsAsync(user) --
-        // see class-level comment. UserRoleClaimsTransformation adds the role claim
-        // afterward, once the principal reaches request-authentication time.
+        // see class-level comment. Role and basic profile claims are stamped directly above.
         return identity;
     }
 }

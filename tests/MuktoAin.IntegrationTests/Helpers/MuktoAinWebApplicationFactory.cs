@@ -133,7 +133,7 @@ public class StubVectorStore : IVectorStore
 
 public class StubKeywordSectionSearch : MuktoAin.Domain.Interfaces.Services.IKeywordSectionSearch
 {
-    public Task<IEnumerable<RetrievedSection>> SearchAsync(string query, int maxResults = 8) =>
+    public Task<IEnumerable<RetrievedSection>> SearchAsync(string query, int maxResults = 8, int? actId = null) =>
         Task.FromResult(Enumerable.Empty<RetrievedSection>());
 }
 

@@ -18,6 +18,12 @@ public class ConsumerComplaintTemplate : IDocumentTemplate, IBanglaDocumentVaria
     public Task<string> RenderAsync(Case caseEntity, RightsExplanationDto explanation)
     {
         var districtName = caseEntity.District?.Name ?? "________";
+        var product = CaseFileReader.Read(caseEntity.Description, "productOrService");
+        var seller = CaseFileReader.Read(caseEntity.Description, "sellerOrProvider");
+        var purchaseDate = CaseFileReader.Read(caseEntity.Description, "purchaseDate");
+        var amountPaid = CaseFileReader.Read(caseEntity.Description, "amountPaid");
+        var defect = CaseFileReader.ReadOrNull(caseEntity.Description, "defectOrIssue");
+
         var sb = new StringBuilder();
 
         // ── Header ──────────────────────────────────────────────
@@ -32,7 +38,7 @@ public class ConsumerComplaintTemplate : IDocumentTemplate, IBanglaDocumentVaria
         var sectionRef = primarySection != null
             ? $" Under Section {primarySection.SectionNumber} of"
             : string.Empty;
-        sb.AppendLine($"Subject: Complaint{sectionRef} the Consumer Rights Protection Act, 2009");
+        sb.AppendLine($"Subject: Complaint regarding defective product / service ({product}) against {seller},{sectionRef} the Consumer Rights Protection Act, 2009");
         sb.AppendLine();
 
         // ── Salutation ──────────────────────────────────────────
@@ -41,8 +47,15 @@ public class ConsumerComplaintTemplate : IDocumentTemplate, IBanglaDocumentVaria
 
         // ── Complainant Introduction ────────────────────────────
         sb.AppendLine($"I, the undersigned consumer, resident of {districtName}, do hereby submit this formal complaint " +
-                       "against the concerned enterprise/merchant/service provider for anti-consumer practice(s) and statutory " +
-                       "violation(s) under the Consumer Rights Protection Act, 2009 (Act No. 26 of 2009):");
+                       $"against {seller} regarding the purchase of {product} for {amountPaid} on {purchaseDate}:");
+        sb.AppendLine();
+        sb.AppendLine("TRANSACTION DETAILS:");
+        sb.AppendLine(new string('─', 40));
+        sb.AppendLine($"  Product / Service: {product}");
+        sb.AppendLine($"  Seller / Service Provider: {seller}");
+        sb.AppendLine($"  Date of Purchase: {purchaseDate}");
+        sb.AppendLine($"  Amount Paid: {amountPaid}");
+        if (defect != null) sb.AppendLine($"  Defect / Issue: {defect}");
         sb.AppendLine();
 
         // ── Facts of the Complaint ──────────────────────────────
@@ -83,15 +96,15 @@ public class ConsumerComplaintTemplate : IDocumentTemplate, IBanglaDocumentVaria
         sb.AppendLine(new string('─', 40));
         sb.AppendLine("Based on the aforementioned facts and applicable statutory provisions, the complainant respectfully prays:");
         sb.AppendLine("1. That an immediate inquiry and hearing be conducted against the respondent enterprise;");
-        sb.AppendLine("2. That appropriate replacement, full financial refund, or statutory compensation be awarded;");
+        sb.AppendLine($"2. That appropriate replacement of {product}, full financial refund of {amountPaid}, or statutory compensation be awarded;");
         sb.AppendLine("3. That administrative fines be imposed under the Act and 25% of any realized penalty be disbursed to the complainant as per Section 76(4).");
         sb.AppendLine();
 
         // ── Supporting Evidence / Attachments ───────────────────
         sb.AppendLine("SUPPORTING EVIDENCE / ATTACHMENTS:");
         sb.AppendLine(new string('─', 40));
-        sb.AppendLine("• Purchase receipt / money receipt / cash memo / order confirmation");
-        sb.AppendLine("• Product photograph, packaging, batch number, or warranty documents (if applicable)");
+        sb.AppendLine($"• Purchase receipt / Cash memo of {amountPaid} dated {purchaseDate}");
+        sb.AppendLine($"• Product photograph, packaging, batch number, or warranty documents for {product}");
         sb.AppendLine("• Communication records / complaint logs with the respondent");
         sb.AppendLine();
 
@@ -120,6 +133,12 @@ public class ConsumerComplaintTemplate : IDocumentTemplate, IBanglaDocumentVaria
     public async Task<string> RenderBanglaOnlyAsync(Case caseEntity, RightsExplanationDto explanation)
     {
         var districtName = caseEntity.District?.Name;
+        var product = CaseFileReader.Read(caseEntity.Description, "productOrService");
+        var seller = CaseFileReader.Read(caseEntity.Description, "sellerOrProvider");
+        var purchaseDate = CaseFileReader.Read(caseEntity.Description, "purchaseDate");
+        var amountPaid = CaseFileReader.Read(caseEntity.Description, "amountPaid");
+        var defect = CaseFileReader.ReadOrNull(caseEntity.Description, "defectOrIssue");
+
         var sb = new StringBuilder();
 
         sb.AppendLine("বরাবর");
@@ -132,16 +151,24 @@ public class ConsumerComplaintTemplate : IDocumentTemplate, IBanglaDocumentVaria
         var sectionRef = primarySection != null
             ? $" ভোক্তা অধিকার সংরক্ষণ আইন, ২০০৯-এর ধারা {primarySection.SectionNumber}-এর অধীনে"
             : string.Empty;
-        sb.AppendLine($"বিষয়: {sectionRef.TrimStart()} অভিযোগ");
+        sb.AppendLine($"বিষয়: {seller}-এর বিরুদ্ধে {product} সংক্রান্ত ভোক্তা অধিকার লঙ্ঘন বিষয়ে{sectionRef} অভিযোগ");
         sb.AppendLine();
 
         sb.AppendLine("মহোদয়,");
         sb.AppendLine();
 
         sb.AppendLine($"আমি, স্বাক্ষরকারী ভোক্তা, {districtName ?? BanglaOnlyRender.Placeholder}-এর বাসিন্দা, " +
-                       "সংশ্লিষ্ট প্রতিষ্ঠান/বিক্রেতা/সেবাদাতার বিরুদ্ধে ভোক্তা-বিরোধী কার্যকলাপ ও " +
-                       "ভোক্তা অধিকার সংরক্ষণ আইন, ২০০৯ (২০০৯ সনের ২৬ নং আইন)-এর বিধিভঙ্গের বিষয়ে " +
-                       "এই আনুষ্ঠানিক অভিযোগ জমা দিচ্ছি:");
+                       $"{seller}-এর কাছ থেকে {purchaseDate} তারিখে {amountPaid} মূল্যে ক্রয়কৃত {product} সংক্রান্ত " +
+                       "ভোক্তা-বিরোধী কার্যকলাপের বিষয়ে এই আনুষ্ঠানিক অভিযোগ জমা দিচ্ছি:");
+        sb.AppendLine();
+
+        sb.AppendLine("লেনদেনের বিবরণ:");
+        sb.AppendLine(BanglaOnlyRender.Rule);
+        sb.AppendLine($"  পণ্য বা সেবা: {product}");
+        sb.AppendLine($"  বিক্রেতা/প্রতিষ্ঠান: {seller}");
+        sb.AppendLine($"  ক্রয়ের তারিখ: {purchaseDate}");
+        sb.AppendLine($"  পরিশোধিত অর্থ: {amountPaid}");
+        if (defect != null) sb.AppendLine($"  ত্রুটি বা সমস্যা: {defect}");
         sb.AppendLine();
 
         sb.AppendLine("অভিযোগের ঘটনাবলি:");
@@ -178,14 +205,14 @@ public class ConsumerComplaintTemplate : IDocumentTemplate, IBanglaDocumentVaria
         sb.AppendLine(BanglaOnlyRender.Rule);
         sb.AppendLine("উপরোক্ত ঘটনা ও প্রযোজ্য আইনি বিধানের ভিত্তিতে অভিযোগকারী বিনীতভাবে প্রার্থনা করছেন:");
         sb.AppendLine("১. প্রতিবাদী প্রতিষ্ঠানের বিরুদ্ধে দ্রুত তদন্ত ও শুনানি আয়োজন করা হোক;");
-        sb.AppendLine("২. যথাযথ প্রতিস্থাপন, পূর্ণ আর্থিক ফেরত বা আইনগত ক্ষতিপূরণ প্রদান করা হোক;");
+        sb.AppendLine($"২. {product}-এর যথাযথ প্রতিস্থাপন, {amountPaid} টাকা পূর্ণ ফেরত বা আইনগত ক্ষতিপূরণ প্রদান করা হোক;");
         sb.AppendLine("৩. আইন অনুযায়ী জরিমানা আরোপ করা হোক এবং আদায়কৃত জরিমানার ২৫% ধারা ৭৬(৪) মোতাবেক অভিযোগকারীকে প্রদান করা হোক।");
         sb.AppendLine();
 
         sb.AppendLine("সংযুক্ত প্রমাণপত্র:");
         sb.AppendLine(BanglaOnlyRender.Rule);
-        sb.AppendLine("• ক্রয় রশিদ / মানি রশিদ / ক্যাশ মেমো / অর্ডার নিশ্চিতকরণ");
-        sb.AppendLine("• পণ্যের ছবি, প্যাকেজিং, ব্যাচ নম্বর বা ওয়ারেন্টি নথি (প্রযোজ্য ক্ষেত্রে)");
+        sb.AppendLine($"• {purchaseDate} তারিখের ক্রয় রশিদ / ক্যাশ মেমো ({amountPaid})");
+        sb.AppendLine($"• {product}-এর ছবি, প্যাকেজিং বা ওয়ারেন্টি নথি");
         sb.AppendLine("• প্রতিবাদী সঙ্গে যোগাযোগের রেকর্ড / অভিযোগের স্মৃতিচিহ্ন");
         sb.AppendLine();
 

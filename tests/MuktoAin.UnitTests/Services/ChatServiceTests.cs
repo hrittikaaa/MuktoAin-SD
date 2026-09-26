@@ -433,8 +433,8 @@ public class ChatServiceTests
         var turn3 = await _service.AskAsync(15, "turn 3", "bn");
         Assert.False(turn3.CanDraft);
 
-        // Case 4: All invariants met (normal intent, canDraft=true, readyToExplain=true, district present, category valid, missingInfo empty) -> CanDraft is true
-        SetupEnvelope(EnvelopeJson(caseFile: "{\"district\":\"Dhaka\",\"facts\":\"wage theft\"}", readyToExplain: true, suggestedDraftType: "LabourComplaint", canDraft: true));
+        // Case 4: All invariants met (normal intent, canDraft=true, readyToExplain=true, district present, category valid, missingInfo empty, critical fields present) -> CanDraft is true
+        SetupEnvelope(EnvelopeJson(caseFile: "{\"district\":\"Dhaka\",\"facts\":\"wage theft\",\"employerName\":\"ABC\",\"natureOfComplaint\":\"unpaid\",\"monthlyWage\":\"10000\",\"unpaidPeriod\":\"2 months\"}", readyToExplain: true, suggestedDraftType: "LabourComplaint", canDraft: true));
         var turn4 = await _service.AskAsync(15, "turn 4", "bn");
         Assert.True(turn4.CanDraft);
     }
@@ -599,6 +599,32 @@ public class ChatServiceTests
         _aiLogService.Verify(l => l.LogAsync(null, AiRequestType.RightsExplanation,
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(),
             It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AskAsync_AiServiceThrows_FallsBackToRetrievalOnlySearchSections()
+    {
+        _sessionRepo.Setup(r => r.GetByIdAsync(15)).ReturnsAsync(InProgressSession());
+        _messageRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<ChatMessage>());
+        _aiService.Setup(a => a.GenerateContentAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Gemini API service unavailable"));
+        _scenarioRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<ScenarioMapping>
+        {
+            new() { ScenarioKeyword = "বেতন" }
+        });
+        _keywordSearch.Setup(s => s.SearchAsync("বেতন", 2))
+            .ReturnsAsync(new List<RetrievedSection>
+            {
+                new(7, "বাংলাদেশ শ্রম আইন, ২০০৬", "১২৩", "মজুরি পরিশোধের সময়সীমা", 0.95f, RetrievalMethod.Keyword, "LA", 2006)
+            });
+
+        var turn = await _service.AskAsync(15, "আমার বেতন দিচ্ছে না", "bn");
+
+        Assert.True(turn.RetrievalOnly);
+        Assert.Equal("retrieval-only", turn.Tier);
+        Assert.NotEmpty(turn.CitedSections);
+        Assert.Contains("বাংলাদেশ শ্রম আইন, ২০০৬", turn.Answer);
+        Assert.Contains("AI এই মুহূর্তে উপলব্ধ নয়", turn.Answer);
     }
 
     // ---------- commit from case file (spec 3.5 / 8) ----------
@@ -802,6 +828,41 @@ public class ChatServiceTests
             notificationEmail: null, isAnonymous: true, userId: null);
 
         _notificationRepo.Verify(n => n.AddAsync(It.IsAny<Notification>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CommitToCaseAsync_SendsEmail_WhenNotificationEmailProvided()
+    {
+        const int sessionId = 1;
+        const int categoryId = 3;
+        SetUpSuccessfulCommitPipeline(sessionId, sessionUserId: null);
+
+        var emailServiceMock = new Mock<IEmailService>();
+        var documentService = new DocumentService(
+            new DocumentGenerator(new[] { _template.Object }),
+            _docRepo.Object, _caseRepoTyped.Object, _districtRepo.Object, _categoryRepo.Object,
+            _pdfExporter.Object);
+
+        var serviceWithEmail = new ChatService(
+            _sessionRepo.Object, _messageRepo.Object, _caseRepo.Object, _caseRepoTyped.Object,
+            _cacheRepo.Object, _rightsService.Object, documentService, _encryptionService.Object,
+            _scenarioRepo.Object, _keywordSearch.Object, _districtRepo.Object,
+            _aiService.Object, _aiLogService.Object, _historyRepo.Object, _notificationRepo.Object,
+            emailServiceMock.Object);
+
+        await serviceWithEmail.CommitToCaseAsync(
+            chatSessionId: sessionId, categoryId: categoryId, districtId: 1, title: "ভাড়াটিয়া বিরোধ",
+            notificationEmail: "tenant@example.com", isAnonymous: true, userId: null);
+
+        emailServiceMock.Verify(
+            e => e.SendCaseSubmittedAsync(
+                "tenant@example.com",
+                "ভাড়াটিয়া বিরোধ",
+                It.IsAny<string>(),
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }
 

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.RateLimiting;
 using MuktoAin.Application.DTOs;
 using MuktoAin.Application.Services;
+using MuktoAin.Domain.Constants;
 using MuktoAin.Domain.Entities;
 using MuktoAin.Domain.Enums;
 using MuktoAin.Domain.Interfaces.Repositories;
@@ -249,15 +250,22 @@ public class ChatController : Controller
 
         var messages = await _chatService.GetMessagesAsync(id);
 
-        // A5: recompute draft eligibility from the persisted case file so the
-        // draft card reappears on resume (missingInfo stays ephemeral — it was
-        // only ever a per-turn envelope hint).
         var cfJson = session.CaseFileJson;
-        var categoryId = ChatService.MapCategory(ChatService.CaseFileString(cfJson, "category"));
+        var categoryName = ChatService.CaseFileString(cfJson, "category")
+                           ?? ChatService.CaseFileString(cfJson, "suggestedDraftType");
+        var categoryId = ChatService.MapCategory(categoryName);
         var hasDistrict = !string.IsNullOrWhiteSpace(ChatService.CaseFileString(cfJson, "district"));
         var committed = session.Status == ChatSessionStatus.Committed;
         var blocked = session.Status == ChatSessionStatus.Blocked;
-        var canDraft = !committed && !blocked && messages.Count > 0 && categoryId.HasValue && hasDistrict;
+
+        var categoryFieldsComplete = false;
+        if (!string.IsNullOrWhiteSpace(categoryName) && categoryId.HasValue)
+        {
+            var missingCritical = CategoryIntakeFields.ValidateCaseFile(categoryName, cfJson);
+            categoryFieldsComplete = missingCritical.Count == 0;
+        }
+
+        var canDraft = !committed && !blocked && messages.Count > 0 && categoryId.HasValue && hasDistrict && categoryFieldsComplete;
 
         string? caseUrl = null;
         if (committed)

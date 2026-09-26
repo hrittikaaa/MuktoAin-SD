@@ -57,13 +57,18 @@ public class DocumentGenerator
     public DocumentType GetDocumentType(int categoryId) => MapCategoryToDocumentType(categoryId);
 
     // Mapping verified against data/categories.json:
-    //   1 = Labour Complaint, 2 = General Diary (GD), 3 = RTI Request, 4 = Consumer Complaint
+    //   1 = Labour Complaint, 2 = General Diary (GD), 3 = RTI Request, 4 = Consumer Complaint,
+    //   5 = Land & Property Dispute, 6 = Family & Domestic Dispute, 7 = Cyber Crime & Digital Complaint, 8 = Environmental Complaint
     private static DocumentType MapCategoryToDocumentType(int categoryId) => categoryId switch
     {
         1 => DocumentType.LabourComplaint,
         2 => DocumentType.GeneralDiary,
         3 => DocumentType.RtiRequest,
         4 => DocumentType.ConsumerComplaint,
+        5 => DocumentType.LandPropertyDispute,
+        6 => DocumentType.FamilyDispute,
+        7 => DocumentType.CyberCrime,
+        8 => DocumentType.EnvironmentalComplaint,
         _ => throw new ArgumentException($"Unknown category: {categoryId}")
     };
 }

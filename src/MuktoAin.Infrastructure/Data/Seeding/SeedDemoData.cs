@@ -29,8 +29,32 @@ public static class SeedDemoData
         ILogger logger)
     {
         const string firstCitizenEmail = "citizen1@demo.muktoain.bd";
-        if (await userManager.FindByEmailAsync(firstCitizenEmail) is not null)
+        var firstCitizen = await userManager.FindByEmailAsync(firstCitizenEmail);
+        if (firstCitizen is not null)
         {
+            // Self-heal demo cases if key rotated in dev
+            var existingDemoCases = await context.Cases
+                .Where(c => c.UserId == firstCitizen.Id || c.IsAnonymous)
+                .ToListAsync();
+            var healed = false;
+            foreach (var ec in existingDemoCases)
+            {
+                try
+                {
+                    encryptionService.Decrypt(ec.Title);
+                }
+                catch
+                {
+                    ec.Title = encryptionService.Encrypt("আইনি সমস্যা ও অভিযোগ");
+                    ec.Description = encryptionService.Encrypt("বিবরণ সংরক্ষিত আছে।");
+                    healed = true;
+                }
+            }
+            if (healed)
+            {
+                await context.SaveChangesAsync();
+                logger.LogInformation("Self-healed undecryptable demo cases.");
+            }
             return; // already seeded
         }
 

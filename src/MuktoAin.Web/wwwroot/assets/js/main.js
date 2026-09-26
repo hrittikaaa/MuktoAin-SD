@@ -610,15 +610,9 @@
       var subEl = document.querySelector(".page-head .page-sub");
       if (subEl) subEl.innerHTML = dict["home-sub"];
 
-      var composerBtn1 = document.querySelector("#composer-mode button:first-child");
-      if (composerBtn1) composerBtn1.innerHTML = '<i data-lucide="message-square"></i> ' + dict["home-tab-rights"];
-      var composerBtn2 = document.querySelector("#composer-mode button:last-child");
-      if (composerBtn2) composerBtn2.innerHTML = '<i data-lucide="search"></i> ' + dict["home-tab-search"];
-
       var textarea = document.querySelector(".composer textarea");
       if (textarea) {
-        var isSearch = composerBtn2 && composerBtn2.classList.contains("active");
-        textarea.placeholder = isSearch ? dict["home-search-placeholder"] : dict["home-composer-placeholder"];
+        textarea.placeholder = dict["home-composer-placeholder"];
       }
 
       var exLabel = document.querySelector(".page-head .tiny.muted");
@@ -784,44 +778,7 @@
       if (submitBtn) submitBtn.innerHTML = '<i data-lucide="send"></i> ' + dict["submit-btn"];
 
     } else if (path.indexOf("/case/track") !== -1) {
-      // Case Track Page
-      var kicker = document.querySelector(".page-head .kicker");
-      if (kicker) kicker.innerHTML = '<i data-lucide="folder-clock"></i> ' + dict["track-kicker"];
-      var title = document.querySelector(".page-head .page-title");
-      if (title) title.textContent = dict["track-title"];
-      var sub = document.querySelector(".page-head .page-sub");
-      if (sub) sub.textContent = dict["track-sub"];
-
-      var newBtn = document.querySelector('.page-head a[href*="/Case/Submit"]');
-      if (newBtn) newBtn.innerHTML = '<i data-lucide="plus-circle"></i> ' + dict["track-new-btn"];
-
-      var filterLabel = document.querySelector(".row.wrap .tiny.muted");
-      if (filterLabel) filterLabel.textContent = dict["track-filter-label"];
-
-      var filterChips = document.querySelectorAll(".chip-row .chip");
-      if (filterChips.length >= 4) {
-        var countMatch = filterChips[0].textContent.match(/\(([^)]+)\)/);
-        var countStr = countMatch ? " (" + countMatch[1] + ")" : "";
-        filterChips[0].textContent = dict["track-filter-all"] + countStr;
-        filterChips[1].textContent = dict["track-filter-review"];
-        filterChips[2].textContent = dict["track-filter-final"];
-        filterChips[3].textContent = dict["track-filter-submitted"];
-      }
-
-      var ths = document.querySelectorAll("table thead th");
-      if (ths.length >= 6) {
-        ths[0].textContent = dict["track-th-code"];
-        ths[1].textContent = dict["track-th-title"];
-        ths[2].textContent = dict["track-th-cat"];
-        ths[3].textContent = dict["track-th-date"];
-        ths[4].textContent = dict["track-th-status"];
-        ths[5].textContent = dict["track-th-action"];
-      }
-
-      // Pagination page numbers render as real digits carried in data-page --
-      // reformat them into the active script (Bengali vs Latin) rather than
-      // leaving them permanently Bengali regardless of language (same
-      // convention as the Search page's pagination below).
+      // Case Track Page - pagination page numbers formatting
       document.querySelectorAll(".pagination [data-page]").forEach(function (el) {
         var n = el.getAttribute("data-page");
         el.textContent = currentLang === "en" ? n : toBengaliDigits(n);
@@ -845,7 +802,7 @@
       var searchBtn = document.querySelector(".search-bar button[type=\"submit\"]");
       if (searchBtn) searchBtn.innerHTML = '<i data-lucide="search"></i> ' + dict["search-btn"];
 
-      var popLabel = document.querySelector(".search-bar .row.wrap .tiny.muted");
+      var popLabel = document.querySelector(".search-bar .popular-label, .search-bar .tiny.muted");
       if (popLabel) popLabel.textContent = dict["search-popular-label"];
 
       // Popular-search chips carry both a label and the actual query they submit
@@ -2096,20 +2053,6 @@
         ta.style.height = Math.min(ta.scrollHeight, 130) + "px";
       });
     });
-
-    /* chat mode switch (Ask vs Search) */
-    var composerMode = document.getElementById("composer-mode");
-    if (composerMode) {
-      composerMode.addEventListener("chipchange", function (e) {
-        var ta = document.querySelector(".composer textarea");
-        if (!ta) return;
-        var dict = translations[currentLang];
-        var isSearch = e.detail.textContent.indexOf("খুঁজ") !== -1 || e.detail.textContent.indexOf("Search") !== -1;
-        ta.placeholder = isSearch
-          ? dict["home-search-placeholder"]
-          : dict["home-composer-placeholder"];
-      });
-    }
 
     renderIcons();
   });

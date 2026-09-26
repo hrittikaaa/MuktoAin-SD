@@ -67,6 +67,21 @@ public static class SeedCategories
             }
         }
 
+        if (dtos.Count > existing.Count)
+        {
+            var newCategories = dtos.Skip(existing.Count).Select(d => new CaseCategory
+            {
+                Name = d.Name,
+                Description = d.Description,
+                NameBn = d.NameBn,
+                DescriptionBn = d.DescriptionBn,
+                CommonActions = JoinCommonActions(d.CommonActions),
+                CommonActionsEn = JoinCommonActions(d.CommonActionsEn),
+            });
+            context.CaseCategories.AddRange(newCategories);
+            changed = true;
+        }
+
         if (changed)
         {
             await context.SaveChangesAsync();

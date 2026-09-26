@@ -6,6 +6,7 @@ using MuktoAin.Domain.Entities;
 using MuktoAin.Domain.Enums;
 using MuktoAin.Domain.Interfaces;
 using MuktoAin.Domain.Interfaces.Repositories;
+using MuktoAin.Domain.Interfaces.Services;
 
 namespace MuktoAin.Application.Services;
 
@@ -29,6 +30,8 @@ public class LawyerReviewService
     private readonly IEncryptionService _encryptionService;
     private readonly CaseService _caseService;
     private readonly IRepository<Notification> _notificationRepo;
+    private readonly IEmailService? _emailService;
+    private readonly IRepository<User>? _userRepo;
 
     public LawyerReviewService(
         IRepository<GeneratedDocument> docRepo,
@@ -42,7 +45,9 @@ public class LawyerReviewService
         IRepository<Act> actRepo,
         IEncryptionService encryptionService,
         CaseService caseService,
-        IRepository<Notification> notificationRepo)
+        IRepository<Notification> notificationRepo,
+        IEmailService? emailService = null,
+        IRepository<User>? userRepo = null)
     {
         _docRepo = docRepo;
         _reviewRepo = reviewRepo;
@@ -56,6 +61,8 @@ public class LawyerReviewService
         _encryptionService = encryptionService;
         _caseService = caseService;
         _notificationRepo = notificationRepo;
+        _emailService = emailService;
+        _userRepo = userRepo;
     }
 
     // Queue = documents in UnderReview, oldest-first (SLA age shown by the view).
@@ -256,7 +263,8 @@ public class LawyerReviewService
         var district = await _districtRepo.GetByIdAsync(c.DistrictId);
 
         var citations = new List<CitedSectionDto>();
-        var refs = (await _refRepo.GetAllAsync()).Where(r => r.CaseId == d.CaseId);
+        var refs = (await _refRepo.FindAsync(r => r.CaseId == d.CaseId))
+                   ?? (await _refRepo.GetAllAsync()).Where(r => r.CaseId == d.CaseId);
         foreach (var r in refs)
         {
             var s = await _sectionRepo.GetByIdAsync(r.SectionId);
@@ -359,6 +367,46 @@ public class LawyerReviewService
             catch
             {
                 // A notification-write failure must not fail the review submission it's attached to.
+            }
+        }
+
+        if (c2 != null && _emailService != null)
+        {
+            var targetEmail = c2.NotificationEmail;
+            if (string.IsNullOrWhiteSpace(targetEmail) && c2.UserId.HasValue && _userRepo != null)
+            {
+                var user = await _userRepo.GetByIdAsync(c2.UserId.Value);
+                if (user != null && !string.IsNullOrWhiteSpace(user.Email))
+                {
+                    targetEmail = user.Email;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(targetEmail))
+            {
+                try
+                {
+                    var decisionText = dto.Decision switch
+                    {
+                        ReviewDecision.Approved => c2.Language == "en" ? "Approved" : "অনুমোদিত",
+                        ReviewDecision.EditedApproved => c2.Language == "en" ? "Edited & Approved" : "সম্পাদিত ও অনুমোদিত",
+                        ReviewDecision.Rejected => c2.Language == "en" ? "Revision Required / Rejected" : "সংশোধন প্রয়োজন / প্রত্যাখ্যাত",
+                        _ => dto.Decision.ToString()
+                    };
+
+                    await _emailService.SendReviewDecisionAsync(
+                        targetEmail,
+                        SafeDecrypt(c2.Title),
+                        decisionText,
+                        dto.Comments,
+                        c2.AnonymousTrackingCode,
+                        c2.CaseId,
+                        c2.Language);
+                }
+                catch
+                {
+                    // Non-fatal if email dispatch fails
+                }
             }
         }
         return true;

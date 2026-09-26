@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.RateLimiting;
@@ -16,6 +17,7 @@ using MuktoAin.Domain.Interfaces.Services;
 using MuktoAin.Infrastructure.Ai;
 using MuktoAin.Infrastructure.Data;
 using MuktoAin.Infrastructure.Data.Seeding;
+using MuktoAin.Infrastructure.Email;
 using MuktoAin.Infrastructure.Repositories;
 using MuktoAin.Infrastructure.Search;
 using MuktoAin.Infrastructure.Security;
@@ -129,6 +131,13 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/Home/AccessDenied";
     options.ExpireTimeSpan = TimeSpan.FromHours(8);
     options.SlidingExpiration = true;
+});
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
 });
 
 // AUD-5: per-route throttling (audit: nothing limits Login/Register brute
@@ -332,11 +341,15 @@ builder.Services.AddScoped<AdminAnalyticsService>();
 builder.Services.AddScoped<IModerationService, ModerationService>();
 builder.Services.AddScoped<ModerationService>();
 
-// A-2.2, A-2.3 & A-3.1 (Steps 3.1-3.3): Document generation engine and all 4 templates
+// A-2.2, A-2.3 & A-3.1 (Steps 3.1-3.3): Document generation engine and all 8 templates
 builder.Services.AddScoped<IDocumentTemplate, LabourComplaintTemplate>();
 builder.Services.AddScoped<IDocumentTemplate, GeneralDiaryTemplate>();
 builder.Services.AddScoped<IDocumentTemplate, RtiRequestTemplate>();
 builder.Services.AddScoped<IDocumentTemplate, ConsumerComplaintTemplate>();
+builder.Services.AddScoped<IDocumentTemplate, LandPropertyTemplate>();
+builder.Services.AddScoped<IDocumentTemplate, FamilyDisputeTemplate>();
+builder.Services.AddScoped<IDocumentTemplate, CyberCrimeTemplate>();
+builder.Services.AddScoped<IDocumentTemplate, EnvironmentalComplaintTemplate>();
 builder.Services.AddScoped<DocumentGenerator>();
 
 // A-2.4: Document lifecycle service
@@ -373,7 +386,13 @@ builder.Services.AddScoped<IAdminAuditService, AdminAuditService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<LawyerQueueNotifier>();
 
+// Email notification service (SMTP with dev/mock logging fallback)
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

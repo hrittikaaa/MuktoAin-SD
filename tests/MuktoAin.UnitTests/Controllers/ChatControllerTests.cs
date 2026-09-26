@@ -444,7 +444,7 @@ public class ChatControllerTests
             ChatSessionId = 15,
             UserId = 42,
             Title = "My Chat",
-            CaseFileJson = "{\"district\":\"Dhaka\",\"category\":\"RtiRequest\",\"facts\":\"info needed\"}",
+            CaseFileJson = "{\"district\":\"Dhaka\",\"category\":\"RtiRequest\",\"facts\":\"info needed\",\"targetAuthority\":\"Savar Upazila\",\"informationSought\":\"budget report\"}",
             Status = committed ? ChatSessionStatus.Committed : ChatSessionStatus.InProgress,
             CommittedCaseId = committed ? 90 : null
         };
@@ -484,6 +484,51 @@ public class ChatControllerTests
         Assert.Equal(committed, json.Value.GetType().GetProperty("committed")!.GetValue(json.Value));
         Assert.Equal(committed ? 90 : (int?)null, json.Value.GetType().GetProperty("caseId")!.GetValue(json.Value));
         Assert.Equal(3, categoryId);
+    }
+
+    [Fact]
+    public async Task Messages_CategoryFieldsIncomplete_ReturnsCanDraftFalse()
+    {
+        var session = new ChatSession
+        {
+            ChatSessionId = 15,
+            UserId = 42,
+            Title = "My Chat",
+            CaseFileJson = "{\"district\":\"Dhaka\",\"category\":\"LandPropertyDispute\",\"facts\":\"land issue\"}",
+            Status = ChatSessionStatus.InProgress
+        };
+        _sessionRepo.Setup(r => r.GetByIdAsync(15)).ReturnsAsync(session);
+        var messageRepo = new Mock<IRepository<ChatMessage>>();
+        messageRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<ChatMessage>
+        {
+            new() { ChatSessionId = 15, Role = "user", Content = "জমি নিয়ে বিরোধ।" }
+        });
+        var chatService = new ChatService(
+            _sessionRepo.Object,
+            messageRepo.Object,
+            Mock.Of<IRepository<Case>>(),
+            Mock.Of<ICaseRepository>(),
+            Mock.Of<IRepository<AnswerCache>>(),
+            Mock.Of<IRightsExplanationService>(),
+            null!,
+            Mock.Of<IEncryptionService>(),
+            Mock.Of<IScenarioMappingRepository>(),
+            Mock.Of<IKeywordSectionSearch>(),
+            Mock.Of<IRepository<District>>(),
+            Mock.Of<MuktoAin.Domain.Interfaces.IAiService>(),
+            Mock.Of<IAiLogService>(),
+            Mock.Of<IChatHistoryRepository>(),
+            Mock.Of<IRepository<Notification>>());
+        var controller = new ChatController(chatService, new AiBudgetService(DefaultReservationStore().Object), Mock.Of<IActSectionRepository>())
+        {
+            ControllerContext = _controller.ControllerContext
+        };
+
+        var result = await controller.Messages(15);
+
+        var json = Assert.IsType<JsonResult>(result);
+        var canDraft = (bool)json.Value!.GetType().GetProperty("canDraft")!.GetValue(json.Value)!;
+        Assert.False(canDraft);
     }
 
     // A2: search mode bypasses quota reservation (no model call happens).

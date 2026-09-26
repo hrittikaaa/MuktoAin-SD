@@ -241,6 +241,7 @@ public class AccountController : Controller
 
     [Authorize]
     [HttpPost]
+    [EnableRateLimiting("auth")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Profile(ProfileViewModel model)
     {
@@ -292,6 +293,7 @@ public class AccountController : Controller
 
     [Authorize]
     [HttpPost]
+    [EnableRateLimiting("auth")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
     {
@@ -303,8 +305,17 @@ public class AccountController : Controller
 
         if (!ModelState.IsValid)
         {
-            TempData["Error"] = "পাসওয়ার্ড পরিবর্তনের তথ্য সঠিক নয়। অনুগ্রহ করে শর্তাবলী মেনে আবার চেষ্টা করুন।";
-            TempData["ErrorEn"] = "Invalid password data. Please check requirements and try again.";
+            var firstModelErr = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .FirstOrDefault(msg => !string.IsNullOrWhiteSpace(msg));
+
+            TempData["Error"] = string.IsNullOrWhiteSpace(firstModelErr)
+                ? "পাসওয়ার্ড পরিবর্তনের তথ্য সঠিক নয়। অনুগ্রহ করে শর্তাবলী মেনে আবার চেষ্টা করুন।"
+                : $"পাসওয়ার্ড পরিবর্তনের তথ্য সঠিক নয়: {firstModelErr}";
+            TempData["ErrorEn"] = string.IsNullOrWhiteSpace(firstModelErr)
+                ? "Invalid password data. Please check requirements and try again."
+                : $"Invalid password data: {firstModelErr}";
             return RedirectToAction(nameof(Profile));
         }
 
@@ -317,7 +328,11 @@ public class AccountController : Controller
         }
         else
         {
-            var firstErr = result.Errors.FirstOrDefault()?.Description ?? "পাসওয়ার্ড পরিবর্তন ব্যর্থ হয়েছে।";
+            var primaryErr = result.Errors.FirstOrDefault();
+            var (field, msg) = primaryErr != null
+                ? IdentityErrorMapper.Map(primaryErr, _localizer)
+                : (null, "পাসওয়ার্ড পরিবর্তন ব্যর্থ হয়েছে।");
+            var firstErr = msg ?? primaryErr?.Description ?? "পাসওয়ার্ড পরিবর্তন ব্যর্থ হয়েছে।";
             TempData["Error"] = $"পাসওয়ার্ড পরিবর্তন ব্যর্থ হয়েছে: {firstErr}";
             TempData["ErrorEn"] = $"Password change failed: {firstErr}";
         }

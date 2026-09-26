@@ -23,6 +23,22 @@ public static class SeedDemoPaymentCases
     private const int TargetPayableCases = 3;
     private const string VerifiedLawyerBarNumber = "DBA-2019-04521"; // SeedDemoData's lawyer1
 
+    private static readonly (string Title, string Description, DocumentType DocType, string Final)[] Templates = new[]
+    {
+        (Title: "বাড়িওয়ালার জামানত ফেরত না দেওয়া",
+         Description: "বাসা ছাড়ার দুই মাস পরও বাড়িওয়ালা ২০,০০০ টাকা জামানত ফেরত দিচ্ছেন না।",
+         DocType: DocumentType.GeneralDiary,
+         Final: "চূড়ান্ত: জামানতের টাকা ফেরত না দেওয়া সংক্রান্ত সাধারণ ডায়েরি (আইনজীবী কর্তৃক পর্যালোচিত)।"),
+        (Title: "বকেয়া বেতন পরিশোধে অস্বীকৃতি",
+         Description: "চাকরি ছাড়ার পর নিয়োগকর্তা তিন মাসের বকেয়া বেতন পরিশোধ করছেন না।",
+         DocType: DocumentType.LabourComplaint,
+         Final: "চূড়ান্ত: বাংলাদেশ শ্রম আইন, ২০০৬ অনুযায়ী বকেয়া বেতন দাবি সংক্রান্ত অভিযোগপত্র (আইনজীবী কর্তৃক পর্যালোচিত)।"),
+        (Title: "অনলাইনে কেনা ত্রুটিপূর্ণ পণ্য",
+         Description: "অনলাইনে কেনা মোবাইল ফোনটি ত্রুটিপূর্ণ, বিক্রেতা ফেরত বা বদল করে দিচ্ছেন না।",
+         DocType: DocumentType.ConsumerComplaint,
+         Final: "চূড়ান্ত: ভোক্তা অধিকার সংরক্ষণ আইন, ২০০৯ অনুযায়ী অভিযোগপত্র (আইনজীবী কর্তৃক পর্যালোচিত)।"),
+    };
+
     public static async Task SeedAsync(
         AppDbContext context,
         UserManager<User> userManager,
@@ -34,6 +50,30 @@ public static class SeedDemoPaymentCases
         {
             logger.LogWarning("SeedDemoPaymentCases: demo citizen {Email} not found. Skipping.", SeedDemoUsers.CitizenEmail);
             return;
+        }
+
+        // Self-heal: If demo cases exist but fail decryption (e.g. key ring rotation in dev), re-encrypt them with the active key
+        var existingCases = await context.Cases.Where(c => c.UserId == citizen.Id).ToListAsync();
+        var healed = false;
+        for (var idx = 0; idx < existingCases.Count; idx++)
+        {
+            var ec = existingCases[idx];
+            try
+            {
+                encryptionService.Decrypt(ec.Title);
+            }
+            catch
+            {
+                var tmpl = Templates[idx % Templates.Length];
+                ec.Title = encryptionService.Encrypt(tmpl.Title);
+                ec.Description = encryptionService.Encrypt(tmpl.Description);
+                healed = true;
+            }
+        }
+        if (healed)
+        {
+            await context.SaveChangesAsync();
+            logger.LogInformation("Self-healed undecryptable demo payment cases for {Email}.", SeedDemoUsers.CitizenEmail);
         }
 
         var payable = await context.Cases.CountAsync(c =>
@@ -57,26 +97,10 @@ public static class SeedDemoPaymentCases
         var lawyer = await context.LawyerProfiles.FirstOrDefaultAsync(l => l.BarRegistrationNumber == VerifiedLawyerBarNumber)
                      ?? await context.LawyerProfiles.FirstOrDefaultAsync(l => l.VerificationStatus == VerificationStatus.Approved);
 
-        var templates = new[]
-        {
-            (Title: "বাড়িওয়ালার জামানত ফেরত না দেওয়া",
-             Description: "বাসা ছাড়ার দুই মাস পরও বাড়িওয়ালা ২০,০০০ টাকা জামানত ফেরত দিচ্ছেন না।",
-             DocType: DocumentType.GeneralDiary,
-             Final: "চূড়ান্ত: জামানতের টাকা ফেরত না দেওয়া সংক্রান্ত সাধারণ ডায়েরি (আইনজীবী কর্তৃক পর্যালোচিত)।"),
-            (Title: "বকেয়া বেতন পরিশোধে অস্বীকৃতি",
-             Description: "চাকরি ছাড়ার পর নিয়োগকর্তা তিন মাসের বকেয়া বেতন পরিশোধ করছেন না।",
-             DocType: DocumentType.LabourComplaint,
-             Final: "চূড়ান্ত: বাংলাদেশ শ্রম আইন, ২০০৬ অনুযায়ী বকেয়া বেতন দাবি সংক্রান্ত অভিযোগপত্র (আইনজীবী কর্তৃক পর্যালোচিত)।"),
-            (Title: "অনলাইনে কেনা ত্রুটিপূর্ণ পণ্য",
-             Description: "অনলাইনে কেনা মোবাইল ফোনটি ত্রুটিপূর্ণ, বিক্রেতা ফেরত বা বদল করে দিচ্ছেন না।",
-             DocType: DocumentType.ConsumerComplaint,
-             Final: "চূড়ান্ত: ভোক্তা অধিকার সংরক্ষণ আইন, ২০০৯ অনুযায়ী অভিযোগপত্র (আইনজীবী কর্তৃক পর্যালোচিত)।"),
-        };
-
         var now = DateTime.UtcNow;
         for (var i = 0; i < missing; i++)
         {
-            var t = templates[i % templates.Length];
+            var t = Templates[i % Templates.Length];
             var createdAt = now.AddDays(-(i + 3));
 
             var demoCase = new Case

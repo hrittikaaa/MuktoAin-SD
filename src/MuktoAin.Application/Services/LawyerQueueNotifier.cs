@@ -1,6 +1,9 @@
+using System.Text.RegularExpressions;
 using MuktoAin.Domain.Entities;
 using MuktoAin.Domain.Enums;
+using MuktoAin.Domain.Interfaces;
 using MuktoAin.Domain.Interfaces.Repositories;
+using MuktoAin.Domain.Interfaces.Services;
 
 namespace MuktoAin.Application.Services;
 
@@ -25,18 +28,48 @@ public class LawyerQueueNotifier
                       "তথ্য", "প্রশাসনিক" },
         [4] = new[] { "consumer", "product", "commercial", "trade",
                       "ভোক্তা", "বাণিজ্য" },
+        [5] = new[] { "land", "property", "tenancy", "mutation", "eviction", "acquisition",
+                      "ভূমি", "জমি", "সম্পত্তি", "নামজারি", "উচ্ছেদ" },
+        [6] = new[] { "family", "divorce", "maintenance", "custody", "dowry", "domestic",
+                      "পারিবারিক", "তালাক", "ভরণপোষণ", "হেফাজত", "যৌতুক" },
+        [7] = new[] { "cyber", "digital", "ict", "hacking", "online fraud",
+                      "সাইবার", "ডিজিটাল", "হ্যাকিং", "অনলাইন" },
+        [8] = new[] { "environment", "pollution", "forest", "wildlife", "water",
+                      "পরিবেশ", "দূষণ", "বন", "নদী" },
     };
 
     // A general practitioner handles every category.
     private static readonly string[] GeneralKeywords = { "general law", "general practice", "সাধারণ আইন" };
+    private static readonly Regex CiphertextShape = new(@"^[A-Za-z0-9\-_]{40,}$", RegexOptions.Compiled);
+    private const string UndecryptablePlaceholder = "আইনি সমস্যা / Legal Issue";
 
     private readonly IRepository<LawyerProfile> _profileRepo;
     private readonly IRepository<Notification> _notificationRepo;
+    private readonly IRepository<User>? _userRepo;
+    private readonly ICaseRepository? _caseRepo;
+    private readonly IRepository<CaseCategory>? _categoryRepo;
+    private readonly IRepository<District>? _districtRepo;
+    private readonly IEmailService? _emailService;
+    private readonly IEncryptionService? _encryptionService;
 
-    public LawyerQueueNotifier(IRepository<LawyerProfile> profileRepo, IRepository<Notification> notificationRepo)
+    public LawyerQueueNotifier(
+        IRepository<LawyerProfile> profileRepo,
+        IRepository<Notification> notificationRepo,
+        IRepository<User>? userRepo = null,
+        ICaseRepository? caseRepo = null,
+        IRepository<CaseCategory>? categoryRepo = null,
+        IRepository<District>? districtRepo = null,
+        IEmailService? emailService = null,
+        IEncryptionService? encryptionService = null)
     {
         _profileRepo = profileRepo;
         _notificationRepo = notificationRepo;
+        _userRepo = userRepo;
+        _caseRepo = caseRepo;
+        _categoryRepo = categoryRepo;
+        _districtRepo = districtRepo;
+        _emailService = emailService;
+        _encryptionService = encryptionService;
     }
 
     public static bool MatchesCategory(string? specialization, int categoryId)
@@ -90,10 +123,85 @@ public class LawyerQueueNotifier
                 });
             }
             if (recipients.Count > 0) await _notificationRepo.SaveChangesAsync();
+
+            // Email notifications (Lawyers in queue + Citizen confirmation)
+            if (_emailService != null)
+            {
+                Case? caseEntity = _caseRepo != null ? await _caseRepo.GetByIdAsync(caseId) : null;
+                var caseTitle = caseEntity != null ? SafeDecrypt(caseEntity.Title) : "আইনি সমস্যা / Legal Issue";
+                var categoryName = _categoryRepo != null && caseEntity != null ? (await _categoryRepo.GetByIdAsync(caseEntity.CategoryId))?.Name ?? "" : "";
+                var districtName = _districtRepo != null && caseEntity != null ? (await _districtRepo.GetByIdAsync(caseEntity.DistrictId))?.Name ?? "" : "";
+
+                // 1. Notify Lawyers
+                if (_userRepo != null)
+                {
+                    foreach (var p in recipients)
+                    {
+                        try
+                        {
+                            var lawyerUser = await _userRepo.GetByIdAsync(p.UserId);
+                            if (lawyerUser != null && !string.IsNullOrWhiteSpace(lawyerUser.Email))
+                            {
+                                await _emailService.SendLawyerNewCaseQueuedAsync(
+                                    lawyerUser.Email,
+                                    lawyerUser.FullName ?? "",
+                                    caseTitle,
+                                    caseId,
+                                    documentId,
+                                    categoryName,
+                                    districtName);
+                            }
+                        }
+                        catch
+                        {
+                            // Non-fatal per lawyer
+                        }
+                    }
+                }
+
+                // 2. Notify Citizen
+                if (caseEntity != null)
+                {
+                    try
+                    {
+                        var citizenEmail = caseEntity.NotificationEmail;
+                        if (string.IsNullOrWhiteSpace(citizenEmail) && caseEntity.UserId.HasValue && _userRepo != null)
+                        {
+                            var citizenUser = await _userRepo.GetByIdAsync(caseEntity.UserId.Value);
+                            if (citizenUser != null && !string.IsNullOrWhiteSpace(citizenUser.Email))
+                            {
+                                citizenEmail = citizenUser.Email;
+                            }
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(citizenEmail))
+                        {
+                            await _emailService.SendDocumentSentToLawyerAsync(
+                                citizenEmail,
+                                caseTitle,
+                                caseEntity.AnonymousTrackingCode,
+                                caseId,
+                                caseEntity.Language);
+                        }
+                    }
+                    catch
+                    {
+                        // Non-fatal for citizen email
+                    }
+                }
+            }
         }
         catch
         {
             // A notification-write failure must not fail sending the document to review.
         }
+    }
+
+    private string SafeDecrypt(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        if (_encryptionService == null) return value;
+        try { return _encryptionService.Decrypt(value); }
+        catch { return CiphertextShape.IsMatch(value) ? UndecryptablePlaceholder : value; }
     }
 }

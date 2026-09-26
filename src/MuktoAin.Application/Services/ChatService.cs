@@ -40,6 +40,8 @@ public class ChatService
     private readonly IChatHistoryRepository _historyRepo;
     private readonly ChatSafetyFilter _safetyFilter = new();
     private readonly IRepository<Notification> _notificationRepo;
+    private readonly IEmailService? _emailService;
+    private readonly IRepository<User>? _userRepo;
 
     public ChatService(
         IRepository<ChatSession> sessionRepo,
@@ -56,7 +58,9 @@ public class ChatService
         IAiService aiService,
         IAiLogService aiLogService,
         IChatHistoryRepository historyRepo,
-        IRepository<Notification> notificationRepo)
+        IRepository<Notification> notificationRepo,
+        IEmailService? emailService = null,
+        IRepository<User>? userRepo = null)
     {
         _sessionRepo = sessionRepo;
         _messageRepo = messageRepo;
@@ -73,6 +77,8 @@ public class ChatService
         _aiLogService = aiLogService;
         _historyRepo = historyRepo;
         _notificationRepo = notificationRepo;
+        _emailService = emailService;
+        _userRepo = userRepo;
     }
 
     // ---------- session management ----------
@@ -244,14 +250,41 @@ public class ChatService
         var recentTurns = string.Join("\n", messages.TakeLast(3)
             .Select(m => (m.Role == "user" ? "Citizen: " : "Assistant: ") + m.Content));
 
+        // Detect category from existing case file to inject category-specific field requirements.
+        var detectedCategory = CaseFileString(caseFileJson, "category")
+                               ?? CaseFileString(caseFileJson, "suggestedDraftType");
+        var categoryFieldsBlock = string.Empty;
+        IReadOnlyList<string> structurallyMissing = Array.Empty<string>();
+
+        if (!string.IsNullOrWhiteSpace(detectedCategory))
+        {
+            structurallyMissing = CategoryIntakeFields.ValidateCaseFile(detectedCategory, caseFileJson);
+            if (structurallyMissing.Count > 0)
+            {
+                categoryFieldsBlock = CategoryIntakeFields.BuildMissingFieldsPromptBlock(
+                    detectedCategory, structurallyMissing, language);
+            }
+        }
+
         var prompt = PromptTemplates.ConversationalIntake
             .Replace("{caseFile}", caseFileJson)
             .Replace("{recentTurns}", string.IsNullOrWhiteSpace(recentTurns) ? "(none)" : recentTurns)
             .Replace("{message}", question)
+            .Replace("{categoryFieldsBlock}", categoryFieldsBlock)
             .Replace("{language}", language == "en" ? "en" : "bn");
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
-        var raw = await _aiService.GenerateContentAsync(prompt, ct);
+        string? raw;
+        try
+        {
+            raw = await _aiService.GenerateContentAsync(prompt, ct);
+        }
+        catch
+        {
+            // If LLM is unavailable (network error, rate limit, quota exceeded, service downtime, etc.),
+            // automatically fall back to keyword search across statutory sections (retrieval-only output).
+            return await BuildRetrievalOnlyAnswerAsync(question, language);
+        }
 
         // Malformed JSON → one structured retry → still bad → plain-prose
         // turn, no state update (spec 7).
@@ -260,8 +293,15 @@ public class ChatService
         {
             var retryPrompt = prompt +
                 "\n\nYour previous response was not valid JSON. Respond ONLY with the JSON envelope.";
-            envelope = ParseEnvelope(await _aiService.GenerateContentAsync(retryPrompt, ct))
-                       ?? new ChatEnvelope("normal", raw ?? string.Empty, null, Array.Empty<string>(), false, null, null, false);
+            try
+            {
+                envelope = ParseEnvelope(await _aiService.GenerateContentAsync(retryPrompt, ct))
+                           ?? new ChatEnvelope("normal", raw ?? string.Empty, null, Array.Empty<string>(), false, null, null, false);
+            }
+            catch
+            {
+                envelope = new ChatEnvelope("normal", raw ?? string.Empty, null, Array.Empty<string>(), false, null, null, false);
+            }
         }
         sw.Stop();
 
@@ -335,14 +375,25 @@ public class ChatService
 
         var activeCaseFileJson = session.CaseFileJson ?? envelope.CaseFileJson;
         var hasDistrict = !string.IsNullOrWhiteSpace(CaseFileString(activeCaseFileJson, "district"));
-        var hasCategory = envelope.SuggestedDraftType != null && MapCategory(envelope.SuggestedDraftType) != null;
+        var resolvedCategory = envelope.SuggestedDraftType
+                               ?? CaseFileString(activeCaseFileJson, "category");
+        var hasCategory = resolvedCategory != null && MapCategory(resolvedCategory) != null;
         var noMissingInfo = envelope.MissingInfo == null || envelope.MissingInfo.Count == 0;
+
+        // C# validates category-specific required fields — AI's readyToExplain is a suggestion only.
+        var categoryFieldsComplete = hasCategory;
+        if (hasCategory && !string.IsNullOrWhiteSpace(resolvedCategory))
+        {
+            var missingCritical = CategoryIntakeFields.ValidateCaseFile(resolvedCategory, activeCaseFileJson);
+            categoryFieldsComplete = missingCritical.Count == 0;
+        }
 
         var canDraft = envelope.CanDraft
             && envelope.ReadyToExplain
             && hasCategory
             && hasDistrict
-            && noMissingInfo;
+            && noMissingInfo
+            && categoryFieldsComplete;
 
         return new ChatTurnDto(reply, cited, DisclaimersFor(language),
             FromCache: false, RetrievalOnly: false, Tier: "full",
@@ -545,6 +596,19 @@ public class ChatService
             ? Guid.NewGuid().ToString("N")
             : null;
 
+        var resolvedNotificationEmail = !string.IsNullOrWhiteSpace(notificationEmail)
+            ? notificationEmail.Trim()
+            : null;
+
+        if (resolvedNotificationEmail == null && userId.HasValue && !isAnonymous && _userRepo != null)
+        {
+            var user = await _userRepo.GetByIdAsync(userId.Value);
+            if (!string.IsNullOrWhiteSpace(user?.Email))
+            {
+                resolvedNotificationEmail = user.Email.Trim();
+            }
+        }
+
         var caseEntity = new Case
         {
             UserId = isAnonymous ? null : userId,
@@ -556,7 +620,7 @@ public class ChatService
             Status = CaseStatus.Submitted,
             IsAnonymous = isAnonymous,
             AnonymousTrackingCode = trackingCode,
-            NotificationEmail = string.IsNullOrWhiteSpace(notificationEmail) ? null : notificationEmail.Trim(),
+            NotificationEmail = resolvedNotificationEmail,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -611,6 +675,24 @@ public class ChatService
             }
         }
 
+        if (!string.IsNullOrWhiteSpace(caseEntity.NotificationEmail) && _emailService != null)
+        {
+            try
+            {
+                await _emailService.SendCaseSubmittedAsync(
+                    caseEntity.NotificationEmail,
+                    title,
+                    caseEntity.AnonymousTrackingCode,
+                    caseEntity.CaseId,
+                    caseEntity.Language,
+                    ct);
+            }
+            catch
+            {
+                // Email sending failure must not fail the case commit.
+            }
+        }
+
         return new ChatCommitResultDto(caseEntity.CaseId, trackingCode, doc.DocumentId, doc.ContentDraft);
     }
 
@@ -633,7 +715,11 @@ public class ChatService
             ["LabourComplaint"] = 1,
             ["GeneralDiary"] = 2,
             ["RtiRequest"] = 3,
-            ["ConsumerComplaint"] = 4
+            ["ConsumerComplaint"] = 4,
+            ["LandPropertyDispute"] = 5,
+            ["FamilyDispute"] = 6,
+            ["CyberCrime"] = 7,
+            ["EnvironmentalComplaint"] = 8
         };
 
     public static int? MapCategory(string? draftType)

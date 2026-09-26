@@ -28,16 +28,9 @@ public class SearchService
         page = page < 1 ? 1 : page;
         pageSize = pageSize < 1 ? 20 : pageSize;
 
-        var results = (await _keywordSearch.SearchAsync(query, maxResults: FtsPoolSize)).ToList();
-
-        if (actId.HasValue)
-        {
-            // RetrievedSection carries ActTitle, not ActId, so filtering to one Act
-            // means resolving that Act's section ids first and intersecting on those.
-            var act = await _actRepo.GetWithSectionsAsync(actId.Value);
-            var sectionIds = act?.Sections.Select(s => s.SectionId).ToHashSet() ?? new HashSet<int>();
-            results = results.Where(r => sectionIds.Contains(r.SectionId)).ToList();
-        }
+        var results = (actId.HasValue
+            ? await _keywordSearch.SearchAsync(query, maxResults: FtsPoolSize, actId: actId.Value)
+            : await _keywordSearch.SearchAsync(query, maxResults: FtsPoolSize)).ToList();
 
         var paged = results.Skip((page - 1) * pageSize).Take(pageSize);
 

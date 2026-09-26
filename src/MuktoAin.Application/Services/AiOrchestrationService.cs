@@ -81,8 +81,9 @@ public class AiOrchestrationService : IAiOrchestrationService
             }
         }
 
-        // 1. Retrieve statutory context
-        var sections = (await _ragContextBuilder.RetrieveContextAsync(@case.Description, topK: 8)).ToList();
+        // 1. Retrieve statutory context (filtered by category to reduce noise to 5 pinpointed sections)
+        var categoryKey = ResolveCategoryKey(@case.CategoryId);
+        var sections = (await _ragContextBuilder.RetrieveContextAsync(@case.Description, topK: 5, categoryKey)).ToList();
 
         // 2. Assemble prompt
         var prompt = await _promptAssembler.AssemblePromptAsync(
@@ -102,7 +103,7 @@ public class AiOrchestrationService : IAiOrchestrationService
         var finalResponse = _disclaimerInjector.InjectDisclaimer(rawResponse, @case.Language);
 
         // 5. Estimate tokens and Log
-        var tokensEstimated = Math.Max(1, (prompt.Length + rawResponse.Length) / 4);
+        var tokensEstimated = Math.Max(1, (prompt.Length + (rawResponse?.Length ?? 0)) / 4);
         var caseId = @case.CaseId > 0 ? (int?)@case.CaseId : null;
 
         await _aiLogService.LogAsync(
@@ -139,4 +140,18 @@ public class AiOrchestrationService : IAiOrchestrationService
             disclaimer,
             IsCached: false);
     }
+
+    // Maps CategoryId to the string key used by CategoryActFilter and CategoryIntakeFields.
+    private static string? ResolveCategoryKey(int categoryId) => categoryId switch
+    {
+        1 => "LabourComplaint",
+        2 => "GeneralDiary",
+        3 => "RtiRequest",
+        4 => "ConsumerComplaint",
+        5 => "LandPropertyDispute",
+        6 => "FamilyDispute",
+        7 => "CyberCrime",
+        8 => "EnvironmentalComplaint",
+        _ => null,
+    };
 }

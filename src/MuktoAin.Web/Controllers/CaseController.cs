@@ -115,12 +115,13 @@ public class CaseController : Controller
         {
             // AUD-9: documentType was threaded here but never read — the
             // DocumentGenerator re-derives the real type from Case.CategoryId.
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
             result = await chatService.CommitToCaseAsync(
                 session.ChatSessionId,
                 vm.CategoryId,
                 vm.DistrictId,
                 vm.Title,
-                notificationEmail: null,
+                notificationEmail: userEmail,
                 vm.IsAnonymous,
                 currentUserId,
                 lang);
@@ -159,6 +160,11 @@ public class CaseController : Controller
 
         var detail = await _caseService.GetCaseDetailAsync(id, currentUserId, role, trackingCode);
         if (detail == null) return NotFound();
+
+        if (!string.IsNullOrEmpty(trackingCode))
+        {
+            RememberTrackedCase(id, trackingCode);
+        }
 
         var caseEntity = await _caseRepo.GetWithDocumentsAsync(id);
         if (caseEntity == null) return NotFound();
@@ -239,7 +245,8 @@ public class CaseController : Controller
 
         // Cited sections from CASE_ACT_REFERENCE (persisted at generation time).
         // The generic repo does no Includes and there is no lazy loading, so
-        // Section/Act are hydrated by id (same approach as LawyerReviewService).
+        // Cited sections from CASE_ACT_REFERENCE (persisted at generation time).
+        // Hydrate only the specific sections and acts referenced by this case.
         var refRepo = HttpContext.RequestServices
             .GetRequiredService<IRepository<MuktoAin.Domain.Entities.CaseActReference>>();
         var sectionRepo = HttpContext.RequestServices
@@ -247,26 +254,25 @@ public class CaseController : Controller
         var actRepo = HttpContext.RequestServices
             .GetRequiredService<IRepository<MuktoAin.Domain.Entities.Act>>();
 
-        var actRefs = (await refRepo.GetAllAsync()).Where(r => r.CaseId == id).ToList();
-        var sections = await sectionRepo.GetAllAsync();
-        var acts = await actRepo.GetAllAsync();
+        var actRefs = await refRepo.FindAsync(r => r.CaseId == id);
+        var citedSections = new List<CitedSectionViewModel>();
 
-        vm.CitedSections = actRefs
-            .Select(r =>
+        foreach (var r in actRefs)
+        {
+            var section = await sectionRepo.GetByIdAsync(r.SectionId);
+            var act = section != null ? await actRepo.GetByIdAsync(section.ActId) : null;
+            citedSections.Add(new CitedSectionViewModel
             {
-                var section = sections.FirstOrDefault(s => s.SectionId == r.SectionId);
-                var act = section == null ? null : acts.FirstOrDefault(a => a.ActId == section.ActId);
-                return new CitedSectionViewModel
-                {
-                    ActTitle = act?.Title ?? string.Empty,
-                    SectionNumber = string.IsNullOrWhiteSpace(section?.SectionNumber)
-                        ? string.Empty
-                        : $"ধারা {section.SectionNumber}",
-                    SectionText = section?.SectionText ?? string.Empty,
-                    RelevanceScore = $"{Math.Round(r.RelevanceScore * 100)}%"
-                };
-            })
-            .ToList();
+                ActTitle = act?.Title ?? string.Empty,
+                SectionNumber = string.IsNullOrWhiteSpace(section?.SectionNumber)
+                    ? string.Empty
+                    : $"ধারা {section.SectionNumber}",
+                SectionText = section?.SectionText ?? string.Empty,
+                RelevanceScore = $"{Math.Round(r.RelevanceScore * 100)}%"
+            });
+        }
+
+        vm.CitedSections = citedSections;
 
         return View(vm);
     }
@@ -377,12 +383,13 @@ public class CaseController : Controller
         // Guest tracking-code lookup (FR-8): valid code redirects straight to the case
         if (!string.IsNullOrWhiteSpace(code))
         {
-            var all = await _caseRepo.GetAllAsync();
-            var match = all.FirstOrDefault(c =>
-                c.AnonymousTrackingCode == code.Trim());
+            var trimmed = code.Trim();
+            var matches = await _caseRepo.FindAsync(c => c.AnonymousTrackingCode == trimmed);
+            var match = matches.FirstOrDefault();
             if (match != null)
             {
-                return RedirectToAction(nameof(Result), new { id = match.CaseId, code = code.Trim() });
+                RememberTrackedCase(match.CaseId, trimmed);
+                return RedirectToAction(nameof(Result), new { id = match.CaseId, code = trimmed });
             }
             TempData["Error"] = "কোডটি মেলেনি — আবার চেষ্টা করুন।";
             TempData["ErrorEn"] = "Code did not match — try again.";
@@ -418,6 +425,9 @@ public class CaseController : Controller
             vm.Cases.Add(ToListItem(detail, sessionCode, unreadCaseIds));
         }
 
+        // Always show newest cases first
+        vm.Cases = vm.Cases.OrderByDescending(c => c.CreatedAt).ToList();
+
         // Server-side status filter (real param — fixes decorative chips)
         if (!string.IsNullOrWhiteSpace(status) && status != "All")
         {
@@ -438,19 +448,25 @@ public class CaseController : Controller
     private static bool MatchesFilter(string caseStatus, string filter) =>
         filter switch
         {
-            "Approved" => caseStatus == nameof(CaseStatus.Finalized),
-            _ => caseStatus == filter // UnderReview / Submitted map directly
+            "Approved" => caseStatus == nameof(CaseStatus.Finalized) || caseStatus == nameof(DocumentStatus.Approved),
+            "Rejected" => caseStatus == nameof(DocumentStatus.Rejected),
+            _ => string.Equals(caseStatus, filter, StringComparison.OrdinalIgnoreCase)
         };
 
     private static CaseListItemViewModel ToListItem(CaseDetailDto detail, string code, HashSet<int> unreadCaseIds)
     {
+        var latestDocStatus = detail.Documents?.OrderBy(d => d.DocumentId).LastOrDefault()?.Status;
+        var effectiveStatus = latestDocStatus == nameof(DocumentStatus.Rejected)
+            ? nameof(DocumentStatus.Rejected)
+            : detail.Status;
+
         return new CaseListItemViewModel
         {
             CaseId = detail.CaseId,
             TrackingCode = code,
             Title = detail.Title,
             CategoryName = detail.CategoryName,
-            Status = detail.Status,
+            Status = effectiveStatus,
             CreatedAt = detail.CreatedAt,
             HasUnread = unreadCaseIds.Contains(detail.CaseId)
         };

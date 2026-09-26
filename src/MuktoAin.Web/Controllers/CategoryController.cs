@@ -16,6 +16,10 @@ public class CategoryController : Controller
         [2] = "shield",        // General Diary (GD)
         [3] = "file-text",     // RTI Request
         [4] = "shopping-bag",  // Consumer Complaint
+        [5] = "map-pin",       // Land & Property Dispute
+        [6] = "heart",         // Family & Domestic Dispute
+        [7] = "monitor",       // Cyber Crime & Digital Complaint
+        [8] = "leaf",          // Environmental Complaint
     };
 
     // Accent color per seeded CategoryId, keyed to the semantic tokens already
@@ -29,6 +33,10 @@ public class CategoryController : Controller
         [2] = "info",     // General Diary (GD)
         [3] = "success",  // RTI Request
         [4] = "gold",     // Consumer Complaint
+        [5] = "warning",  // Land & Property Dispute
+        [6] = "danger",   // Family & Domestic Dispute
+        [7] = "info",     // Cyber Crime & Digital Complaint
+        [8] = "success",  // Environmental Complaint
     };
 
     private readonly CategoryService _categoryService;

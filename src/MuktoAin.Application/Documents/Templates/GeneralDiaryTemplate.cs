@@ -18,6 +18,11 @@ public class GeneralDiaryTemplate : IDocumentTemplate, IBanglaDocumentVariant
     public Task<string> RenderAsync(Case caseEntity, RightsExplanationDto explanation)
     {
         var districtName = caseEntity.District?.Name ?? "________";
+        var incidentType = CaseFileReader.Read(caseEntity.Description, "incidentType");
+        var incidentDateTime = CaseFileReader.Read(caseEntity.Description, "incidentDateTime");
+        var incidentLocation = CaseFileReader.Read(caseEntity.Description, "incidentLocation");
+        var itemOrPerson = CaseFileReader.Read(caseEntity.Description, "itemOrPersonDescription");
+
         var sb = new StringBuilder();
 
         // ── Header ──────────────────────────────────────────────
@@ -31,7 +36,7 @@ public class GeneralDiaryTemplate : IDocumentTemplate, IBanglaDocumentVariant
         var sectionRef = primarySection != null
             ? $" (Relating to {primarySection.ActTitle}, Section {primarySection.SectionNumber})"
             : string.Empty;
-        sb.AppendLine($"Subject: General Diary (GD) Entry Application{sectionRef}");
+        sb.AppendLine($"Subject: General Diary (GD) Entry Application regarding {incidentType}{sectionRef}");
         sb.AppendLine();
 
         // ── Salutation ──────────────────────────────────────────
@@ -40,11 +45,18 @@ public class GeneralDiaryTemplate : IDocumentTemplate, IBanglaDocumentVariant
 
         // ── Applicant Introduction ──────────────────────────────
         sb.AppendLine($"I, the undersigned, resident of {districtName}, do hereby respectfully submit this " +
-                       "application to record a General Diary (GD) entry regarding the incident/circumstances described below:");
+                       "application to record a General Diary (GD) entry regarding the incident described below:");
+        sb.AppendLine();
+        sb.AppendLine("INCIDENT SUMMARY:");
+        sb.AppendLine(new string('─', 40));
+        sb.AppendLine($"  Type of Incident: {incidentType}");
+        sb.AppendLine($"  Date & Time: {incidentDateTime}");
+        sb.AppendLine($"  Location / Place of Occurrence: {incidentLocation}");
+        sb.AppendLine($"  Description (Item / Person): {itemOrPerson}");
         sb.AppendLine();
 
         // ── Facts of the Case / Statement ───────────────────────
-        sb.AppendLine("STATEMENT OF FACTS:");
+        sb.AppendLine("DETAILED STATEMENT OF FACTS:");
         sb.AppendLine(new string('─', 40));
         sb.AppendLine(caseEntity.Description);
         sb.AppendLine();
@@ -110,6 +122,11 @@ public class GeneralDiaryTemplate : IDocumentTemplate, IBanglaDocumentVariant
     public async Task<string> RenderBanglaOnlyAsync(Case caseEntity, RightsExplanationDto explanation)
     {
         var districtName = caseEntity.District?.Name;
+        var incidentType = CaseFileReader.Read(caseEntity.Description, "incidentType");
+        var incidentDateTime = CaseFileReader.Read(caseEntity.Description, "incidentDateTime");
+        var incidentLocation = CaseFileReader.Read(caseEntity.Description, "incidentLocation");
+        var itemOrPerson = CaseFileReader.Read(caseEntity.Description, "itemOrPersonDescription");
+
         var sb = new StringBuilder();
 
         sb.AppendLine("বরাবর");
@@ -121,18 +138,26 @@ public class GeneralDiaryTemplate : IDocumentTemplate, IBanglaDocumentVariant
         var sectionRef = primarySection != null
             ? $" ({primarySection.ActTitle}, ধারা {primarySection.SectionNumber} সংশ্লিষ্ট)"
             : string.Empty;
-        sb.AppendLine($"বিষয়: সাধারণ ডায়েরি (জিডি) ভুক্তির আবেদন{sectionRef}");
+        sb.AppendLine($"বিষয়: {incidentType} সংক্রান্ত সাধারণ ডায়েরি (জিডি) ভুক্তির আবেদন{sectionRef}");
         sb.AppendLine();
 
         sb.AppendLine("মহোদয়,");
         sb.AppendLine();
 
         sb.AppendLine($"আমি, স্বাক্ষরকারী, {districtName ?? BanglaOnlyRender.Placeholder}-এর বাসিন্দা, " +
-                       "নিম্নবর্ণিত ঘটনা/পরিস্থিতি সংক্রান্ত একটি সাধারণ ডায়েরি (জিডি) ভুক্তি রেকর্ডের জন্য " +
+                       "নিম্নবর্ণিত ঘটনা সংক্রান্ত একটি সাধারণ ডায়েরি (জিডি) ভুক্তি রেকর্ডের জন্য " +
                        "এই আবেদনটি বিনীতভাবে জমা দিচ্ছি:");
         sb.AppendLine();
 
-        sb.AppendLine("ঘটনার বিবরণ:");
+        sb.AppendLine("ঘটনার সংক্ষেপ:");
+        sb.AppendLine(BanglaOnlyRender.Rule);
+        sb.AppendLine($"  ঘটনার ধরন: {incidentType}");
+        sb.AppendLine($"  তারিখ ও সময়: {incidentDateTime}");
+        sb.AppendLine($"  স্থান: {incidentLocation}");
+        sb.AppendLine($"  বিবরণ (জিনিসপত্র/ব্যক্তি): {itemOrPerson}");
+        sb.AppendLine();
+
+        sb.AppendLine("ঘটনার বিস্তারিত বিবরণ:");
         sb.AppendLine(BanglaOnlyRender.Rule);
         sb.AppendLine(caseEntity.Description);
         sb.AppendLine();

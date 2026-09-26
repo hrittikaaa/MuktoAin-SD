@@ -3,6 +3,8 @@
      it opaquely, last write wins.
    - Language: detected citizen language ("bn" | "en") for the explain turn.
    Safe to re-run in SSMS (adds columns only when missing). */
+USE MuktoAin;
+GO
 SET NOCOUNT ON;
 GO
 
