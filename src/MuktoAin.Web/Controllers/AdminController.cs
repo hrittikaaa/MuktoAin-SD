@@ -378,19 +378,41 @@ public class AdminController : Controller
     // ---------- FR-17: Corpus ----------
 
     [HttpGet]
-    public async Task<IActionResult> Corpus()
+    public async Task<IActionResult> Corpus(string? q = null, int page = 1, int pageSize = 25)
     {
         // High-performance database-side aggregation (FR-17):
-        // Rather than materializing all 42,858 chunks and 35,633 sections into memory,
+        // Rather than materializing all chunks and sections into memory,
         // compute totals and per-act chunk counts directly via EF Core aggregates.
         var totalSections = await _dbContext.ActSections.CountAsync();
         var totalChunks = await _dbContext.ActSectionChunks.CountAsync();
         var embeddedChunks = await _dbContext.ActSectionChunks.CountAsync(c => c.VectorId != null);
+        var totalActs = await _dbContext.Acts.CountAsync();
 
-        var topActs = await _dbContext.Acts
-            .AsNoTracking()
+        if (page < 1) page = 1;
+        if (pageSize < 10) pageSize = 25;
+        if (pageSize > 100) pageSize = 100;
+
+        IQueryable<MuktoAin.Domain.Entities.Act> query = _dbContext.Acts.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var trimmed = q.Trim();
+            if (int.TryParse(trimmed, out var yearSearch) && yearSearch >= 1800 && yearSearch <= 2100)
+            {
+                query = query.Where(a => a.Title.Contains(trimmed) || (a.ActNumber != null && a.ActNumber.Contains(trimmed)) || a.Year == yearSearch);
+            }
+            else
+            {
+                query = query.Where(a => a.Title.Contains(trimmed) || (a.ActNumber != null && a.ActNumber.Contains(trimmed)));
+            }
+        }
+
+        var totalFiltered = await query.CountAsync();
+
+        var acts = await query
             .OrderBy(a => a.Title)
-            .Take(100)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(a => new AdminActRowViewModel
             {
                 ActId = a.ActId,
@@ -411,7 +433,12 @@ public class AdminController : Controller
             TotalSections = totalSections,
             TotalChunks = totalChunks,
             EmbeddedChunks = embeddedChunks,
-            Acts = topActs
+            TotalActs = totalActs,
+            TotalFilteredActs = totalFiltered,
+            SearchQuery = q,
+            CurrentPage = page,
+            PageSize = pageSize,
+            Acts = acts
         };
         return View(vm);
     }

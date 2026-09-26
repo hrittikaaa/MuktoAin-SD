@@ -1,69 +1,229 @@
 @model AdminCorpusViewModel
 @{
-    ViewData["Title"] = "Corpus — Admin — MuktoAin";
+    ViewData["Title"] = "আইন করপাস ও সংবিধি ম্যানেজমেন্ট — Admin Corpus";
     ViewData["IsAdminPage"] = true;
+
+    static string ToBn(int n) => n.ToString("N0")
+        .Select(c => char.IsDigit(c) ? (char)(c - '0' + '০') : c)
+        .Aggregate(new System.Text.StringBuilder(), (sb, c) => sb.Append(c))
+        .ToString();
 }
 
 <main class="container" id="main">
     <nav class="breadcrumbs" aria-label="Breadcrumb">
-        <a asp-controller="Admin" asp-action="Dashboard">Dashboard</a>
+        <a asp-controller="Home" asp-action="Index" data-bn="হোম" data-en="Home">Home</a>
         <span class="sep">/</span>
-        <span>Corpus</span>
+        <a asp-controller="Admin" asp-action="Dashboard" data-bn="অ্যাডমিন মিশন কন্ট্রোল" data-en="Dashboard">Dashboard</a>
+        <span class="sep">/</span>
+        <span data-bn="আইন করপাস" data-en="Legislative Corpus">Legislative Corpus</span>
     </nav>
 
     <div class="page-head">
-        <span class="kicker"><i data-lucide="library"></i> FR-17</span>
-        <h1 class="page-title">Legislative Corpus</h1>
-        <p class="page-sub">Acts, sections, and vector-index status. Re-embedding runs via the Embedding Batch Job on the Dashboard.</p>
+        <span class="kicker" data-bn="FR-17 · আইনি সংবিধি করপাস ও ইনডেক্সিং" data-en="FR-17 · Legislative Corpus & Indexing"><i data-lucide="library" aria-hidden="true"></i> FR-17 · Legislative Corpus & Indexing</span>
+        <h1 class="page-title" data-bn="আইনি সংবিধি করপাস ও ভেক্টর অবস্থা" data-en="Legislative Corpus & Vector Status">আইনি সংবিধি করপাস ও ভেক্টর অবস্থা</h1>
+        <p class="page-sub" data-bn="বাংলাদেশ আইন করপাসের সংবিধি, ধারা ও কিউড্রান্ট (Qdrant) ভেক্টর এমবেডিং স্ট্যাটাস।" data-en="Bangladeshi statutory corpus, sections, and Qdrant vector embedding indexing status.">বাংলাদেশ আইন করপাসের সংবিধি, ধারা ও কিউড্রান্ট (Qdrant) ভেক্টর এমবেডিং স্ট্যাটাস।</p>
     </div>
 
-    <div class="grid grid-3" style="margin-bottom: 20px">
-        <div class="card"><span class="kicker">Sections</span><div style="font-size:32px;font-weight:700">@Model.TotalSections</div></div>
-        <div class="card"><span class="kicker">Chunks</span><div style="font-size:32px;font-weight:700">@Model.TotalChunks</div></div>
-        <div class="card"><span class="kicker">Embedded</span><div style="font-size:32px;font-weight:700">@Model.EmbeddedChunks / @Model.TotalChunks</div></div>
+    <!-- 4-Grid Metric Cards -->
+    <div class="grid grid-4" style="margin-bottom: 24px">
+        <div class="card kpi">
+            <span class="k-label" data-bn="সর্বমোট আইন" data-en="Total Acts"><i data-lucide="book-open" aria-hidden="true"></i>সর্বমোট আইন</span>
+            <span class="k-num" data-bn="@ToBn(Model.TotalActs)" data-en="@Model.TotalActs.ToString("N0")">@ToBn(Model.TotalActs)</span>
+            <span class="k-sub" data-bn="বিডি কোড ডেটাবেজ" data-en="BD Code Database">বিডি কোড ডেটাবেজ</span>
+        </div>
+        <div class="card kpi">
+            <span class="k-label" data-bn="মোট ধারা (Sections)" data-en="Total Sections"><i data-lucide="list" aria-hidden="true"></i>মোট ধারা (Sections)</span>
+            <span class="k-num" data-bn="@ToBn(Model.TotalSections)" data-en="@Model.TotalSections.ToString("N0")">@ToBn(Model.TotalSections)</span>
+            <span class="k-sub" data-bn="সংবিধি ধারা কাঠামো" data-en="Statutory Section Schema">সংবিধি ধারা কাঠামো</span>
+        </div>
+        <div class="card kpi">
+            <span class="k-label" data-bn="মোট টেক্সট চাঙ্ক" data-en="Total Text Chunks"><i data-lucide="layers" aria-hidden="true"></i>মোট টেক্সট চাঙ্ক</span>
+            <span class="k-num" data-bn="@ToBn(Model.TotalChunks)" data-en="@Model.TotalChunks.ToString("N0")">@ToBn(Model.TotalChunks)</span>
+            <span class="k-sub" data-bn="RAG সেগমেন্টেশন" data-en="RAG Segmentation">RAG সেগমেন্টেশন</span>
+        </div>
+        <div class="card kpi">
+            <span class="k-label" data-bn="ভেক্টরাইজড এমবেডেড" data-en="Vector Embedded"><i data-lucide="cpu" aria-hidden="true"></i>ভেক্টরাইজড এমবেডেড</span>
+            <span class="k-num" data-bn="@ToBn(Model.EmbeddedChunks)" data-en="@Model.EmbeddedChunks.ToString("N0")">@ToBn(Model.EmbeddedChunks)</span>
+            <span class="k-sub" data-bn="@ToBn(Model.EmbeddedChunks)/@ToBn(Model.TotalChunks) চাঙ্ক সিঙ্ক" data-en="@Model.EmbeddedChunks.ToString("N0")/@Model.TotalChunks.ToString("N0") Chunks Synced">@ToBn(Model.EmbeddedChunks)/@ToBn(Model.TotalChunks) চাঙ্ক সিঙ্ক</span>
+        </div>
     </div>
 
-    <div class="card">
-        <table>
-            <thead>
-                <tr><th>Act</th><th>Year</th><th>Lang</th><th>Sections</th><th>Chunks</th><th>Embedded</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-                @foreach (var a in Model.Acts)
+    <!-- Search & Filter Controls -->
+    <div class="card" style="margin-bottom: 20px; padding: 16px 20px;">
+        <form method="get" asp-action="Corpus" style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;">
+            <div style="display:flex; gap:10px; flex:1; min-width:280px; max-width:600px;">
+                <div style="position:relative; flex:1;">
+                    <input type="text" name="q" value="@Model.SearchQuery" class="input" style="width:100%; padding-left:36px;"
+                           data-bn-placeholder="আইনের নাম, নম্বর বা সাল লিখে অনুসন্ধান করুন..."
+                           data-en-placeholder="Search by act title, number, or year..."
+                           placeholder="Search by act title, number, or year..." />
+                    <i data-lucide="search" style="position:absolute; left:11px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--muted); pointer-events:none;"></i>
+                </div>
+                <button type="submit" class="btn btn-primary" style="white-space:nowrap;">
+                    <i data-lucide="search"></i> <span data-bn="অনুসন্ধান" data-en="Search">অনুসন্ধান</span>
+                </button>
+                @if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
                 {
-                    <tr>
-                        <td>@a.Title<br /><small class="muted mono">@(string.IsNullOrEmpty(a.ActNumber) ? "" : a.ActNumber + " · ")@a.ActId</small></td>
-                        <td>@a.Year</td>
-                        <td>@a.Language</td>
-                        <td>@a.SectionCount</td>
-                        <td>@a.ChunkCount</td>
-                        <td>@a.EmbeddedCount</td>
-                        <td>
-                            @if (a.IsRepealed)
-                            {
-                                <span class="badge badge-rejected">Repealed</span>
-                            }
-                            else if (a.EmbeddedCount == 0 && a.ChunkCount > 0)
-                            {
-                                <span class="badge badge-review">Awaiting embed</span>
-                            }
-                            else if (a.EmbeddedCount < a.ChunkCount)
-                            {
-                                <span class="badge badge-draft">Partial</span>
-                            }
-                            else
-                            {
-                                <span class="badge badge-final">Synced</span>
-                            }
-                        </td>
-                    </tr>
+                    <a asp-action="Corpus" class="btn btn-outline" style="white-space:nowrap;">
+                        <i data-lucide="x"></i> <span data-bn="ফিল্টার মুছুন" data-en="Clear">ফিল্টার মুছুন</span>
+                    </a>
                 }
-            </tbody>
-        </table>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:12px; font-size:13px; color:var(--ink-2);">
+                <span class="badge badge-info" data-bn="মোট প্রাপ্ত: @ToBn(Model.TotalFilteredActs)টি আইন" data-en="Found: @Model.TotalFilteredActs.ToString("N0") Acts">
+                    মোট প্রাপ্ত: @ToBn(Model.TotalFilteredActs)টি আইন
+                </span>
+                @if (Model.TotalPages > 1)
+                {
+                    <span data-bn="পৃষ্ঠা @ToBn(Model.CurrentPage) / @ToBn(Model.TotalPages)" data-en="Page @Model.CurrentPage of @Model.TotalPages">
+                        পৃষ্ঠা @ToBn(Model.CurrentPage) / @ToBn(Model.TotalPages)
+                    </span>
+                }
+            </div>
+        </form>
     </div>
 
-    <div class="alert alert-warn tiny" style="margin-top: 12px">
+    <!-- Acts Table -->
+    <div class="card" style="padding: 0; overflow: hidden;">
+        <div class="table-wrap">
+            <table class="min-w-table" style="width:100%; margin:0;">
+                <thead>
+                    <tr>
+                        <th data-bn="আইন ও সংবিধি" data-en="Act & Statute">আইন ও সংবিধি</th>
+                        <th style="width: 80px;" data-bn="বছর" data-en="Year">বছর</th>
+                        <th style="width: 80px;" data-bn="ভাষা" data-en="Lang">ভাষা</th>
+                        <th style="text-align: right; width: 100px;" data-bn="ধারা" data-en="Sections">ধারা</th>
+                        <th style="text-align: right; width: 100px;" data-bn="চাঙ্ক" data-en="Chunks">চাঙ্ক</th>
+                        <th style="text-align: right; width: 110px;" data-bn="এমবেডেড" data-en="Embedded">এমবেডেড</th>
+                        <th style="text-align: center; width: 140px;" data-bn="স্ট্যাটাস" data-en="Status">স্ট্যাটাস</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in Model.Acts)
+                    {
+                        <tr>
+                            <td>
+                                <strong style="font-size: 14px; display: block;">@a.Title</strong>
+                                <small class="muted mono">@(string.IsNullOrEmpty(a.ActNumber) ? "" : a.ActNumber + " · ")আইডি: @ToBn(a.ActId)</small>
+                            </td>
+                            <td>@(a.Year > 0 ? ToBn(a.Year) : "—")</td>
+                            <td><span class="badge badge-subtle">@a.Language</span></td>
+                            <td style="text-align: right;">@ToBn(a.SectionCount)</td>
+                            <td style="text-align: right;">@ToBn(a.ChunkCount)</td>
+                            <td style="text-align: right;">@ToBn(a.EmbeddedCount)</td>
+                            <td style="text-align: center;">
+                                @if (a.IsRepealed)
+                                {
+                                    <span class="badge badge-rejected" data-bn="বাতিলকৃত" data-en="Repealed">বাতিলকৃত</span>
+                                }
+                                else if (a.EmbeddedCount == 0 && a.ChunkCount > 0)
+                                {
+                                    <span class="badge badge-review" data-bn="এমবেড অপেক্ষমান" data-en="Awaiting embed">এমবেড অপেক্ষমান</span>
+                                }
+                                else if (a.EmbeddedCount < a.ChunkCount)
+                                {
+                                    <span class="badge badge-draft" data-bn="আংশিক সিঙ্ক" data-en="Partial">আংশিক সিঙ্ক</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-final" data-bn="সিঙ্কড" data-en="Synced">সিঙ্কড</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Acts.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="muted" style="text-align:center; padding: 32px;" data-bn="কোনো আইন পাওয়া যায়নি। অনুসন্ধান ফিল্টার পরিবর্তন করে আবার চেষ্টা করুন।" data-en="No acts found. Try adjusting your search query.">
+                                কোনো আইন পাওয়া যায়নি। অনুসন্ধান ফিল্টার পরিবর্তন করে আবার চেষ্টা করুন।
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination Controls -->
+    @if (Model.TotalPages > 1)
+    {
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 18px; flex-wrap: wrap; gap: 12px;">
+            <div style="font-size: 13px; color: var(--ink-2);" data-bn="@ToBn(Model.TotalFilteredActs)টি আইনের মধ্যে @ToBn(((Model.CurrentPage - 1) * Model.PageSize) + 1)-@ToBn(Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalFilteredActs)) দেখানো হচ্ছে" data-en="Showing @(((Model.CurrentPage - 1) * Model.PageSize) + 1)-@(Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalFilteredActs)) of @Model.TotalFilteredActs.ToString("N0") acts">
+                @ToBn(Model.TotalFilteredActs)টি আইনের মধ্যে @ToBn(((Model.CurrentPage - 1) * Model.PageSize) + 1)-@ToBn(Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalFilteredActs)) দেখানো হচ্ছে
+            </div>
+
+            <div style="display: flex; gap: 6px; align-items: center;">
+                @if (Model.CurrentPage > 1)
+                {
+                    <a asp-action="Corpus" asp-route-page="@(Model.CurrentPage - 1)" asp-route-q="@Model.SearchQuery" class="btn btn-outline btn-sm">
+                        <i data-lucide="chevron-left"></i> <span data-bn="পূর্ববর্তী" data-en="Previous">পূর্ববর্তী</span>
+                    </a>
+                }
+                else
+                {
+                    <button class="btn btn-outline btn-sm" disabled style="opacity:0.5; cursor:not-allowed;">
+                        <i data-lucide="chevron-left"></i> <span data-bn="পূর্ববর্তী" data-en="Previous">পূর্ববর্তী</span>
+                    </button>
+                }
+
+                @{
+                    var startPage = Math.Max(1, Model.CurrentPage - 2);
+                    var endPage = Math.Min(Model.TotalPages, Model.CurrentPage + 2);
+                }
+
+                @if (startPage > 1)
+                {
+                    <a asp-action="Corpus" asp-route-page="1" asp-route-q="@Model.SearchQuery" class="btn btn-outline btn-sm" style="min-width:32px; padding:4px 8px;">১</a>
+                    @if (startPage > 2)
+                    {
+                        <span style="padding: 0 4px; color: var(--muted);">…</span>
+                    }
+                }
+
+                @for (var p = startPage; p <= endPage; p++)
+                {
+                    if (p == Model.CurrentPage)
+                    {
+                        <span class="btn btn-primary btn-sm" style="min-width:32px; padding:4px 8px; font-weight:bold;">@ToBn(p)</span>
+                    }
+                    else
+                    {
+                        <a asp-action="Corpus" asp-route-page="@p" asp-route-q="@Model.SearchQuery" class="btn btn-outline btn-sm" style="min-width:32px; padding:4px 8px;">@ToBn(p)</a>
+                    }
+                }
+
+                @if (endPage < Model.TotalPages)
+                {
+                    @if (endPage < Model.TotalPages - 1)
+                    {
+                        <span style="padding: 0 4px; color: var(--muted);">…</span>
+                    }
+                    <a asp-action="Corpus" asp-route-page="@Model.TotalPages" asp-route-q="@Model.SearchQuery" class="btn btn-outline btn-sm" style="min-width:32px; padding:4px 8px;">@ToBn(Model.TotalPages)</a>
+                }
+
+                @if (Model.CurrentPage < Model.TotalPages)
+                {
+                    <a asp-action="Corpus" asp-route-page="@(Model.CurrentPage + 1)" asp-route-q="@Model.SearchQuery" class="btn btn-outline btn-sm">
+                        <span data-bn="পরবর্তী" data-en="Next">পরবর্তী</span> <i data-lucide="chevron-right"></i>
+                    </a>
+                }
+                else
+                {
+                    <button class="btn btn-outline btn-sm" disabled style="opacity:0.5; cursor:not-allowed;">
+                        <span data-bn="পরবর্তী" data-en="Next">পরবর্তী</span> <i data-lucide="chevron-right"></i>
+                    </button>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Ingestion Note Alert -->
+    <div class="alert alert-warn tiny" style="margin-top: 20px">
         <i data-lucide="info"></i>
-        <span>Import pipeline runs via the seeded ingestion job (CP1 ActImportService). This page reflects current corpus state — hash-deduplicated incremental sync lands with T-3.1.</span>
+        <span data-bn="আইন ডেটাবেজ ইমপোর্ট পাইপলাইন সিডেড ব্যাচ জব (ActImportService) দ্বারা স্বয়ংক্রিয় পরিচালিত হয়। এই পেজে বর্তমান সংবিধি ও এমবেডিং অগ্রগতি সরাসরি মনিটর করা যায়।"
+              data-en="Import pipeline is automated via the seeded ingestion job (ActImportService). This page monitors live statutory and embedding indexing status.">
+            আইন ডেটাবেজ ইমপোর্ট পাইপলাইন সিডেড ব্যাচ জব (ActImportService) দ্বারা স্বয়ংক্রিয় পরিচালিত হয়। এই পেজে বর্তমান সংবিধি ও এমবেডিং অগ্রগতি সরাসরি মনিটর করা যায়।
+        </span>
     </div>
 </main>
