@@ -16,7 +16,8 @@ public record QueueItemDto(
     DateTime? ClaimedAt,
     bool CanOpen,            // false when another lawyer's claim is still active
     bool IsClaimed = false,  // any lawyer holds an active claim on it
-    bool IsMine = false      // the requesting lawyer holds it
+    bool IsMine = false,     // the requesting lawyer holds it
+    string CategoryNameBn = "" // CategoryName is English; this is the Bangla name
 );
 
 // AUD-8: queue paging envelope — TotalCount is the FULL filtered pool size
@@ -45,7 +46,8 @@ public record ReviewWorkspaceDto(
     string? CitizenEditedDraft, // ContentFinal if CitizenEdited
     int VersionNo,
     bool CitizenEdited,
-    bool IsClaimedByMe = true // false = read-only preview (no narrative, no decision form)
+    bool IsClaimedByMe = true, // false = read-only preview (no narrative, no decision form)
+    string CategoryNameBn = ""
 );
 
 public record SubmitReviewDto(
@@ -68,7 +70,8 @@ public record ReviewHistoryItemDto(
     string Comments,
     DateTime ReviewedAt,
     int VersionNo,      // version decided on (snapshot; current version for older reviews)
-    string DocumentText // text as it stood after the decision (snapshot; current text for older reviews)
+    string DocumentText, // text as it stood after the decision (snapshot; current text for older reviews)
+    string CategoryNameBn = ""
 );
 
 // One page of a lawyer's review history. TotalCount is the full filtered

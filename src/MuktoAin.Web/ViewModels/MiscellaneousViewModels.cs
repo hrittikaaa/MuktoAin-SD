@@ -73,6 +73,7 @@ public class LawyerReviewViewModel
     public int CaseId { get; set; }
     public string CaseTitle { get; set; } = string.Empty;
     public string CategoryName { get; set; } = string.Empty;
+    public string CategoryNameBn { get; set; } = string.Empty;
     public string ContentDraft { get; set; } = string.Empty;
     public string? EditedContent { get; set; }
 
@@ -222,6 +223,7 @@ public class LawyerQueueItemViewModel
     public int CaseId { get; set; }
     public string CaseTitle { get; set; } = string.Empty;
     public string CategoryName { get; set; } = string.Empty;
+    public string CategoryNameBn { get; set; } = string.Empty;
     public string DistrictName { get; set; } = string.Empty;
     public bool CitizenEdited { get; set; }
     public int VersionNo { get; set; }
@@ -253,6 +255,7 @@ public class LawyerHistoryItemViewModel
     public int CaseId { get; set; }
     public string CaseTitle { get; set; } = string.Empty;
     public string CategoryName { get; set; } = string.Empty;
+    public string CategoryNameBn { get; set; } = string.Empty;
     public string DistrictName { get; set; } = string.Empty;
     public string Decision { get; set; } = string.Empty;
     public string Comments { get; set; } = string.Empty;
@@ -267,5 +270,8 @@ public class LawyerPaymentsViewModel
     public string BarRegistrationNumber { get; set; } = string.Empty;
     public decimal Balance { get; set; }
     public decimal PendingPayout { get; set; } // requested, awaiting the admin
-    public List<EarningRowViewModel> History { get; set; } = new();
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+    public int TotalCount { get; set; }
+    public List<EarningRowViewModel> History { get; set; } = new(); // current page only
 }

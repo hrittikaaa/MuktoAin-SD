@@ -98,7 +98,7 @@
                     {
                         <tr>
                             <td class="mono">CASE-@h.CaseId<br /><small class="muted">@h.CaseTitle</small></td>
-                            <td>@h.CategoryName</td>
+                            <td data-bn="@h.CategoryNameBn" data-en="@h.CategoryName">@h.CategoryNameBn</td>
                             <td>
                                 @{
                                     var badgeClass = h.Decision switch
@@ -112,7 +112,7 @@
                             </td>
                             <td class="tiny">@h.Comments</td>
                             <td>v@(h.VersionNo)</td>
-                            <td class="tiny muted">@BdTime.FromUtc(h.ReviewedAt).ToString("d MMM yyyy, HH:mm")</td>
+                            <td class="tiny muted" data-bn="@BdTime.Bn(h.ReviewedAt, "d MMM yyyy, HH:mm")" data-en="@BdTime.En(h.ReviewedAt, "d MMM yyyy, HH:mm")">@BdTime.Bn(h.ReviewedAt, "d MMM yyyy, HH:mm")</td>
                             <td>
                                 <button class="btn btn-outline btn-sm" type="button" data-open-modal="#hist-@h.ReviewId">
                                     <i data-lucide="file-text"></i> <span data-bn="বিস্তারিত" data-en="Details">বিস্তারিত</span>
@@ -169,7 +169,8 @@
                 <button class="icon-btn" type="button" data-close-modal aria-label="Close"><i data-lucide="x"></i></button>
             </div>
             <p class="tiny muted" style="margin: 0 0 10px">
-                @h.CategoryName · @h.DistrictName · পর্যালোচনা: @BdTime.FromUtc(h.ReviewedAt).ToString("d MMM yyyy, HH:mm")
+                <span data-bn="@h.CategoryNameBn" data-en="@h.CategoryName">@h.CategoryNameBn</span> · @h.DistrictName ·
+                <span data-bn="পর্যালোচনা: @BdTime.Bn(h.ReviewedAt, "d MMM yyyy, HH:mm")" data-en="Reviewed: @BdTime.En(h.ReviewedAt, "d MMM yyyy, HH:mm")">পর্যালোচনা: @BdTime.Bn(h.ReviewedAt, "d MMM yyyy, HH:mm")</span>
             </p>
             <p class="tiny" style="margin: 0 0 10px"><b>মন্তব্য / Comments:</b> @h.Comments</p>
             <label class="form-label tiny">পর্যালোচিত দলিল / Reviewed document text</label>

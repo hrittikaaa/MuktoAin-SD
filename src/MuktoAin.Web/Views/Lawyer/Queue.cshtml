@@ -115,7 +115,7 @@
                     {
                         <tr>
                             <td class="mono">DOC-@q.DocumentId<br /><small class="muted">@q.CaseTitle</small></td>
-                            <td>@q.CategoryName</td>
+                            <td data-bn="@q.CategoryNameBn" data-en="@q.CategoryName">@q.CategoryNameBn</td>
                             <td>@q.DistrictName</td>
                             <td>
                                 <span class="badge badge-@(q.WaitingHours >= 24 ? "rejected" : "neutral")">@q.WaitingHours h</span>
