@@ -487,27 +487,74 @@ public class AdminController : Controller
     // ---------- FR-18: Scenario mappings ----------
 
     [HttpGet]
-    public async Task<IActionResult> Scenarios()
+    public async Task<IActionResult> Scenarios(string? q, int page = 1, int pageSize = 20)
     {
         var mappings = await _scenarioRepo.GetAllAsync();
         var sections = await _sectionRepo.GetAllAsync();
         var acts = await _actRepo.GetAllAsync();
 
+        var sectionDict = sections.ToDictionary(s => s.SectionId);
+        var actDict = acts.ToDictionary(a => a.ActId);
+
+        var allRows = mappings.Select(m =>
+        {
+            sectionDict.TryGetValue(m.SectionId, out var s);
+            var a = s != null && actDict.TryGetValue(s.ActId, out var act) ? act : null;
+            return new AdminScenarioRowViewModel
+            {
+                MappingId = m.MappingId,
+                Keyword = m.ScenarioKeyword,
+                ActTitle = a?.Title ?? "",
+                SectionNumber = s?.SectionNumber ?? "",
+                Notes = m.Notes
+            };
+        }).ToList();
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var query = q.Trim();
+            allRows = allRows.Where(r =>
+                r.Keyword.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                r.ActTitle.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                r.SectionNumber.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                (r.Notes != null && r.Notes.Contains(query, StringComparison.OrdinalIgnoreCase))
+            ).ToList();
+        }
+
+        var totalFiltered = allRows.Count;
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalFiltered / (double)pageSize));
+        page = Math.Max(1, Math.Min(page, totalPages));
+
+        var pagedRows = allRows
+            .OrderBy(m => m.MappingId)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        var availableSections = sections
+            .Select(s =>
+            {
+                actDict.TryGetValue(s.ActId, out var act);
+                var actTitle = act?.Title ?? $"Act #{s.ActId}";
+                var secNum = !string.IsNullOrWhiteSpace(s.SectionNumber) ? $"ধারা {s.SectionNumber}" : $"Section #{s.SectionId}";
+                var secTitle = !string.IsNullOrWhiteSpace(s.SectionTitle) ? $": {s.SectionTitle}" : "";
+                return new AdminSectionOptionViewModel
+                {
+                    SectionId = s.SectionId,
+                    DisplayText = $"{actTitle} — {secNum}{secTitle}"
+                };
+            })
+            .OrderBy(x => x.DisplayText)
+            .ToList();
+
         var vm = new AdminScenariosViewModel
         {
-            Mappings = mappings.OrderBy(m => m.MappingId).Select(m =>
-            {
-                var s = sections.FirstOrDefault(x => x.SectionId == m.SectionId);
-                var a = s != null ? acts.FirstOrDefault(x => x.ActId == s.ActId) : null;
-                return new AdminScenarioRowViewModel
-                {
-                    MappingId = m.MappingId,
-                    Keyword = m.ScenarioKeyword,
-                    ActTitle = a?.Title ?? "",
-                    SectionNumber = s?.SectionNumber ?? "",
-                    Notes = m.Notes
-                };
-            }).ToList()
+            Mappings = pagedRows,
+            AvailableSections = availableSections,
+            SearchQuery = q,
+            Page = page,
+            PageSize = pageSize,
+            TotalFilteredCount = totalFiltered
         };
         return View(vm);
     }
@@ -518,7 +565,7 @@ public class AdminController : Controller
     {
         if (string.IsNullOrWhiteSpace(keyword) || sectionId <= 0)
         {
-            TempData["Error"] = "Keyword and section are required.";
+            TempData["Error"] = "Keyword এবং ধারা নির্বাচন বাধ্যতামূলক। / Keyword and section are required.";
             return RedirectToAction(nameof(Scenarios));
         }
         await _scenarioRepo.AddAsync(new Domain.Entities.ScenarioMapping
@@ -528,7 +575,7 @@ public class AdminController : Controller
             Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim()
         });
         await _scenarioRepo.SaveChangesAsync();
-        TempData["Success"] = "Mapping added.";
+        TempData["Success"] = "নতুন সিনারিও ম্যাপিং যুক্ত হয়েছে। / Scenario mapping added.";
         return RedirectToAction(nameof(Scenarios));
     }
 
@@ -552,7 +599,7 @@ public class AdminController : Controller
                 targetEntityId: mappingId,
                 details: $"Keyword '{m.ScenarioKeyword}' (SectionId {m.SectionId}) hard-deleted.");
         }
-        TempData["Success"] = "Mapping deleted.";
+        TempData["Success"] = "ম্যাপিং মুছে ফেলা হয়েছে। / Mapping deleted.";
         return RedirectToAction(nameof(Scenarios));
     }
 

@@ -79,6 +79,18 @@ public class AdminActRowViewModel
 public class AdminScenariosViewModel
 {
     public List<AdminScenarioRowViewModel> Mappings { get; set; } = new();
+    public List<AdminSectionOptionViewModel> AvailableSections { get; set; } = new();
+    public string? SearchQuery { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+    public int TotalFilteredCount { get; set; }
+    public int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalFilteredCount / (double)PageSize));
+}
+
+public class AdminSectionOptionViewModel
+{
+    public int SectionId { get; set; }
+    public string DisplayText { get; set; } = string.Empty;
 }
 
 public class AdminScenarioRowViewModel
