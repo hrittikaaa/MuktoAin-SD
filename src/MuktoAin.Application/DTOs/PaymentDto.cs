@@ -26,6 +26,16 @@ public record LawyerEarningsDto(
     decimal PendingPayout = 0m
 );
 
+// One page of the honoraria history; Balance and PendingPayout still cover
+// every row, same as LawyerEarningsDto.
+public record LawyerEarningsPageDto(
+    decimal Balance,
+    decimal PendingPayout,
+    int TotalCount,
+    int Page,
+    IReadOnlyList<EarningRowDto> Items
+);
+
 public enum PayoutRequestResult
 {
     Requested,

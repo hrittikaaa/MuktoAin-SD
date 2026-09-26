@@ -270,5 +270,8 @@ public class LawyerPaymentsViewModel
     public string BarRegistrationNumber { get; set; } = string.Empty;
     public decimal Balance { get; set; }
     public decimal PendingPayout { get; set; } // requested, awaiting the admin
-    public List<EarningRowViewModel> History { get; set; } = new();
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+    public int TotalCount { get; set; }
+    public List<EarningRowViewModel> History { get; set; } = new(); // current page only
 }
