@@ -323,13 +323,18 @@ public class AdminController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Lawyers()
+    public async Task<IActionResult> Lawyers(string? status = "All", string? q = null, int page = 1, int pageSize = 15)
     {
-        var all = await _lawyerProfileRepo.GetAllAsync();
+        var allProfiles = (await _lawyerProfileRepo.GetAllAsync()).ToList();
+        var userIds = allProfiles.Select(p => p.UserId).Distinct().ToList();
+        var users = await _dbContext.Users.AsNoTracking()
+            .Where(u => userIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id);
+
         var rows = new List<AdminLawyerRowViewModel>();
-        foreach (var p in all)
+        foreach (var p in allProfiles)
         {
-            var u = await _userManager.FindByIdAsync(p.UserId.ToString());
+            users.TryGetValue(p.UserId, out var u);
             rows.Add(new AdminLawyerRowViewModel
             {
                 LawyerProfileId = p.LawyerProfileId,
@@ -340,11 +345,47 @@ public class AdminController : Controller
                 Status = p.VerificationStatus.ToString()
             });
         }
+
+        var pendingList = rows.Where(r => r.Status == "Pending").ToList();
+        var approvedList = rows.Where(r => r.Status == "Approved").ToList();
+        var rejectedList = rows.Where(r => r.Status == "Rejected").ToList();
+
+        var filtered = rows.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(status) && status != "All")
+        {
+            filtered = filtered.Where(r => r.Status.Equals(status, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var trimmed = q.Trim();
+            filtered = filtered.Where(r =>
+                r.ApplicantName.Contains(trimmed, StringComparison.OrdinalIgnoreCase) ||
+                r.Email.Contains(trimmed, StringComparison.OrdinalIgnoreCase) ||
+                r.BarRegistrationNumber.Contains(trimmed, StringComparison.OrdinalIgnoreCase) ||
+                r.Specialization.Contains(trimmed, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var filteredList = filtered.ToList();
+        var totalPages = Math.Max((int)Math.Ceiling(filteredList.Count / (double)pageSize), 1);
+        var currentPage = Math.Max(1, Math.Min(page, totalPages));
+
+        var pagedRows = filteredList
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
         var vm = new AdminLawyersViewModel
         {
-            Pending = rows.Where(r => r.Status == "Pending").ToList(),
-            Approved = rows.Where(r => r.Status == "Approved").ToList(),
-            Rejected = rows.Where(r => r.Status == "Rejected").ToList()
+            Pending = pendingList,
+            Approved = approvedList,
+            Rejected = rejectedList,
+            FilteredLawyers = pagedRows,
+            StatusFilter = status ?? "All",
+            SearchQuery = q,
+            Page = currentPage,
+            PageSize = pageSize,
+            TotalFilteredCount = filteredList.Count
         };
         return View(vm);
     }

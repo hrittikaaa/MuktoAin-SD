@@ -29,6 +29,13 @@ public class AdminLawyersViewModel
     public List<AdminLawyerRowViewModel> Pending { get; set; } = new();
     public List<AdminLawyerRowViewModel> Approved { get; set; } = new();
     public List<AdminLawyerRowViewModel> Rejected { get; set; } = new();
+    public List<AdminLawyerRowViewModel> FilteredLawyers { get; set; } = new();
+    public string StatusFilter { get; set; } = "All";
+    public string? SearchQuery { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 15;
+    public int TotalFilteredCount { get; set; }
+    public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalFilteredCount / PageSize) : 1;
 }
 
 public class AdminLawyerRowViewModel
