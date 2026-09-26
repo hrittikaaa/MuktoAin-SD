@@ -25,6 +25,14 @@ public class LawyerQueueNotifier
                       "তথ্য", "প্রশাসনিক" },
         [4] = new[] { "consumer", "product", "commercial", "trade",
                       "ভোক্তা", "বাণিজ্য" },
+        [5] = new[] { "land", "property", "tenancy", "mutation", "eviction", "acquisition",
+                      "ভূমি", "জমি", "সম্পত্তি", "নামজারি", "উচ্ছেদ" },
+        [6] = new[] { "family", "divorce", "maintenance", "custody", "dowry", "domestic",
+                      "পারিবারিক", "তালাক", "ভরণপোষণ", "হেফাজত", "যৌতুক" },
+        [7] = new[] { "cyber", "digital", "ict", "hacking", "online fraud",
+                      "সাইবার", "ডিজিটাল", "হ্যাকিং", "অনলাইন" },
+        [8] = new[] { "environment", "pollution", "forest", "wildlife", "water",
+                      "পরিবেশ", "দূষণ", "বন", "নদী" },
     };
 
     // A general practitioner handles every category.
