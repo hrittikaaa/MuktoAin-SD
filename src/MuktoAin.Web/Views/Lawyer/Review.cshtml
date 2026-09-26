@@ -143,6 +143,19 @@
             a.addEventListener("input", function () { b.value = a.value; });
             b.addEventListener("input", function () { a.value = b.value; });
           });
+
+          // `required` accepts whitespace-only text, which the server then
+          // rejects with a full page reload. Block it in the browser too, so
+          // the decision buttons (incl. the Reject confirm) stop right here.
+          document.addEventListener("DOMContentLoaded", function () {
+            var c = document.getElementById("Comments");
+            if (!c) return;
+            function check() {
+              c.setCustomValidity(c.value.trim() ? "" : "পর্যালোচনার মন্তব্য প্রয়োজন / Review comments are required");
+            }
+            c.addEventListener("input", check);
+            check();
+          });
         </script>
     </form>
 </main>
