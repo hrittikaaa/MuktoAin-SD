@@ -769,6 +769,84 @@ public class AdminController : Controller
     }
 
     [HttpGet]
+    public async Task<IActionResult> AuditLogs(string? actionFilter, string? q, int page = 1, int pageSize = 20)
+    {
+        ViewData["IsAdminPage"] = true;
+
+        var allUsers = await _dbContext.Users.AsNoTracking().ToListAsync();
+        var userDict = allUsers.ToDictionary(u => u.Id);
+
+        var query = _dbContext.AdminAuditLogs.AsNoTracking().AsQueryable();
+
+        var availableActions = await _dbContext.AdminAuditLogs
+            .AsNoTracking()
+            .Select(l => l.Action)
+            .Distinct()
+            .OrderBy(a => a)
+            .ToListAsync();
+
+        if (!string.IsNullOrWhiteSpace(actionFilter) && !actionFilter.Equals("All", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(l => l.Action == actionFilter);
+        }
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim().ToLower();
+            query = query.Where(l =>
+                l.Action.ToLower().Contains(term) ||
+                (l.Details != null && l.Details.ToLower().Contains(term)));
+        }
+
+        var totalCount = await query.CountAsync();
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+        page = Math.Max(1, Math.Min(page, totalPages));
+
+        var entries = await query
+            .OrderByDescending(l => l.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var rows = entries.Select(l =>
+        {
+            userDict.TryGetValue(l.AdminUserId, out var adminUser);
+            User? targetUser = null;
+            if (l.TargetUserId.HasValue)
+            {
+                userDict.TryGetValue(l.TargetUserId.Value, out targetUser);
+            }
+
+            return new AdminAuditLogRowViewModel
+            {
+                AdminAuditLogId = l.AdminAuditLogId,
+                AdminUserId = l.AdminUserId,
+                AdminName = adminUser?.FullName ?? $"Admin #{l.AdminUserId}",
+                AdminEmail = adminUser?.Email ?? string.Empty,
+                Action = l.Action,
+                TargetUserId = l.TargetUserId,
+                TargetUserName = targetUser?.FullName,
+                TargetEntityId = l.TargetEntityId,
+                Details = l.Details,
+                CreatedAt = l.CreatedAt
+            };
+        }).ToList();
+
+        var vm = new AdminAuditLogsViewModel
+        {
+            Logs = rows,
+            AvailableActions = availableActions,
+            ActionFilter = actionFilter ?? "All",
+            SearchQuery = q,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        };
+
+        return View(vm);
+    }
+
+    [HttpGet]
     public async Task<IActionResult> Transactions()
     {
         var orders = await _paymentService.GetOrdersAsync();
