@@ -128,5 +128,329 @@
     "sectionId": 117,
     "scenarioKeyword": "অর্জিত ছুটি ও বেতন",
     "notes": "Labour Act s.117 — earned leave with wages (Bangla)"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "forced land transfer",
+    "notes": "Land Crime Prevention and Redress Act 2023 / Specific Relief Act — fraudulent deed/eviction",
+    "categoryHint": "LandPropertyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "জোর করে জমি দখল",
+    "notes": "Land Crime Prevention and Redress Act 2023 — illegal dispossession/land grab (Bangla)",
+    "categoryHint": "LandPropertyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "jomi dokhol",
+    "notes": "Land grab / illegal possession (Banglish)",
+    "categoryHint": "LandPropertyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "ভুয়া দলিল",
+    "notes": "Land Crime Prevention Act 2023 / Registration Act — fraudulent deed (Bangla)",
+    "categoryHint": "LandPropertyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "fake deed",
+    "notes": "Fraudulent deed creation / forgery",
+    "categoryHint": "LandPropertyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "জমি থেকে উচ্ছেদ",
+    "notes": "Specific Relief Act s.9 — illegal eviction from land (Bangla)",
+    "categoryHint": "LandPropertyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "illegal eviction from land",
+    "notes": "Specific Relief Act s.9 / Land Crime Act — unlawful eviction",
+    "categoryHint": "LandPropertyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "নামজারি সমস্যা",
+    "notes": "State Acquisition and Tenancy Act 1950 — mutation of land record (Bangla)",
+    "categoryHint": "LandPropertyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "land mutation issue",
+    "notes": "SAT Act 1950 — land mutation and khatian dispute",
+    "categoryHint": "LandPropertyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "সীমানা বিরোধ",
+    "notes": "Specific Relief Act / SAT Act — land boundary dispute (Bangla)",
+    "categoryHint": "LandPropertyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "divorce maintenance",
+    "notes": "Muslim Family Laws Ordinance 1961 s.9 / Family Courts Ordinance 1985",
+    "categoryHint": "FamilyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "খোরপোশ ও ভরণপোষণ",
+    "notes": "Muslim Family Laws Ordinance 1961 s.9 — maintenance (Bangla)",
+    "categoryHint": "FamilyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "khorposh dabi",
+    "notes": "Maintenance claim (Banglish)",
+    "categoryHint": "FamilyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "দেনমোহর দাবি",
+    "notes": "Muslim Family Laws Ordinance 1961 s.10 / Family Courts Ordinance 1985 — dower (Bangla)",
+    "categoryHint": "FamilyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "dower claim",
+    "notes": "MFLO 1961 s.10 — prompt/deferred dower",
+    "categoryHint": "FamilyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "যৌতুক দাবি ও নির্যাতন",
+    "notes": "Dowry Prohibition Act 2018 / Nari O Shishu Nirjatan Daman Ain 2000 (Bangla)",
+    "categoryHint": "FamilyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "dowry harassment",
+    "notes": "Dowry Prohibition Act 2018 / Domestic Violence Act 2010",
+    "categoryHint": "FamilyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "সন্তানের হেফাজত",
+    "notes": "Guardians and Wards Act 1890 / Family Courts Ordinance 1985 — custody (Bangla)",
+    "categoryHint": "FamilyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "child custody",
+    "notes": "Guardians and Wards Act 1890 — guardianship and custody",
+    "categoryHint": "FamilyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "পারিবারিক সহিংসতা",
+    "notes": "Domestic Violence (Prevention and Protection) Act 2010 (Bangla)",
+    "categoryHint": "FamilyDispute"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "defective product refund",
+    "notes": "Consumer Rights Protection Act 2009 s.40-45",
+    "categoryHint": "ConsumerComplaint"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "ত্রুটিযুক্ত পণ্য ফেরত",
+    "notes": "Consumer Rights Protection Act 2009 — defective product/refund (Bangla)",
+    "categoryHint": "ConsumerComplaint"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "kharaap ponno return",
+    "notes": "Defective product return (Banglish)",
+    "categoryHint": "ConsumerComplaint"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "অতিরিক্ত দাম রাখা",
+    "notes": "Consumer Rights Protection Act 2009 s.38 — overcharging/price gouging (Bangla)",
+    "categoryHint": "ConsumerComplaint"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "ভেজাল পণ্য বিক্রয়",
+    "notes": "Consumer Rights Protection Act 2009 s.41 — adulteration (Bangla)",
+    "categoryHint": "ConsumerComplaint"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "consumer fraud",
+    "notes": "Consumer Rights Protection Act 2009 / Contract Act 1872",
+    "categoryHint": "ConsumerComplaint"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "online financial fraud",
+    "notes": "Cyber Security Act 2023 / ICT Act 2006 / Penal Code 1860 s.420",
+    "categoryHint": "CyberCrime"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "অনলাইন প্রতারণা",
+    "notes": "Cyber Security Act 2023 / Penal Code 1860 — digital fraud (Bangla)",
+    "categoryHint": "CyberCrime"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "bkash cheating",
+    "notes": "Mobile financial service fraud / deception (Banglish)",
+    "categoryHint": "CyberCrime"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "ফেসবুক আইডি হ্যাক",
+    "notes": "Cyber Security Act 2023 / ICT Act 2006 — unauthorized access/hacking (Bangla)",
+    "categoryHint": "CyberCrime"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "account hacked",
+    "notes": "Cyber Security Act 2023 — unauthorized access to computer systems",
+    "categoryHint": "CyberCrime"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "সাইবার বুলিং ও ব্ল্যাকমেইল",
+    "notes": "Cyber Security Act 2023 / Pornography Control Act 2012 (Bangla)",
+    "categoryHint": "CyberCrime"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "cyber harassment",
+    "notes": "Cyber Security Act 2023 — online harassment and defamation",
+    "categoryHint": "CyberCrime"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "fake profile harassment",
+    "notes": "Cyber Security Act 2023 — identity theft / impersonation",
+    "categoryHint": "CyberCrime"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "factory environmental pollution",
+    "notes": "Bangladesh Environment Conservation Act 1995 / Environment Court Act 2010",
+    "categoryHint": "EnvironmentalComplaint"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "কারখানার বর্জ্য ও দূষণ",
+    "notes": "Bangladesh Environment Conservation Act 1995 s.9 — pollution (Bangla)",
+    "categoryHint": "EnvironmentalComplaint"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "নদী দখল ও ভরাট",
+    "notes": "Bangladesh Environment Conservation Act 1995 / Water Act 2013 (Bangla)",
+    "categoryHint": "EnvironmentalComplaint"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "river encroachment",
+    "notes": "Water Act 2013 / Environment Conservation Act 1995",
+    "categoryHint": "EnvironmentalComplaint"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "অবৈধ ইটভাটা",
+    "notes": "Brick Kiln Control Act 2013 (Bangla)",
+    "categoryHint": "EnvironmentalComplaint"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "illegal brick kiln",
+    "notes": "Brick Kiln Control Act 2013 — unlicensed brick fields",
+    "categoryHint": "EnvironmentalComplaint"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "অবৈধ গাছ কাটা",
+    "notes": "Environment Conservation Act 1995 — illegal deforestation (Bangla)",
+    "categoryHint": "EnvironmentalComplaint"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "শব্দ দূষণ",
+    "notes": "Environment Conservation Rules 1997 — noise pollution standards (Bangla)",
+    "categoryHint": "EnvironmentalComplaint"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "lost document general diary",
+    "notes": "Police Act 1861 / CrPC 1898 s.154/155 — GD entry",
+    "categoryHint": "GeneralDiary"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "কাগজপত্র হারানো জিডি",
+    "notes": "Police Act 1861 / CrPC 1898 — lost NID/certificate/passport GD (Bangla)",
+    "categoryHint": "GeneralDiary"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "kagojpatro haray gese",
+    "notes": "Lost documents GD report (Banglish)",
+    "categoryHint": "GeneralDiary"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "মোবাইল চুরি জিডি",
+    "notes": "CrPC 1898 / Penal Code 1860 s.379 — mobile theft GD (Bangla)",
+    "categoryHint": "GeneralDiary"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "phone lost gd",
+    "notes": "CrPC 1898 — lost phone GD entry",
+    "categoryHint": "GeneralDiary"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "হুমকি ও নিরাপত্তার অভাব",
+    "notes": "CrPC 1898 / Penal Code 1860 s.506 — criminal intimidation threat GD (Bangla)",
+    "categoryHint": "GeneralDiary"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "threat and security concern",
+    "notes": "CrPC 1898 / Penal Code 1860 s.506 — safety threat GD",
+    "categoryHint": "GeneralDiary"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "নিখোঁজ ব্যক্তির জিডি",
+    "notes": "Police Act 1861 / CrPC 1898 — missing person GD (Bangla)",
+    "categoryHint": "GeneralDiary"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "government information request",
+    "notes": "Right to Information Act 2009 s.8 — RTI application",
+    "categoryHint": "RtiRequest"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "তথ্য অধিকার আবেদন",
+    "notes": "তথ্য অধিকার আইন ২০০৯ ধারা ৮ — সরকারি তথ্য প্রাপ্তির আবেদন (Bangla)",
+    "categoryHint": "RtiRequest"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "tottho odhikar form",
+    "notes": "RTI Form-Ka request (Banglish)",
+    "categoryHint": "RtiRequest"
+  },
+  {
+    "sectionId": 0,
+    "scenarioKeyword": "সরকারি বরাদ্দের তথ্য",
+    "notes": "Right to Information Act 2009 s.8 — public budget/allocation query (Bangla)",
+    "categoryHint": "RtiRequest"
   }
 ]
