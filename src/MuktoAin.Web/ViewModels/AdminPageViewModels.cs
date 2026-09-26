@@ -128,6 +128,7 @@ public class AdminAiLogsViewModel
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 50;
     public int TotalCount { get; set; }
+    public int RetentionDays { get; set; } = 180;
 }
 
 public class AdminAiLogRowViewModel
