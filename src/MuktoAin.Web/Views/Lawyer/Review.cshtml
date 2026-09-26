@@ -21,7 +21,7 @@
         <span class="kicker"><i data-lucide="file-diff"></i> FR-14</span>
         <h1 class="page-title">@Model.CaseTitle</h1>
         <p class="page-sub">
-            DOC-@Model.DocumentId · CASE-@Model.CaseId · @Model.CategoryName · @district · v@(versionNo)
+            DOC-@Model.DocumentId · CASE-@Model.CaseId · <span data-bn="@Model.CategoryNameBn" data-en="@Model.CategoryName">@Model.CategoryNameBn</span> · @district · v@(versionNo)
             @if (citizenEdited)
             {
                 <span class="badge badge-review" data-bn="নাগরিক সম্পাদিত" data-en="Citizen edited">নাগরিক সম্পাদিত</span>

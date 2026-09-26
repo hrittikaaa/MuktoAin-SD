@@ -387,6 +387,23 @@ public class PaymentService
             pending);
     }
 
+    // Clamps the page like the review queue/history do, so a page past the end
+    // shows the last page instead of an empty table.
+    public async Task<LawyerEarningsPageDto> GetLawyerEarningsPageAsync(int lawyerProfileId, int page, int pageSize)
+    {
+        var earnings = await GetLawyerEarningsAsync(lawyerProfileId);
+        var totalCount = earnings.History.Count;
+        var totalPages = Math.Max((int)Math.Ceiling(totalCount / (double)pageSize), 1);
+        page = Math.Clamp(page, 1, totalPages);
+
+        return new LawyerEarningsPageDto(
+            earnings.Balance,
+            earnings.PendingPayout,
+            totalCount,
+            page,
+            earnings.History.Skip((page - 1) * pageSize).Take(pageSize).ToList());
+    }
+
     // The amount is always the whole available balance, computed here -- never
     // taken from the caller. One request at a time: while one is pending the
     // lawyer waits for the admin.

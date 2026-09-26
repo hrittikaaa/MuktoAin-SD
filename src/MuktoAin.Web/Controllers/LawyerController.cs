@@ -163,6 +163,7 @@ public class LawyerController : Controller
                 CaseId = q.CaseId,
                 CaseTitle = q.CaseTitle,
                 CategoryName = q.CategoryName,
+                CategoryNameBn = q.CategoryNameBn,
                 DistrictName = q.DistrictName,
                 CitizenEdited = q.CitizenEdited,
                 VersionNo = q.VersionNo,
@@ -304,6 +305,7 @@ public class LawyerController : Controller
             CaseId = ws.CaseId,
             CaseTitle = ws.CaseTitle,
             CategoryName = ws.CategoryName,
+            CategoryNameBn = ws.CategoryNameBn,
             ContentDraft = ws.OriginalDraft,
             EditedContent = posted != null ? posted.EditedContent : ws.CitizenEditedDraft ?? ws.OriginalDraft,
             Decision = posted?.Decision ?? nameof(ReviewDecision.EditedApproved),
@@ -365,6 +367,7 @@ public class LawyerController : Controller
                 CaseId = h.CaseId,
                 CaseTitle = h.CaseTitle,
                 CategoryName = h.CategoryName,
+                CategoryNameBn = h.CategoryNameBn,
                 DistrictName = h.DistrictName,
                 Decision = h.Decision.ToString(),
                 Comments = h.Comments,
@@ -379,21 +382,27 @@ public class LawyerController : Controller
 
     // FR-24 (lawyer variant): balance + honorarium history, moved off the
     // shared Account/Profile page into its own lawyer-scoped route.
+    private const int PaymentsPageSize = 20;
+
     [HttpGet]
-    public async Task<IActionResult> Payments()
+    public async Task<IActionResult> Payments(int page = 1)
     {
         var profile = await MyProfileAsync();
         if (profile == null) return NotFound();
         if (profile.VerificationStatus != VerificationStatus.Approved) return RedirectToAction(nameof(Status));
 
-        var earnings = await _paymentService.GetLawyerEarningsAsync(profile.LawyerProfileId);
+        var earnings = await _paymentService.GetLawyerEarningsPageAsync(
+            profile.LawyerProfileId, page, PaymentsPageSize);
         var vm = new LawyerPaymentsViewModel
         {
             LawyerName = await MyNameAsync(profile),
             BarRegistrationNumber = profile.BarRegistrationNumber,
             Balance = earnings.Balance,
             PendingPayout = earnings.PendingPayout,
-            History = earnings.History.Select(h => new EarningRowViewModel
+            Page = earnings.Page,
+            PageSize = PaymentsPageSize,
+            TotalCount = earnings.TotalCount,
+            History = earnings.Items.Select(h => new EarningRowViewModel
             {
                 PaymentOrderId = h.PaymentOrderId,
                 CaseId = h.CaseId,
