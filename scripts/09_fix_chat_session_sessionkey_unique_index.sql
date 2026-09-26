@@ -32,10 +32,11 @@ BEGIN
 END
 GO
 
--- Create the filtered unique index.
+-- Create the filtered unique index. Skipped once 14_chat_sidebar_history.sql
+-- has replaced it with the non-unique IX_CHAT_SESSION_SessionKey.
 IF NOT EXISTS (
     SELECT 1 FROM sys.indexes
-    WHERE name = 'UQ_CHAT_SESSION_SessionKey'
+    WHERE name IN ('UQ_CHAT_SESSION_SessionKey', 'IX_CHAT_SESSION_SessionKey')
       AND object_id = OBJECT_ID(N'[dbo].[CHAT_SESSION]')
 )
 BEGIN
