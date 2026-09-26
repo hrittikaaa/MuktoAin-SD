@@ -180,14 +180,32 @@
                                 <td style="padding: 10px 10px; font-size: 13px; color: var(--ink-2);">@app.AppliedDate</td>
                                 <td style="padding: 10px 10px; text-align: right;">
                                     <div style="display: inline-flex; gap: 6px;">
-                                        <button class="btn btn-primary btn-sm" style="padding: 4px 8px; font-size: 12px;" title="অনুমোদন করুন">
-                                            <i data-lucide="check" style="width: 13px; height: 13px;"></i> <span data-bn="অনুমোদন" data-en="Approve">অনুমোদন</span>
-                                        </button>
-                                        <button class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 12px; color: #b91c1c;" title="বাতিল করুন">
+                                        <form asp-action="VerifyLawyer" method="post" style="display:inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="lawyerProfileId" value="@app.ApplicationId" />
+                                            <input type="hidden" name="approve" value="true" />
+                                            <input type="hidden" name="returnUrl" value="/Admin/Dashboard" />
+                                            <button class="btn btn-primary btn-sm" type="submit" style="padding: 4px 8px; font-size: 12px;"
+                                                    data-confirm="আইনজীবীর আবেদন অনুমোদন করতে চান? রিভিউ কিউ অ্যাক্সেস সক্রিয় হবে। / Approve this lawyer application?"
+                                                    data-confirm-title="আইনজীবী অনুমোদন / Approve Lawyer"
+                                                    data-confirm-ok="অনুমোদন / Approve"
+                                                    data-confirm-cancel="বাতিল / Cancel"
+                                                    title="অনুমোদন করুন">
+                                                <i data-lucide="check" style="width: 13px; height: 13px;"></i> <span data-bn="অনুমোদন" data-en="Approve">অনুমোদন</span>
+                                            </button>
+                                        </form>
+                                        <button class="btn btn-outline btn-sm" type="button" style="padding: 4px 8px; font-size: 12px; color: #b91c1c;"
+                                                data-open-modal="#reject-@app.ApplicationId" title="বাতিল করুন">
                                             <i data-lucide="x" style="width: 13px; height: 13px;"></i> <span data-bn="বাতিল" data-en="Reject">বাতিল</span>
                                         </button>
                                     </div>
                                 </td>
+                            </tr>
+                        }
+                        @if (!Model.VerificationQueue.Any())
+                        {
+                            <tr>
+                                <td colspan="4" class="muted" style="text-align: center; padding: 18px;" data-bn="কোনো অপেক্ষমান আবেদন নেই।" data-en="No pending applications.">কোনো অপেক্ষমান আবেদন নেই।</td>
                             </tr>
                         }
                     </tbody>
@@ -303,6 +321,36 @@
         </div>
     </div>
 </main>
+
+<!-- Rejection reason modals (one per pending triage row) -->
+@foreach (var app in Model.VerificationQueue)
+{
+    <div class="modal-backdrop" id="reject-@app.ApplicationId" role="dialog" aria-modal="true">
+        <div class="modal">
+            <div class="modal-handle"></div>
+            <div class="modal-head">
+                <div>
+                    <span class="kicker" style="color: var(--danger)" data-bn="আবেদন প্রত্যাখ্যান" data-en="Reject Application">আবেদন প্রত্যাখ্যান</span>
+                    <h3>@app.ApplicantName · @app.BarRegNo</h3>
+                </div>
+                <button class="icon-btn" type="button" data-close-modal aria-label="Close"><i data-lucide="x"></i></button>
+            </div>
+            <form asp-action="VerifyLawyer" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="lawyerProfileId" value="@app.ApplicationId" />
+                <input type="hidden" name="approve" value="false" />
+                <input type="hidden" name="returnUrl" value="/Admin/Dashboard" />
+                <label class="form-label" data-bn="প্রত্যাখ্যানের কারণ (বাধ্যতামূলক — আইনজীবীকে দেখানো হবে)" data-en="Reason (mandatory — shown to the lawyer)">প্রত্যাখ্যানের কারণ (বাধ্যতামূলক — আইনজীবীকে দেখানো হবে)</label>
+                <textarea class="input" name="reason" rows="3" maxlength="500" required
+                          placeholder="e.g. Bar number not found in the Bar Council registry."></textarea>
+                <div class="row" style="justify-content: flex-end; gap: 10px; margin-top: 14px">
+                    <button class="btn btn-outline btn-sm" type="button" data-close-modal data-bn="বাতিল" data-en="Cancel">বাতিল</button>
+                    <button class="btn btn-danger-outline btn-sm" type="submit" data-bn="আবেদন প্রত্যাখ্যান করুন" data-en="Reject application">আবেদন প্রত্যাখ্যান করুন</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
 
 @section Scripts {
 <script>

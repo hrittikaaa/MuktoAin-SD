@@ -351,13 +351,15 @@ public class AdminController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> VerifyLawyer(int lawyerProfileId, bool approve, string? reason)
+    public async Task<IActionResult> VerifyLawyer(int lawyerProfileId, bool approve, string? reason, string? returnUrl = null)
     {
         if (!approve && string.IsNullOrWhiteSpace(reason))
         {
             TempData["Error"] = "প্রত্যাখ্যানের কারণ আবশ্যক।";
             TempData["ErrorEn"] = "Rejection reason is required.";
-            return RedirectToAction(nameof(Lawyers));
+            return !string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)
+                ? LocalRedirect(returnUrl)
+                : RedirectToAction(nameof(Lawyers));
         }
 
         var adminId = int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value,
@@ -368,7 +370,9 @@ public class AdminController : Controller
             ? "আইনজীবী যাচাই অনুমোদিত হয়েছে।"
             : "আবেদন প্রত্যাখ্যাত হয়েছে (কারণসহ)।";
         TempData["SuccessEn"] = approve ? "Lawyer verified." : "Application rejected (with reason).";
-        return RedirectToAction(nameof(Lawyers));
+        return !string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)
+            ? LocalRedirect(returnUrl)
+            : RedirectToAction(nameof(Lawyers));
     }
 
     // ---------- FR-17: Corpus ----------
