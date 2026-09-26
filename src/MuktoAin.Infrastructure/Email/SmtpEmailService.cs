@@ -198,7 +198,169 @@ public class SmtpEmailService : IEmailService
         await SendEmailAsync(toEmail, subject, body, ct);
     }
 
+    public async Task SendDocumentSentToLawyerAsync(
+        string toEmail,
+        string caseTitle,
+        string? trackingCode,
+        int caseId,
+        string language = "bn",
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(toEmail)) return;
+
+        var isBangla = language != "en";
+        var subject = isBangla
+            ? $"[মুক্ত আইন] মামলা আইনজীবী পর্যালোচনার জন্য পাঠানো হয়েছে — #{caseId}"
+            : $"[MuktoAin] Case Draft Sent to Lawyer Pool — #{caseId}";
+
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.AppBaseUrl)
+            ? "https://localhost:7001"
+            : _settings.AppBaseUrl.TrimEnd('/');
+
+        var trackUrl = !string.IsNullOrEmpty(trackingCode)
+            ? $"{baseUrl}/Case/Result?id={caseId}&code={trackingCode}"
+            : $"{baseUrl}/Case/Result?id={caseId}";
+
+        var body = isBangla
+            ? $"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff;">
+                <div style="background-color: #1a365d; color: #ffffff; padding: 16px 20px; border-radius: 6px 6px 0 0; text-align: center;">
+                    <h2 style="margin: 0; font-size: 22px;">মুক্ত আইন (MuktoAin)</h2>
+                    <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.9;">আইনজীবী পর্যালোচনা পুল</p>
+                </div>
+                <div style="padding: 20px;">
+                    <h3 style="color: #2b6cb0; margin-top: 0;">আপনার খসড়া আইনজীবী পুলে পাঠানো হয়েছে</h3>
+                    <p>প্রিয় নাগরিক,</p>
+                    <p>আপনার <strong>"{WebUtility.HtmlEncode(caseTitle)}"</strong> সংক্রান্ত মামলার খসড়া নথি সফলভাবে আইনজীবী পুলে পাঠানো হয়েছে। সংশ্লিষ্ট বিশেষজ্ঞ আইনজীবী এটি পর্যালোচনা করে মতামত বা অনুমোদন প্রদান করবেন।</p>
+                    
+                    <div style="background-color: #f7fafc; border-left: 4px solid #d69e2e; padding: 12px 16px; margin: 18px 0; border-radius: 4px;">
+                        <p style="margin: 4px 0;"><strong>মামলা নম্বর:</strong> #{caseId}</p>
+                        {(trackingCode != null ? $"<p style=\"margin: 4px 0;\"><strong>ট্র্যাকিং কোড:</strong> <code style=\"background: #edf2f7; padding: 2px 6px; border-radius: 4px;\">{trackingCode}</code></p>" : "")}
+                        <p style="margin: 4px 0;"><strong>বর্তমান অবস্থা:</strong> আইনজীবীর পর্যালোচনারত (Under Review)</p>
+                    </div>
+
+                    <p style="margin: 20px 0; text-align: center;">
+                        <a href="{trackUrl}" style="background-color: #3182ce; color: #ffffff; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">মামলার অগ্রগতি ট্র্যাক করুন</a>
+                    </p>
+                </div>
+                <div style="border-top: 1px solid #edf2f7; padding: 12px 20px; text-align: center; font-size: 11px; color: #718096;">
+                    © {DateTime.UtcNow.Year} মুক্ত আইন (MuktoAin) — বাংলাদেশ
+                </div>
+            </div>
+            """
+            : $"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff;">
+                <div style="background-color: #1a365d; color: #ffffff; padding: 16px 20px; border-radius: 6px 6px 0 0; text-align: center;">
+                    <h2 style="margin: 0; font-size: 22px;">MuktoAin (মুক্ত আইন)</h2>
+                    <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.9;">Lawyer Review Pool</p>
+                </div>
+                <div style="padding: 20px;">
+                    <h3 style="color: #2b6cb0; margin-top: 0;">Your Draft Has Been Sent to Lawyer Pool</h3>
+                    <p>Dear Citizen,</p>
+                    <p>Your legal draft for <strong>"{WebUtility.HtmlEncode(caseTitle)}"</strong> has been submitted to the verified lawyer review pool. A lawyer specializing in this field will review and take action.</p>
+                    
+                    <div style="background-color: #f7fafc; border-left: 4px solid #d69e2e; padding: 12px 16px; margin: 18px 0; border-radius: 4px;">
+                        <p style="margin: 4px 0;"><strong>Case ID:</strong> #{caseId}</p>
+                        {(trackingCode != null ? $"<p style=\"margin: 4px 0;\"><strong>Tracking Code:</strong> <code style=\"background: #edf2f7; padding: 2px 6px; border-radius: 4px;\">{trackingCode}</code></p>" : "")}
+                        <p style="margin: 4px 0;"><strong>Status:</strong> Under Lawyer Review</p>
+                    </div>
+
+                    <p style="margin: 20px 0; text-align: center;">
+                        <a href="{trackUrl}" style="background-color: #3182ce; color: #ffffff; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Track Case Status</a>
+                    </p>
+                </div>
+                <div style="border-top: 1px solid #edf2f7; padding: 12px 20px; text-align: center; font-size: 11px; color: #718096;">
+                    © {DateTime.UtcNow.Year} MuktoAin — Bangladesh
+                </div>
+            </div>
+            """;
+
+        await SendEmailAsync(toEmail, subject, body, ct);
+    }
+
+    public async Task SendLawyerNewCaseQueuedAsync(
+        string lawyerEmail,
+        string lawyerName,
+        string caseTitle,
+        int caseId,
+        int documentId,
+        string categoryName,
+        string districtName,
+        string language = "bn",
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(lawyerEmail)) return;
+
+        var isBangla = language != "en";
+        var subject = isBangla
+            ? $"[মুক্ত আইন] নতুন মামলা পর্যালোচনা পুলে জমা হয়েছে — #{caseId}"
+            : $"[MuktoAin] New Case in Review Pool — #{caseId}";
+
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.AppBaseUrl)
+            ? "https://localhost:7001"
+            : _settings.AppBaseUrl.TrimEnd('/');
+
+        var workspaceUrl = $"{baseUrl}/Lawyer/Workspace?id={documentId}";
+
+        var body = isBangla
+            ? $"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff;">
+                <div style="background-color: #1a365d; color: #ffffff; padding: 16px 20px; border-radius: 6px 6px 0 0; text-align: center;">
+                    <h2 style="margin: 0; font-size: 22px;">মুক্ত আইন (MuktoAin)</h2>
+                    <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.9;">আইনজীবী পর্যালোচনা ড্যাশবোর্ড</p>
+                </div>
+                <div style="padding: 20px;">
+                    <h3 style="color: #2b6cb0; margin-top: 0;">নতুন আইনি নথি পর্যালোচনার জন্য অপেক্ষমাণ</h3>
+                    <p>শ্রদ্ধেয় আইনজীবী {(string.IsNullOrWhiteSpace(lawyerName) ? "" : WebUtility.HtmlEncode(lawyerName))},</p>
+                    <p>আপনার আইনগত অভিজ্ঞতার আওতাধীন বিষয়ে এক নাগরিকের নতুন খসড়া নথি পর্যালোচনা পুলে যুক্ত হয়েছে:</p>
+                    
+                    <div style="background-color: #f7fafc; border-left: 4px solid #3182ce; padding: 12px 16px; margin: 18px 0; border-radius: 4px;">
+                        <p style="margin: 4px 0;"><strong>মামলা নম্বর:</strong> #{caseId}</p>
+                        <p style="margin: 4px 0;"><strong>শিরোনাম:</strong> {WebUtility.HtmlEncode(caseTitle)}</p>
+                        <p style="margin: 4px 0;"><strong>বিভাগ:</strong> {WebUtility.HtmlEncode(categoryName)} | <strong>জেলা:</strong> {WebUtility.HtmlEncode(districtName)}</p>
+                    </div>
+
+                    <p style="margin: 20px 0; text-align: center;">
+                        <a href="{workspaceUrl}" style="background-color: #d69e2e; color: #1a202c; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">নথি পর্যালোচনা করুন</a>
+                    </p>
+                </div>
+                <div style="border-top: 1px solid #edf2f7; padding: 12px 20px; text-align: center; font-size: 11px; color: #718096;">
+                    © {DateTime.UtcNow.Year} মুক্ত আইন (MuktoAin) — বাংলাদেশ
+                </div>
+            </div>
+            """
+            : $"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff;">
+                <div style="background-color: #1a365d; color: #ffffff; padding: 16px 20px; border-radius: 6px 6px 0 0; text-align: center;">
+                    <h2 style="margin: 0; font-size: 22px;">MuktoAin (মুক্ত আইন)</h2>
+                    <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.9;">Lawyer Review Dashboard</p>
+                </div>
+                <div style="padding: 20px;">
+                    <h3 style="color: #2b6cb0; margin-top: 0;">New Case Ready for Review in Your Queue</h3>
+                    <p>Dear Advocate {(string.IsNullOrWhiteSpace(lawyerName) ? "" : WebUtility.HtmlEncode(lawyerName))},</p>
+                    <p>A citizen's legal draft matching your specialization is now waiting in the review pool:</p>
+                    
+                    <div style="background-color: #f7fafc; border-left: 4px solid #3182ce; padding: 12px 16px; margin: 18px 0; border-radius: 4px;">
+                        <p style="margin: 4px 0;"><strong>Case ID:</strong> #{caseId}</p>
+                        <p style="margin: 4px 0;"><strong>Title:</strong> {WebUtility.HtmlEncode(caseTitle)}</p>
+                        <p style="margin: 4px 0;"><strong>Category:</strong> {WebUtility.HtmlEncode(categoryName)} | <strong>District:</strong> {WebUtility.HtmlEncode(districtName)}</p>
+                    </div>
+
+                    <p style="margin: 20px 0; text-align: center;">
+                        <a href="{workspaceUrl}" style="background-color: #d69e2e; color: #1a202c; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Open Review Workspace</a>
+                    </p>
+                </div>
+                <div style="border-top: 1px solid #edf2f7; padding: 12px 20px; text-align: center; font-size: 11px; color: #718096;">
+                    © {DateTime.UtcNow.Year} MuktoAin — Bangladesh
+                </div>
+            </div>
+            """;
+
+        await SendEmailAsync(lawyerEmail, subject, body, ct);
+    }
+
     public async Task SendEmailAsync(
+
         string toEmail,
         string subject,
         string htmlBody,
