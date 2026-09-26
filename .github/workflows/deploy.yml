@@ -1,6 +1,12 @@
 # Continuous deployment to Azure App Service (free F1 Linux plan).
 # Setup and required secrets: docs/deployment-guide.md, section 4.
 #
+# Required secrets:
+#   AZURE_WEBAPP_PUBLISH_PROFILE — App Service publish profile XML
+#   AZURE_SQL_PASSWORD            — SQL admin password for muktoainadmin
+# Required variables:
+#   AZURE_WEBAPP_NAME             — App Service name
+#
 # Runs on every push to main (after merge) and on demand from the Actions tab.
 # ci.yml stays the build/test gate; this workflow only publishes and deploys.
 name: Deploy
@@ -28,6 +34,34 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+
+      # ── Database migrations ──────────────────────────────────────────
+      # Run every scripts/*.sql file in numeric order against Azure SQL.
+      # All scripts are idempotent (IF NOT EXISTS guards), so re-running
+      # on every deploy is safe and keeps the schema in sync with code.
+      # Skipped when AZURE_SQL_PASSWORD is not set (e.g. forks).
+      - name: Apply database migrations
+        env:
+          SQL_PASSWORD: ${{ secrets.AZURE_SQL_PASSWORD }}
+        run: |
+          if [ -z "$SQL_PASSWORD" ]; then
+            echo "AZURE_SQL_PASSWORD not set, skipping migrations"
+            exit 0
+          fi
+          if ! command -v sqlcmd >/dev/null; then
+            curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc >/dev/null
+            sudo add-apt-repository -y "$(curl -sSL https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list)"
+            sudo ACCEPT_EULA=Y apt-get install -y mssql-tools18 unixodbc-dev
+          fi
+          SQLCMD=$(command -v sqlcmd || echo /opt/mssql-tools18/bin/sqlcmd)
+          # 01_init_database.sql is local-only (CREATE DATABASE / ALTER DATABASE
+          # are not valid inside an Azure SQL database); Azure creates MuktoAin.
+          # 07_embedding_optimization.sql is one-time data cleanup, not a migration.
+          for f in $(ls scripts/*.sql | grep -vE '01_init_database|07_embedding_optimization' | sort -t/ -k2 -V); do
+            echo "==> Running $f ..."
+            "$SQLCMD" -S tcp:muktoain-sql-hrittika.database.windows.net,1433 -d MuktoAin -U muktoainadmin -P "$SQL_PASSWORD" -C -b -I -i "$f"
+          done
+          echo "=== All migration scripts applied ==="
 
       # wwwroot/lib vendor libraries are git-ignored -- restore them via LibMan
       # so Bootstrap/jQuery ship inside the published output (same as Dockerfile).
