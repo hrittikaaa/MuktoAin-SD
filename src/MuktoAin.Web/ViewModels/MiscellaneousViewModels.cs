@@ -95,9 +95,9 @@ public class AdminDashboardViewModel
     public double AiFailureRate { get; set; }
     
     // System Infrastructure & Capacity
-    public int TotalUsersCount { get; set; } = 418;
-    public int TotalLawyersCount { get; set; } = 34;
-    public int TotalActsCount { get; set; } = 1484;
+    public int TotalUsersCount { get; set; }
+    public int TotalLawyersCount { get; set; }
+    public int TotalActsCount { get; set; }
     public bool IsDatabaseHealthy { get; set; } = true;
     public bool IsVectorDbHealthy { get; set; } = true;
     public bool IsAiServiceHealthy { get; set; } = true;

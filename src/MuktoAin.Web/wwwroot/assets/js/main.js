@@ -1088,6 +1088,42 @@
             if (updatedSpan) {
               updatedSpan.textContent = (currentLang === "en" ? "Live: " : "লাইভ: ") + data.lastChecked;
             }
+
+            var elVerifications = document.getElementById("kpi-verifications-waiting");
+            if (elVerifications && typeof data.verificationsWaiting === "number") {
+              var enVal = data.verificationsWaiting.toLocaleString();
+              var bnVal = toBengaliDigits(enVal);
+              elVerifications.setAttribute("data-en", enVal);
+              elVerifications.setAttribute("data-bn", bnVal);
+              elVerifications.textContent = currentLang === "en" ? enVal : bnVal;
+            }
+
+            var elReviews = document.getElementById("kpi-pending-reviews");
+            if (elReviews && typeof data.pendingReviews === "number") {
+              var enVal = data.pendingReviews.toLocaleString();
+              var bnVal = toBengaliDigits(enVal);
+              elReviews.setAttribute("data-en", enVal);
+              elReviews.setAttribute("data-bn", bnVal);
+              elReviews.textContent = currentLang === "en" ? enVal : bnVal;
+            }
+
+            var elActs = document.getElementById("kpi-total-acts");
+            if (elActs && typeof data.totalActsCount === "number") {
+              var enVal = data.totalActsCount.toLocaleString();
+              var bnVal = toBengaliDigits(enVal);
+              elActs.setAttribute("data-en", enVal);
+              elActs.setAttribute("data-bn", bnVal);
+              elActs.textContent = currentLang === "en" ? enVal : bnVal;
+            }
+
+            var elUsers = document.getElementById("kpi-total-users");
+            if (elUsers && typeof data.totalUsersCount === "number") {
+              var enVal = data.totalUsersCount.toLocaleString();
+              var bnVal = toBengaliDigits(enVal);
+              elUsers.setAttribute("data-en", enVal);
+              elUsers.setAttribute("data-bn", bnVal);
+              elUsers.textContent = currentLang === "en" ? enVal : bnVal;
+            }
           })
           .catch(function(err) {
             // Silently catch in background poll
