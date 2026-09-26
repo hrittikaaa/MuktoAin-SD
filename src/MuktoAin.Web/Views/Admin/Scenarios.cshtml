@@ -4,50 +4,124 @@
     ViewData["IsAdminPage"] = true;
 }
 
+@functions {
+    private static string ToBn(int number)
+    {
+        var bnDigits = new[] { '০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯' };
+        var s = number.ToString();
+        var chars = s.Select(c => (c >= '0' && c <= '9') ? bnDigits[c - '0'] : c).ToArray();
+        return new string(chars);
+    }
+}
+
 <main class="container" id="main">
     <nav class="breadcrumbs" aria-label="Breadcrumb">
-        <a asp-controller="Admin" asp-action="Dashboard">Dashboard</a>
+        <a asp-controller="Admin" asp-action="Dashboard" data-bn="ড্যাশবোর্ড" data-en="Dashboard">Dashboard</a>
         <span class="sep">/</span>
-        <span>Scenario Mappings</span>
+        <span data-bn="সিনারিও ম্যাপিং" data-en="Scenario Mappings">Scenario Mappings</span>
     </nav>
 
     <div class="page-head">
         <span class="kicker"><i data-lucide="git-merge"></i> FR-18</span>
-        <h1 class="page-title">Scenario Mappings</h1>
-        <p class="page-sub">Citizen keywords → statute sections the retrieval pipeline prioritizes. @Model.Mappings.Count mappings.</p>
+        <h1 class="page-title" data-bn="সিনারিও কি-ওয়ার্ড বুস্ট ম্যাপিং" data-en="Scenario Mappings">Scenario Mappings</h1>
+        <p class="page-sub">
+            <span data-bn="নাগরিকদের ব্যবহৃত কি-ওয়ার্ড যা রিট্রিভাল পাইপলাইনে সংশ্লিষ্ট আইনের সাথে অগ্রাধিকার পায়। মোট @ToBn(Model.TotalFilteredCount) টি ম্যাপিং।"
+                  data-en="Citizen keywords prioritized by the retrieval pipeline for relevant acts. @Model.TotalFilteredCount mappings.">
+                Citizen keywords prioritized by the retrieval pipeline for relevant acts. @Model.TotalFilteredCount mappings.
+            </span>
+        </p>
     </div>
 
+    <!-- Search Toolbar -->
+    <form method="get" asp-action="Scenarios" class="search-form" style="display: flex; gap: 8px; margin-bottom: 16px; align-items: center; flex-wrap: wrap;">
+        <input type="text" name="q" value="@Model.SearchQuery" class="input" style="max-width: 320px;" 
+               placeholder="Search keyword, act title, notes..." 
+               data-bn-placeholder="কি-ওয়ার্ড, আইনের নাম বা মন্তব্য দিয়ে খুঁজুন..." 
+               data-en-placeholder="Search keyword, act title, notes..." />
+        <button type="submit" class="btn btn-outline btn-sm">
+            <i data-lucide="search"></i>
+            <span data-bn="অনুসন্ধান" data-en="Search">Search</span>
+        </button>
+        @if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
+        {
+            <a asp-action="Scenarios" class="btn btn-ghost btn-sm" style="text-decoration:none">
+                <span data-bn="রিসেট" data-en="Clear">Clear</span>
+            </a>
+        }
+    </form>
+
+    <!-- Add Mapping Form Card -->
     <div class="card" style="margin-bottom: 16px">
-        <form asp-action="AddScenario" method="post" class="row wrap" style="gap: 10px; align-items: flex-end">
+        <h3 style="font-size: 1rem; margin-bottom: 12px;">
+            <i data-lucide="plus-circle" style="width: 16px; height: 16px; vertical-align: text-bottom; display: inline;"></i>
+            <span data-bn="নতুন ম্যাপিং যুক্ত করুন" data-en="Add New Mapping">Add New Mapping</span>
+        </h3>
+        <form asp-action="AddScenario" method="post" id="addScenarioForm" class="row wrap" style="gap: 12px; align-items: flex-end">
             @Html.AntiForgeryToken()
-            <div>
-                <label class="form-label">Keyword</label>
-                <input class="input" name="keyword" placeholder="বেতন বাকি" required />
+            <div style="flex: 1.2; min-width: 200px;">
+                <label class="form-label" data-bn="কি-ওয়ার্ড (Keyword)" data-en="Keyword">Keyword</label>
+                <input class="input" name="keyword" placeholder="বেতন বাকি" required 
+                       data-bn-placeholder="বেতন বাকি" data-en-placeholder="e.g. unpaid wages" />
             </div>
-            <div>
-                <label class="form-label">Section ID</label>
-                <input class="input" name="sectionId" type="number" min="1" placeholder="12345" required />
+
+            <div style="flex: 2; min-width: 280px;">
+                <label class="form-label" data-bn="আইন (Act)" data-en="Act">Act</label>
+                <div class="act-filter" data-act-filter style="width: 100%;">
+                    <input type="hidden" name="actId" id="actId-value" value="" />
+                    <button type="button" class="input act-filter-btn" id="actId-btn" aria-haspopup="listbox" aria-expanded="false" 
+                            style="width: 100%; display: flex; align-items: center; justify-content: space-between; text-align: left; cursor: pointer;">
+                        <span id="actId-label" data-bn="— আইন নির্বাচন করুন —" data-en="— Select Act —">— Select Act —</span>
+                        <i data-lucide="chevron-down"></i>
+                    </button>
+                    <div class="act-filter-panel" id="actId-panel" hidden style="z-index: 1000; width: 100%; min-width: 320px;">
+                        <input type="text" class="input act-filter-search" id="actId-search"
+                               placeholder="আইন খুঁজুন... / Search acts..." 
+                               data-bn-placeholder="আইন খুঁজুন..." data-en-placeholder="Search acts..." autocomplete="off" />
+                        <div class="act-filter-list" id="actId-list" role="listbox" tabindex="-1" style="max-height: 260px;">
+                            <div class="act-filter-item" role="option" data-value="" data-full="— আইন নির্বাচন করুন — — select act —">
+                                <span data-bn="— আইন নির্বাচন করুন —" data-en="— Select Act —">— Select Act —</span>
+                            </div>
+                            @foreach (var act in Model.AvailableActs)
+                            {
+                                var label = act.DisplayText;
+                                var display = label.Length > 70 ? label.Substring(0, 67) + "…" : label;
+                                <div class="act-filter-item" role="option" data-value="@act.ActId" data-full="@label.ToLowerInvariant()" title="@label">@display</div>
+                            }
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div>
-                <label class="form-label">Notes (optional)</label>
-                <input class="input" name="notes" placeholder="unpaid wages" />
+
+            <div style="flex: 1.5; min-width: 200px;">
+                <label class="form-label" data-bn="মন্তব্য (ঐচ্ছিক)" data-en="Notes (optional)">Notes (optional)</label>
+                <input class="input" name="notes" placeholder="unpaid wages" 
+                       data-bn-placeholder="যেমন: unpaid wages" data-en-placeholder="e.g. unpaid wages" />
             </div>
-            <button class="btn btn-primary btn-sm" type="submit"><i data-lucide="plus"></i> Add mapping</button>
+
+            <button class="btn btn-primary btn-sm" type="submit" style="height: 38px;">
+                <i data-lucide="plus"></i>
+                <span data-bn="ম্যাপিং যুক্ত করুন" data-en="Add mapping">Add mapping</span>
+            </button>
         </form>
     </div>
 
+    <!-- Mappings Table -->
     <div class="card">
         <table>
             <thead>
-                <tr><th>Keyword</th><th>Act</th><th>Section</th><th>Notes</th><th></th></tr>
+                <tr>
+                    <th data-bn="কি-ওয়ার্ড" data-en="Keyword">Keyword</th>
+                    <th data-bn="আইন" data-en="Act">Act</th>
+                    <th data-bn="মন্তব্য" data-en="Notes">Notes</th>
+                    <th data-bn="পদক্ষেপ" data-en="Actions">Actions</th>
+                </tr>
             </thead>
             <tbody>
                 @foreach (var m in Model.Mappings)
                 {
                     <tr>
                         <td><b>@m.Keyword</b></td>
-                        <td>@m.ActTitle</td>
-                        <td class="mono">@(string.IsNullOrEmpty(m.SectionNumber) ? "#" : "ধারা " + m.SectionNumber)</td>
+                        <td>@(string.IsNullOrWhiteSpace(m.ActTitle) ? "—" : m.ActTitle)</td>
                         <td class="muted">@m.Notes</td>
                         <td>
                             <form asp-action="DeleteScenario" method="post" style="display:inline"
@@ -62,7 +136,143 @@
                         </td>
                     </tr>
                 }
+                @if (!Model.Mappings.Any())
+                {
+                    <tr>
+                        <td colspan="4" class="muted" style="text-align:center" 
+                            data-bn="কোনো সিনারিও ম্যাপিং পাওয়া যায়নি।" data-en="No scenario mappings found.">
+                            No scenario mappings found.
+                        </td>
+                    </tr>
+                }
             </tbody>
         </table>
     </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <div class="pagination" style="display: flex; justify-content: center; gap: 8px; margin-top: 16px;">
+            @if (Model.Page > 1)
+            {
+                <a asp-action="Scenarios" asp-route-q="@Model.SearchQuery" asp-route-page="@(Model.Page - 1)" 
+                   class="btn btn-outline btn-sm" data-bn="পূর্ববর্তী" data-en="Previous">Previous</a>
+            }
+            <span class="muted" style="align-self: center; font-size: 0.9rem;">
+                <span data-bn="পৃষ্ঠা @ToBn(Model.Page) / @ToBn(Model.TotalPages) (মোট @ToBn(Model.TotalFilteredCount))"
+                      data-en="Page @Model.Page of @Model.TotalPages (Total @Model.TotalFilteredCount)">
+                    Page @Model.Page of @Model.TotalPages (Total @Model.TotalFilteredCount)
+                </span>
+            </span>
+            @if (Model.Page < Model.TotalPages)
+            {
+                <a asp-action="Scenarios" asp-route-q="@Model.SearchQuery" asp-route-page="@(Model.Page + 1)" 
+                   class="btn btn-outline btn-sm" data-bn="পরবর্তী" data-en="Next">Next</a>
+            }
+        </div>
+    }
 </main>
+
+@section Scripts {
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    var root = document.querySelector("[data-act-filter]");
+    if (!root) return;
+    var btn = document.getElementById("actId-btn");
+    var label = document.getElementById("actId-label");
+    var valueInput = document.getElementById("actId-value");
+    var panel = document.getElementById("actId-panel");
+    var search = document.getElementById("actId-search");
+    var list = document.getElementById("actId-list");
+    var items = Array.prototype.slice.call(list.querySelectorAll(".act-filter-item"));
+    var form = document.getElementById("addScenarioForm") || root.closest("form");
+
+    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+        lucide.createIcons();
+    }
+
+    function markSelected() {
+        items.forEach(function (it) {
+            it.classList.toggle("selected", it.dataset.value === valueInput.value);
+        });
+    }
+    markSelected();
+
+    function open() {
+        panel.hidden = false;
+        root.classList.add("open");
+        btn.setAttribute("aria-expanded", "true");
+        search.value = "";
+        filter("");
+        setTimeout(function() { search.focus(); }, 50);
+    }
+
+    function close() {
+        panel.hidden = true;
+        root.classList.remove("open");
+        btn.setAttribute("aria-expanded", "false");
+    }
+
+    function filter(term) {
+        var q = term.trim().toLowerCase();
+        var visible = 0;
+        items.forEach(function (it) {
+            var show = !q || (it.dataset.full && it.dataset.full.indexOf(q) !== -1);
+            it.hidden = !show;
+            if (show) visible++;
+        });
+        var empty = list.querySelector(".act-filter-empty");
+        if (visible === 0) {
+            if (!empty) {
+                empty = document.createElement("div");
+                empty.className = "act-filter-empty";
+                empty.textContent = "কোনো আইন পাওয়া যায়নি / No acts found";
+                list.appendChild(empty);
+            }
+        } else if (empty) {
+            empty.remove();
+        }
+    }
+
+    btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (panel.hidden) open(); else close();
+    });
+
+    search.addEventListener("input", function () {
+        filter(search.value);
+    });
+
+    list.addEventListener("click", function (e) {
+        var item = e.target.closest(".act-filter-item");
+        if (!item) return;
+        valueInput.value = item.dataset.value;
+        label.textContent = item.textContent.trim();
+        btn.style.borderColor = "";
+        markSelected();
+        close();
+    });
+
+    document.addEventListener("click", function (e) {
+        if (!root.contains(e.target)) close();
+    });
+
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && !panel.hidden) {
+            close();
+            btn.focus();
+        }
+    });
+
+    if (form) {
+        form.addEventListener("submit", function (e) {
+            if (!valueInput.value || valueInput.value === "0" || valueInput.value === "") {
+                e.preventDefault();
+                btn.style.borderColor = "var(--danger, #dc2626)";
+                open();
+            }
+        });
+    }
+});
+</script>
+}
+

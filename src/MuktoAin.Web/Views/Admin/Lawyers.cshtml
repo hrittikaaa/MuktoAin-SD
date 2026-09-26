@@ -2,83 +2,155 @@
 @{
     ViewData["Title"] = "Lawyer Verification — Admin — MuktoAin";
     ViewData["IsAdminPage"] = true;
+    var totalCount = Model.Pending.Count + Model.Approved.Count + Model.Rejected.Count;
+}
+
+@functions {
+    private static string ToBn(int number)
+    {
+        var bnDigits = new[] { '০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯' };
+        var s = number.ToString();
+        var chars = s.Select(c => (c >= '0' && c <= '9') ? bnDigits[c - '0'] : c).ToArray();
+        return new string(chars);
+    }
 }
 
 <main class="container" id="main">
     <nav class="breadcrumbs" aria-label="Breadcrumb">
-        <a asp-controller="Admin" asp-action="Dashboard">Dashboard</a>
+        <a asp-controller="Admin" asp-action="Dashboard" data-bn="ড্যাশবোর্ড" data-en="Dashboard">Dashboard</a>
         <span class="sep">/</span>
-        <span>Lawyers</span>
+        <span data-bn="আইনজীবীগণ" data-en="Lawyers">Lawyers</span>
     </nav>
 
     <div class="page-head">
         <span class="kicker"><i data-lucide="badge-check"></i> FR-15 · FR-18</span>
-        <h1 class="page-title">Lawyer Verification</h1>
-        <p class="page-sub">Approve or reject bar-registration applications. Rejection requires a reason.</p>
+        <h1 class="page-title" data-bn="আইনজীবী যাচাইকরণ" data-en="Lawyer Verification">Lawyer Verification</h1>
+        <p class="page-sub" data-bn="বার-রেজিস্ট্রেশন আবেদন অনুমোদন বা বাতিল করুন। বাতিলের জন্য কারণ উল্লেখ করা আবশ্যক।" data-en="Approve or reject bar-registration applications. Rejection requires a reason.">Approve or reject bar-registration applications. Rejection requires a reason.</p>
     </div>
 
+    <!-- Filter Tabs / Chips -->
     <div class="chip-row" style="margin-bottom: 16px">
-        <span class="chip chip-sm">Pending · @Model.Pending.Count</span>
-        <span class="chip chip-sm">Approved · @Model.Approved.Count</span>
-        <span class="chip chip-sm">Rejected · @Model.Rejected.Count</span>
+        <a asp-action="Lawyers" asp-route-status="all" asp-route-q="@Model.SearchQuery" 
+           class="chip chip-sm @(string.Equals(Model.StatusFilter, "all", StringComparison.OrdinalIgnoreCase) || string.IsNullOrEmpty(Model.StatusFilter) ? "active" : "")" style="text-decoration:none">
+            <span data-bn="সকল · @ToBn(totalCount)" data-en="All · @totalCount">All · @totalCount</span>
+        </a>
+        <a asp-action="Lawyers" asp-route-status="pending" asp-route-q="@Model.SearchQuery" 
+           class="chip chip-sm @(string.Equals(Model.StatusFilter, "pending", StringComparison.OrdinalIgnoreCase) ? "active" : "")" style="text-decoration:none">
+            <span data-bn="অপেক্ষমান · @ToBn(Model.Pending.Count)" data-en="Pending · @Model.Pending.Count">Pending · @Model.Pending.Count</span>
+        </a>
+        <a asp-action="Lawyers" asp-route-status="approved" asp-route-q="@Model.SearchQuery" 
+           class="chip chip-sm @(string.Equals(Model.StatusFilter, "approved", StringComparison.OrdinalIgnoreCase) ? "active" : "")" style="text-decoration:none">
+            <span data-bn="অনুমোদিত · @ToBn(Model.Approved.Count)" data-en="Approved · @Model.Approved.Count">Approved · @Model.Approved.Count</span>
+        </a>
+        <a asp-action="Lawyers" asp-route-status="rejected" asp-route-q="@Model.SearchQuery" 
+           class="chip chip-sm @(string.Equals(Model.StatusFilter, "rejected", StringComparison.OrdinalIgnoreCase) ? "active" : "")" style="text-decoration:none">
+            <span data-bn="বাতিলকৃত · @ToBn(Model.Rejected.Count)" data-en="Rejected · @Model.Rejected.Count">Rejected · @Model.Rejected.Count</span>
+        </a>
     </div>
+
+    <!-- Search Toolbar -->
+    <form method="get" asp-action="Lawyers" class="search-form" style="display: flex; gap: 8px; margin-bottom: 16px; align-items: center; flex-wrap: wrap;">
+        <input type="hidden" name="status" value="@Model.StatusFilter" />
+        <input type="text" name="q" value="@Model.SearchQuery" class="input" style="max-width: 320px;" 
+               placeholder="Search lawyer name, email, bar no..." 
+               data-bn-placeholder="আইনজীবীর নাম, ইমেইল, বার নম্বর দিয়ে খুঁজুন..." 
+               data-en-placeholder="Search lawyer name, email, bar no..." />
+        <button type="submit" class="btn btn-outline btn-sm">
+            <i data-lucide="search"></i>
+            <span data-bn="অনুসন্ধান" data-en="Search">Search</span>
+        </button>
+        @if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
+        {
+            <a asp-action="Lawyers" asp-route-status="@Model.StatusFilter" class="btn btn-ghost btn-sm" style="text-decoration:none">
+                <span data-bn="রিসেট" data-en="Clear">Clear</span>
+            </a>
+        }
+    </form>
 
     <div class="card">
         <table>
             <thead>
-                <tr><th>Applicant</th><th>Bar Reg No</th><th>Specialization</th><th>Status</th><th>Actions</th></tr>
+                <tr>
+                    <th data-bn="আবেদনকারী" data-en="Applicant">Applicant</th>
+                    <th data-bn="বার রেজিস্ট্রেশন নং" data-en="Bar Reg No">Bar Reg No</th>
+                    <th data-bn="বিশেষজ্ঞতা" data-en="Specialization">Specialization</th>
+                    <th data-bn="অবস্থা" data-en="Status">Status</th>
+                    <th data-bn="পদক্ষেপ" data-en="Actions">Actions</th>
+                </tr>
             </thead>
             <tbody>
-                @foreach (var l in Model.Pending)
+                @foreach (var l in Model.FilteredLawyers)
                 {
                     <tr>
                         <td>@l.ApplicantName<br /><small class="muted mono">@l.Email</small></td>
                         <td class="mono">@l.BarRegistrationNumber</td>
                         <td>@l.Specialization</td>
-                        <td><span class="badge badge-draft">Pending</span></td>
                         <td>
-                            <form asp-action="VerifyLawyer" method="post" style="display:inline">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="lawyerProfileId" value="@l.LawyerProfileId" />
-                                <input type="hidden" name="approve" value="true" />
-                                <button class="btn btn-outline btn-sm" type="submit"
-                                        data-confirm="আইনজীবীর আবেদন অনুমোদন করতে চান? রিভিউ কিউ অ্যাক্সেস সক্রিয় হবে। / Approve this lawyer? Review queue access will be activated."
-                                        data-confirm-title="আইনজীবী অনুমোদন / Approve Lawyer"
-                                        data-confirm-ok="অনুমোদন করুন / Approve"
-                                        data-confirm-cancel="বাতিল / Cancel">Approve</button>
-                            </form>
-                            <button class="btn btn-danger-outline btn-sm" type="button"
-                                    data-open-modal="#reject-@l.LawyerProfileId">Reject</button>
+                            @if (l.Status == "Pending")
+                            {
+                                <span class="badge badge-draft" data-bn="অপেক্ষমান" data-en="Pending">Pending</span>
+                            }
+                            else if (l.Status == "Approved")
+                            {
+                                <span class="badge badge-final" data-bn="অনুমোদিত" data-en="Approved">Approved</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-rejected" data-bn="বাতিলকৃত" data-en="Rejected">Rejected</span>
+                            }
+                        </td>
+                        <td>
+                            @if (l.Status == "Pending")
+                            {
+                                <form asp-action="VerifyLawyer" method="post" style="display:inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="lawyerProfileId" value="@l.LawyerProfileId" />
+                                    <input type="hidden" name="approve" value="true" />
+                                    <button class="btn btn-outline btn-sm" type="submit"
+                                            data-confirm="আইনজীবীর আবেদন অনুমোদন করতে চান? রিভিউ কিউ অ্যাক্সেস সক্রিয় হবে। / Approve this lawyer? Review queue access will be activated."
+                                            data-confirm-title="আইনজীবী অনুমোদন / Approve Lawyer"
+                                            data-confirm-ok="অনুমোদন করুন / Approve"
+                                            data-confirm-cancel="বাতিল / Cancel"
+                                            data-bn="অনুমোদন" data-en="Approve">Approve</button>
+                                </form>
+                                <button class="btn btn-danger-outline btn-sm" type="button"
+                                        data-open-modal="#reject-@l.LawyerProfileId"
+                                        data-bn="বাতিল" data-en="Reject">Reject</button>
+                            }
+                            else
+                            {
+                                <span class="muted tiny">—</span>
+                            }
                         </td>
                     </tr>
                 }
-                @foreach (var l in Model.Approved)
+                @if (!Model.FilteredLawyers.Any())
                 {
-                    <tr>
-                        <td>@l.ApplicantName<br /><small class="muted mono">@l.Email</small></td>
-                        <td class="mono">@l.BarRegistrationNumber</td>
-                        <td>@l.Specialization</td>
-                        <td><span class="badge badge-final">Approved</span></td>
-                        <td><span class="muted tiny">—</span></td>
-                    </tr>
-                }
-                @foreach (var l in Model.Rejected)
-                {
-                    <tr>
-                        <td>@l.ApplicantName<br /><small class="muted mono">@l.Email</small></td>
-                        <td class="mono">@l.BarRegistrationNumber</td>
-                        <td>@l.Specialization</td>
-                        <td><span class="badge badge-rejected">Rejected</span></td>
-                        <td><span class="muted tiny">—</span></td>
-                    </tr>
-                }
-                @if (!Model.Pending.Any() && !Model.Approved.Any() && !Model.Rejected.Any())
-                {
-                    <tr><td colspan="5" class="muted" style="text-align:center">No applications.</td></tr>
+                    <tr><td colspan="5" class="muted" style="text-align:center" data-bn="কোনো আবেদন পাওয়া যায়নি।" data-en="No applications found.">No applications found.</td></tr>
                 }
             </tbody>
         </table>
     </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <div class="pagination" style="display: flex; justify-content: center; gap: 8px; margin-top: 16px;">
+            @if (Model.Page > 1)
+            {
+                <a asp-action="Lawyers" asp-route-status="@Model.StatusFilter" asp-route-q="@Model.SearchQuery" asp-route-page="@(Model.Page - 1)" class="btn btn-outline btn-sm" data-bn="পূর্ববর্তী" data-en="Previous">Previous</a>
+            }
+            <span class="muted" style="align-self: center; font-size: 0.9rem;">
+                <span data-bn="পৃষ্ঠা @ToBn(Model.Page) / @ToBn(Model.TotalPages) (মোট @ToBn(Model.TotalFilteredCount))"
+                      data-en="Page @Model.Page of @Model.TotalPages (Total @Model.TotalFilteredCount)">
+                    Page @Model.Page of @Model.TotalPages (Total @Model.TotalFilteredCount)
+                </span>
+            </span>
+            @if (Model.Page < Model.TotalPages)
+            {
+                <a asp-action="Lawyers" asp-route-status="@Model.StatusFilter" asp-route-q="@Model.SearchQuery" asp-route-page="@(Model.Page + 1)" class="btn btn-outline btn-sm" data-bn="পরবর্তী" data-en="Next">Next</a>
+            }
+        </div>
+    }
 </main>
 
 <!-- Rejection reason modals (one per pending row) -->
@@ -89,7 +161,7 @@
             <div class="modal-handle"></div>
             <div class="modal-head">
                 <div>
-                    <span class="kicker" style="color: var(--danger)">Reject application</span>
+                    <span class="kicker" style="color: var(--danger)" data-bn="আবেদন বাতিল করুন" data-en="Reject application">Reject application</span>
                     <h3>@l.ApplicantName · @l.BarRegistrationNumber</h3>
                 </div>
                 <button class="icon-btn" type="button" data-close-modal aria-label="Close"><i data-lucide="x"></i></button>
@@ -98,14 +170,17 @@
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="lawyerProfileId" value="@l.LawyerProfileId" />
                 <input type="hidden" name="approve" value="false" />
-                <label class="form-label">Reason (mandatory — shown to the lawyer)</label>
-                <textarea class="input" name="reason" rows="3" maxlength="500"
-                          placeholder="e.g. Bar number not found in the Bar Council registry."></textarea>
+                <label class="form-label" data-bn="কারণ (বাধ্যতামূলক — আইনজীবীকে প্রদর্শিত হবে)" data-en="Reason (mandatory — shown to the lawyer)">Reason (mandatory — shown to the lawyer)</label>
+                <textarea class="input" name="reason" rows="3" maxlength="500" required
+                          placeholder="e.g. Bar number not found in the Bar Council registry."
+                          data-bn-placeholder="যেমন: বার কাউন্সিল রেজিস্ট্রিতে বার নম্বরটি পাওয়া যায়নি।"
+                          data-en-placeholder="e.g. Bar number not found in the Bar Council registry."></textarea>
                 <div class="row" style="justify-content: flex-end; gap: 10px; margin-top: 14px">
-                    <button class="btn btn-outline btn-sm" type="button" data-close-modal>Cancel</button>
-                    <button class="btn btn-danger-outline btn-sm" type="submit">Reject application</button>
+                    <button class="btn btn-outline btn-sm" type="button" data-close-modal data-bn="বাতিল" data-en="Cancel">Cancel</button>
+                    <button class="btn btn-danger-outline btn-sm" type="submit" data-bn="আবেদন বাতিল করুন" data-en="Reject application">Reject application</button>
                 </div>
             </form>
         </div>
     </div>
 }
+

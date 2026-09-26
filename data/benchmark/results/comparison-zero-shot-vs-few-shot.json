@@ -1,24 +1,24 @@
 {
-  "ZeroShotResultsPath": "data/benchmark/results/zero-shot.json",
-  "FewShotResultsPath": "data/benchmark/results/few-shot.json",
-  "ZeroShotMeanF1": 0.6666666666666666,
-  "FewShotMeanF1": 1.0,
-  "MeanF1Delta": 0.33333333333333337,
+  "ZeroShotResultsPath": "C:\\Users\\ASUS\\AppData\\Local\\Temp\\bench-cmp-d071ab548e0c4b398f31560fccf34f34\\zero.json",
+  "FewShotResultsPath": "C:\\Users\\ASUS\\AppData\\Local\\Temp\\bench-cmp-d071ab548e0c4b398f31560fccf34f34\\few.json",
+  "ZeroShotMeanF1": 0.4,
+  "FewShotMeanF1": 0.7,
+  "MeanF1Delta": 0.29999999999999993,
   "QuestionsImproved": 2,
-  "QuestionsRegressed": 0,
+  "QuestionsRegressed": 1,
   "Categories": [
     {
-      "Category": "A",
-      "ZeroShotMeanF1": 0.6666666666666666,
-      "FewShotMeanF1": 1.0,
-      "MeanF1Delta": 0.33333333333333337
+      "Category": "Cat A",
+      "ZeroShotMeanF1": 0.4,
+      "FewShotMeanF1": 0.45,
+      "MeanF1Delta": 0.04999999999999999
     },
     {
-      "Category": "B",
-      "ZeroShotMeanF1": 0.6666666666666666,
-      "FewShotMeanF1": 1.0,
-      "MeanF1Delta": 0.33333333333333337
+      "Category": "Cat B",
+      "ZeroShotMeanF1": 0.4,
+      "FewShotMeanF1": 0.9,
+      "MeanF1Delta": 0.5
     }
   ],
-  "OutputPath": "data/benchmark/results/comparison-zero-shot-vs-few-shot.json"
+  "OutputPath": ""
 }

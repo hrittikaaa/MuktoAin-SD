@@ -6,15 +6,18 @@
 
 <main class="container" id="main">
     <nav class="breadcrumbs" aria-label="Breadcrumb">
-        <a asp-controller="Admin" asp-action="Dashboard">Dashboard</a>
+        <a asp-controller="Admin" asp-action="Dashboard" data-bn="ড্যাশবোর্ড" data-en="Dashboard">Dashboard</a>
         <span class="sep">/</span>
-        <span>Categories</span>
+        <span data-bn="মামলার ক্যাটাগরি" data-en="Categories">Categories</span>
     </nav>
 
     <div class="page-head">
         <span class="kicker"><i data-lucide="layout-grid"></i> FR-18</span>
-        <h1 class="page-title">Case Categories</h1>
-        <p class="page-sub">Each category drives intake chips, retrieval priors, and the document template.</p>
+        <h1 class="page-title" data-bn="মামলার ক্যাটাগরি কনফিগারেশন" data-en="Case Categories">Case Categories</h1>
+        <p class="page-sub" data-bn="প্রতিটি ক্যাটাগরি ইনটেক চিপস, আইনি তথ্য রিট্রিভাল এবং ড্রাফট ডকুমেন্ট টেমপ্লেট নির্ধারণ করে।"
+           data-en="Each category drives intake chips, retrieval priors, and the document template.">
+            Each category drives intake chips, retrieval priors, and the document template.
+        </p>
     </div>
 
     <div class="grid grid-2">
@@ -23,17 +26,27 @@
             <div class="card">
                 <div class="row spread" style="align-items: flex-start">
                     <div>
-                        <b>@c.NameBn</b> <small class="muted">/ @c.Name</small><br />
-                        <span class="badge badge-neutral mono">@c.TemplateBadge</span>
+                        <b><span data-bn="@c.NameBn" data-en="@c.Name">@c.NameBn</span></b> 
+                        <small class="muted">/ <span data-bn="@c.Name" data-en="@c.NameBn">@c.Name</span></small><br />
+                        <span class="badge badge-neutral mono" style="margin-top: 6px; display: inline-block;">@c.TemplateBadge</span>
                     </div>
                 </div>
-                <p class="muted tiny" style="margin: 10px 0 0">@c.Description</p>
+                <p class="muted tiny" style="margin: 10px 0 0">
+                    <span data-bn="@(string.IsNullOrEmpty(c.DescriptionBn) ? c.Description : c.DescriptionBn)" 
+                          data-en="@c.Description">
+                        @(string.IsNullOrEmpty(c.DescriptionBn) ? c.Description : c.DescriptionBn)
+                    </span>
+                </p>
             </div>
         }
     </div>
 
-    <div class="alert alert-warn tiny" style="margin-top: 12px">
+    <div class="alert alert-warn tiny" style="margin-top: 16px">
         <i data-lucide="info"></i>
-        <span>Category names/descriptions are seeded via SSMS (04–06 scripts) — full CRUD lands with CP3 admin tooling. Template badges are convention-mapped from CategoryId.</span>
+        <span data-bn="ক্যাটাগরির নাম ও বিবরণ ডাটাবেজের সিড থেকে লোড করা হয় — CP3 অ্যাডমিন টুলিংয়ের মাধ্যমে পূর্ণাঙ্গ CRUD যুক্ত হবে। টেমপ্লেট ব্যাজগুলো মেটাডাটা কনভেনশন অনুযায়ী স্বয়ংক্রিয়ভাবে নির্ধারণ করা হয়।"
+              data-en="Category names/descriptions are seeded via database scripts — full CRUD lands with CP3 admin tooling. Template badges are dynamically resolved based on metadata conventions.">
+            Category names/descriptions are seeded via database scripts — full CRUD lands with CP3 admin tooling. Template badges are dynamically resolved based on metadata conventions.
+        </span>
     </div>
 </main>
+

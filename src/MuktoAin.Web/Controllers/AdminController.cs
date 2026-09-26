@@ -323,13 +323,18 @@ public class AdminController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Lawyers()
+    public async Task<IActionResult> Lawyers(string? status = "All", string? q = null, int page = 1, int pageSize = 15)
     {
-        var all = await _lawyerProfileRepo.GetAllAsync();
+        var allProfiles = (await _lawyerProfileRepo.GetAllAsync()).ToList();
+        var userIds = allProfiles.Select(p => p.UserId).Distinct().ToList();
+        var users = await _dbContext.Users.AsNoTracking()
+            .Where(u => userIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id);
+
         var rows = new List<AdminLawyerRowViewModel>();
-        foreach (var p in all)
+        foreach (var p in allProfiles)
         {
-            var u = await _userManager.FindByIdAsync(p.UserId.ToString());
+            users.TryGetValue(p.UserId, out var u);
             rows.Add(new AdminLawyerRowViewModel
             {
                 LawyerProfileId = p.LawyerProfileId,
@@ -340,11 +345,47 @@ public class AdminController : Controller
                 Status = p.VerificationStatus.ToString()
             });
         }
+
+        var pendingList = rows.Where(r => r.Status == "Pending").ToList();
+        var approvedList = rows.Where(r => r.Status == "Approved").ToList();
+        var rejectedList = rows.Where(r => r.Status == "Rejected").ToList();
+
+        var filtered = rows.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(status) && !status.Equals("All", StringComparison.OrdinalIgnoreCase))
+        {
+            filtered = filtered.Where(r => r.Status.Equals(status, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var trimmed = q.Trim();
+            filtered = filtered.Where(r =>
+                r.ApplicantName.Contains(trimmed, StringComparison.OrdinalIgnoreCase) ||
+                r.Email.Contains(trimmed, StringComparison.OrdinalIgnoreCase) ||
+                r.BarRegistrationNumber.Contains(trimmed, StringComparison.OrdinalIgnoreCase) ||
+                r.Specialization.Contains(trimmed, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var filteredList = filtered.ToList();
+        var totalPages = Math.Max((int)Math.Ceiling(filteredList.Count / (double)pageSize), 1);
+        var currentPage = Math.Max(1, Math.Min(page, totalPages));
+
+        var pagedRows = filteredList
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
         var vm = new AdminLawyersViewModel
         {
-            Pending = rows.Where(r => r.Status == "Pending").ToList(),
-            Approved = rows.Where(r => r.Status == "Approved").ToList(),
-            Rejected = rows.Where(r => r.Status == "Rejected").ToList()
+            Pending = pendingList,
+            Approved = approvedList,
+            Rejected = rejectedList,
+            FilteredLawyers = pagedRows,
+            StatusFilter = status ?? "All",
+            SearchQuery = q,
+            Page = currentPage,
+            PageSize = pageSize,
+            TotalFilteredCount = filteredList.Count
         };
         return View(vm);
     }
@@ -446,49 +487,169 @@ public class AdminController : Controller
     // ---------- FR-18: Scenario mappings ----------
 
     [HttpGet]
-    public async Task<IActionResult> Scenarios()
+    public async Task<IActionResult> Scenarios(string? q, int page = 1, int pageSize = 20)
     {
         var mappings = await _scenarioRepo.GetAllAsync();
         var sections = await _sectionRepo.GetAllAsync();
         var acts = await _actRepo.GetAllAsync();
 
+        var sectionDict = sections.ToDictionary(s => s.SectionId);
+        var actDict = acts.ToDictionary(a => a.ActId);
+
+        var allRows = mappings.Select(m =>
+        {
+            sectionDict.TryGetValue(m.SectionId, out var s);
+            var a = s != null && actDict.TryGetValue(s.ActId, out var act) ? act : null;
+            return new AdminScenarioRowViewModel
+            {
+                MappingId = m.MappingId,
+                Keyword = m.ScenarioKeyword,
+                ActTitle = a?.Title ?? "",
+                SectionNumber = s?.SectionNumber ?? "",
+                Notes = m.Notes
+            };
+        }).ToList();
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var query = q.Trim();
+            allRows = allRows.Where(r =>
+                r.Keyword.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                r.ActTitle.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                r.SectionNumber.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                (r.Notes != null && r.Notes.Contains(query, StringComparison.OrdinalIgnoreCase))
+            ).ToList();
+        }
+
+        var totalFiltered = allRows.Count;
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalFiltered / (double)pageSize));
+        page = Math.Max(1, Math.Min(page, totalPages));
+
+        var pagedRows = allRows
+            .OrderBy(m => m.MappingId)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        var availableActs = acts
+            .OrderBy(a => a.Title)
+            .Select(a => new AdminActOptionViewModel
+            {
+                ActId = a.ActId,
+                Title = a.Title,
+                Year = a.Year
+            })
+            .ToList();
+
         var vm = new AdminScenariosViewModel
         {
-            Mappings = mappings.OrderBy(m => m.MappingId).Select(m =>
-            {
-                var s = sections.FirstOrDefault(x => x.SectionId == m.SectionId);
-                var a = s != null ? acts.FirstOrDefault(x => x.ActId == s.ActId) : null;
-                return new AdminScenarioRowViewModel
-                {
-                    MappingId = m.MappingId,
-                    Keyword = m.ScenarioKeyword,
-                    ActTitle = a?.Title ?? "",
-                    SectionNumber = s?.SectionNumber ?? "",
-                    Notes = m.Notes
-                };
-            }).ToList()
+            Mappings = pagedRows,
+            AvailableActs = availableActs,
+            SearchQuery = q,
+            Page = page,
+            PageSize = pageSize,
+            TotalFilteredCount = totalFiltered
         };
         return View(vm);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddScenario(int sectionId, string keyword, string? notes)
+    public async Task<IActionResult> AddScenario(string keyword, int actId, string? notes, int? sectionId)
     {
-        if (string.IsNullOrWhiteSpace(keyword) || sectionId <= 0)
+        if (string.IsNullOrWhiteSpace(keyword))
         {
-            TempData["Error"] = "Keyword and section are required.";
+            TempData["Error"] = "কি-ওয়ার্ড (Keyword) বাধ্যতামূলক।";
+            TempData["ErrorEn"] = "Keyword is required.";
             return RedirectToAction(nameof(Scenarios));
         }
+
+        if (actId <= 0 && (sectionId == null || sectionId <= 0))
+        {
+            TempData["Error"] = "আইন (Act) নির্বাচন বাধ্যতামূলক।";
+            TempData["ErrorEn"] = "Act selection is required.";
+            return RedirectToAction(nameof(Scenarios));
+        }
+
+        int secId = sectionId ?? 0;
+        if (secId <= 0)
+        {
+            var allSections = await _sectionRepo.GetAllAsync();
+            var sectionForAct = allSections.FirstOrDefault(s => s.ActId == actId);
+
+            if (sectionForAct != null)
+            {
+                secId = sectionForAct.SectionId;
+            }
+            else
+            {
+                var act = await _actRepo.GetByIdAsync(actId);
+                if (act == null)
+                {
+                    TempData["Error"] = "নির্বাচিত আইনটি পাওয়া যায়নি।";
+                    TempData["ErrorEn"] = "Selected Act was not found.";
+                    return RedirectToAction(nameof(Scenarios));
+                }
+
+                var newSection = new Domain.Entities.ActSection
+                {
+                    ActId = actId,
+                    SectionNumber = "General",
+                    SectionTitle = "General Statutory Reference",
+                    SectionText = $"{act.Title} - General statutory reference",
+                    OrdinalPosition = 1
+                };
+                await _sectionRepo.AddAsync(newSection);
+                await _sectionRepo.SaveChangesAsync();
+                secId = newSection.SectionId;
+            }
+        }
+
         await _scenarioRepo.AddAsync(new Domain.Entities.ScenarioMapping
         {
-            SectionId = sectionId,
+            SectionId = secId,
             ScenarioKeyword = keyword.Trim(),
             Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim()
         });
         await _scenarioRepo.SaveChangesAsync();
-        TempData["Success"] = "Mapping added.";
+        TempData["Success"] = "নতুন সিনারিও ম্যাপিং যুক্ত হয়েছে।";
+        TempData["SuccessEn"] = "Scenario mapping added successfully.";
         return RedirectToAction(nameof(Scenarios));
+    }
+
+    private async Task<int> EnsureFallbackSectionAsync()
+    {
+        var existingSection = (await _sectionRepo.GetAllAsync()).FirstOrDefault();
+        if (existingSection != null) return existingSection.SectionId;
+
+        var existingAct = (await _actRepo.GetAllAsync()).FirstOrDefault();
+        if (existingAct == null)
+        {
+            existingAct = new Domain.Entities.Act
+            {
+                Title = "Laws of Bangladesh (General)",
+                ActNumber = "0",
+                Year = 2026,
+                PublicationDate = "2026",
+                Language = "en",
+                ImportedAt = DateTime.UtcNow
+            };
+            await _actRepo.AddAsync(existingAct);
+            await _actRepo.SaveChangesAsync();
+        }
+
+        var fallbackSection = new Domain.Entities.ActSection
+        {
+            ActId = existingAct.ActId,
+            SectionNumber = "General",
+            SectionTitle = "General Statutory Reference",
+            SectionText = "General statutory reference",
+            OrdinalPosition = 1
+        };
+        await _sectionRepo.AddAsync(fallbackSection);
+        await _sectionRepo.SaveChangesAsync();
+
+        return fallbackSection.SectionId;
     }
 
     [HttpPost]
@@ -511,7 +672,7 @@ public class AdminController : Controller
                 targetEntityId: mappingId,
                 details: $"Keyword '{m.ScenarioKeyword}' (SectionId {m.SectionId}) hard-deleted.");
         }
-        TempData["Success"] = "Mapping deleted.";
+        TempData["Success"] = "ম্যাপিং মুছে ফেলা হয়েছে। / Mapping deleted.";
         return RedirectToAction(nameof(Scenarios));
     }
 
@@ -529,17 +690,24 @@ public class AdminController : Controller
                 Name = c.Name,
                 NameBn = c.NameBn,
                 Description = c.Description,
-                TemplateBadge = c.CategoryId switch
-                {
-                    1 => "labour_complaint.v1",
-                    2 => "gd_application.v1",
-                    3 => "rti_request.v1",
-                    4 => "consumer_complaint.v1",
-                    _ => "custom.v1"
-                }
+                DescriptionBn = c.DescriptionBn,
+                TemplateBadge = ResolveTemplateBadge(c)
             }).ToList()
         };
         return View(vm);
+    }
+
+    private static string ResolveTemplateBadge(Domain.Entities.CaseCategory c)
+    {
+        var name = (c.Name ?? string.Empty).ToLowerInvariant();
+        if (name.Contains("labour") || name.Contains("labor")) return "labour_complaint.v1";
+        if (name.Contains("general diary") || name.Contains("gd")) return "gd_application.v1";
+        if (name.Contains("rti") || name.Contains("information")) return "rti_request.v1";
+        if (name.Contains("consumer")) return "consumer_complaint.v1";
+
+        var slug = new string(name.Select(ch => char.IsLetterOrDigit(ch) ? ch : '_').ToArray())
+            .Trim('_');
+        return string.IsNullOrEmpty(slug) ? "custom.v1" : $"{slug}.v1";
     }
 
     private const int AdminAiLogsPageSize = 50;
