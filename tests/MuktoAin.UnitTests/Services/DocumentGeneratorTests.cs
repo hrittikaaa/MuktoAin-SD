@@ -14,6 +14,10 @@ public class DocumentGeneratorTests
     [InlineData(2, DocumentType.GeneralDiary)]
     [InlineData(3, DocumentType.RtiRequest)]
     [InlineData(4, DocumentType.ConsumerComplaint)]
+    [InlineData(5, DocumentType.LandPropertyDispute)]
+    [InlineData(6, DocumentType.FamilyDispute)]
+    [InlineData(7, DocumentType.CyberCrime)]
+    [InlineData(8, DocumentType.EnvironmentalComplaint)]
     public void GetDocumentType_ValidCategories_ReturnsExpectedDocumentType(int categoryId, DocumentType expectedType)
     {
         var generator = new DocumentGenerator(Enumerable.Empty<IDocumentTemplate>());
@@ -25,7 +29,7 @@ public class DocumentGeneratorTests
 
     [Theory]
     [InlineData(0)]
-    [InlineData(5)]
+    [InlineData(99)]
     [InlineData(-1)]
     public void GetDocumentType_UnknownCategory_ThrowsArgumentException(int categoryId)
     {

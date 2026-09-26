@@ -74,5 +74,81 @@
       "Complaint for short-weighing or fraudulent sales",
       "Compensation claim for defective goods or services"
     ]
+  },
+  {
+    "categoryId": 5,
+    "name": "Land & Property Dispute",
+    "description": "Land disputes, property mutation, eviction, boundary disputes, land acquisition, tenancy rights, waqf/trust",
+    "nameBn": "ভূমি ও সম্পত্তি বিরোধ",
+    "descriptionBn": "জমি-জমা সংক্রান্ত বিরোধ, নামজারি (মিউটেশন), উচ্ছেদ, সীমানা বিরোধ, ভূমি অধিগ্রহণের ক্ষতিপূরণ ও প্রজাস্বত্ব সুরক্ষা।",
+    "commonActions": [
+      "জমির নামজারি (মিউটেশন) আবেদন",
+      "বেদখল থেকে পুনরুদ্ধারের দাবি",
+      "সীমানা বিরোধ নিষ্পত্তির আবেদন",
+      "ভূমি অধিগ্রহণের ক্ষতিপূরণ আপত্তি"
+    ],
+    "commonActionsEn": [
+      "Land mutation (namjari) application",
+      "Claim for recovery from dispossession",
+      "Application for boundary dispute resolution",
+      "Objection to land acquisition compensation"
+    ]
+  },
+  {
+    "categoryId": 6,
+    "name": "Family & Domestic Dispute",
+    "description": "Divorce, maintenance, child custody, dowry, domestic violence, guardianship, family court matters",
+    "nameBn": "পারিবারিক বিরোধ ও ভরণপোষণ",
+    "descriptionBn": "তালাক, ভরণপোষণ দাবি, সন্তানের হেফাজত, যৌতুক নিরোধ, পারিবারিক সহিংসতা ও অভিভাবকত্ব সংক্রান্ত আইনি সুরক্ষা।",
+    "commonActions": [
+      "ভরণপোষণ (খোরপোষ) দাবির আবেদন",
+      "যৌতুক দাবি/নির্যাতনের অভিযোগ",
+      "সন্তানের হেফাজত (কাস্টডি) আবেদন",
+      "পারিবারিক সহিংসতা প্রতিরোধের আবেদন"
+    ],
+    "commonActionsEn": [
+      "Application for maintenance (khorposh) claim",
+      "Complaint against dowry demand or dowry violence",
+      "Application for child custody",
+      "Application for protection from domestic violence"
+    ]
+  },
+  {
+    "categoryId": 7,
+    "name": "Cyber Crime & Digital Complaint",
+    "description": "Online fraud, cyberbullying, hacking, identity theft, social media defamation, digital harassment",
+    "nameBn": "সাইবার অপরাধ ও ডিজিটাল অভিযোগ",
+    "descriptionBn": "অনলাইন প্রতারণা, সাইবার হয়রানি, হ্যাকিং, পরিচয় চুরি, সামাজিক মাধ্যমে মানহানি ও ডিজিটাল নিরাপত্তা লঙ্ঘন সংক্রান্ত অভিযোগ।",
+    "commonActions": [
+      "অনলাইন প্রতারণা/স্ক্যামের অভিযোগ",
+      "সাইবার হয়রানি ও বুলিংয়ের জিডি",
+      "অনুমতিবিহীন অ্যাকাউন্ট প্রবেশের অভিযোগ",
+      "সামাজিক মাধ্যমে মানহানির প্রতিকার আবেদন"
+    ],
+    "commonActionsEn": [
+      "Complaint for online fraud or scam",
+      "GD for cyberbullying or online harassment",
+      "Complaint for unauthorized account access or hacking",
+      "Remedy application for defamation on social media"
+    ]
+  },
+  {
+    "categoryId": 8,
+    "name": "Environmental Complaint",
+    "description": "Pollution, illegal tree felling, river/water body encroachment, noise pollution, waste dumping",
+    "nameBn": "পরিবেশ অভিযোগ",
+    "descriptionBn": "কারখানা বা যানবাহনের দূষণ, অবৈধ বৃক্ষ নিধন, নদী/জলাশয় দখল, শব্দ দূষণ ও বর্জ্য নিক্ষেপ সংক্রান্ত পরিবেশ আইনের প্রতিকার।",
+    "commonActions": [
+      "কারখানা/শিল্পজনিত দূষণের অভিযোগ",
+      "অবৈধ বৃক্ষ কর্তন বা পাহাড় কাটার রিপোর্ট",
+      "নদী/জলাশয় দখলের অভিযোগ",
+      "শব্দ দূষণের প্রতিকার আবেদন"
+    ],
+    "commonActionsEn": [
+      "Complaint for industrial or factory pollution",
+      "Report of illegal tree felling or hill cutting",
+      "Complaint for river or water body encroachment",
+      "Remedy application for noise pollution"
+    ]
   }
 ]

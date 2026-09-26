@@ -27,12 +27,16 @@ public static class SeedSpecializationDemo
     // LawyerQueueNotifier.CategoryKeywords. Keep both in sync.
     private static readonly (string Email, string FullName, string BarNumber, string Specialization)[] Lawyers =
     {
-        ("labour@demo.muktoain.bd",   "Advocate Rehana Karim",   "SPEC-BAR-2026-0001", "শ্রম আইন / Labour and employment law"),
-        ("criminal@demo.muktoain.bd", "Advocate Tanvir Ahmed",   "SPEC-BAR-2026-0002", "ফৌজদারি আইন / Criminal law"),
-        ("rti@demo.muktoain.bd",      "Advocate Sadia Noor",     "SPEC-BAR-2026-0003", "তথ্য অধিকার / Right to Information"),
-        ("consumer@demo.muktoain.bd", "Advocate Imran Hossain",  "SPEC-BAR-2026-0004", "ভোক্তা অধিকার / Consumer law"),
-        ("general@demo.muktoain.bd",  "Advocate Nafisa Rahman",  "SPEC-BAR-2026-0005", "সাধারণ আইন / General practice"),
-        ("nomatch@demo.muktoain.bd",  "Advocate Zahid Chowdhury","SPEC-BAR-2026-0006", "Maritime law"),
+        ("labour@demo.muktoain.bd",      "Advocate Rehana Karim",    "SPEC-BAR-2026-0001", "শ্রম আইন / Labour and employment law"),
+        ("criminal@demo.muktoain.bd",    "Advocate Tanvir Ahmed",    "SPEC-BAR-2026-0002", "ফৌজদারি আইন / Criminal law"),
+        ("rti@demo.muktoain.bd",         "Advocate Sadia Noor",      "SPEC-BAR-2026-0003", "তথ্য অধিকার / Right to Information"),
+        ("consumer@demo.muktoain.bd",    "Advocate Imran Hossain",   "SPEC-BAR-2026-0004", "ভোক্তা অধিকার / Consumer law"),
+        ("land@demo.muktoain.bd",        "Advocate Tariqul Islam",   "SPEC-BAR-2026-0007", "ভূমি ও সম্পত্তি আইন / Land and property law"),
+        ("family@demo.muktoain.bd",      "Advocate Shireen Akhter",  "SPEC-BAR-2026-0008", "পারিবারিক আইন / Family and domestic law"),
+        ("cyber@demo.muktoain.bd",       "Advocate Faisal Mahmud",   "SPEC-BAR-2026-0009", "সাইবার নিরাপত্তা ও ডিজিটাল আইন / Cyber law and digital security"),
+        ("environment@demo.muktoain.bd", "Advocate Nazmul Haque",   "SPEC-BAR-2026-0010", "পরিবেশ আইন / Environmental law"),
+        ("general@demo.muktoain.bd",     "Advocate Nafisa Rahman",   "SPEC-BAR-2026-0005", "সাধারণ আইন / General practice"),
+        ("nomatch@demo.muktoain.bd",     "Advocate Zahid Chowdhury", "SPEC-BAR-2026-0006", "Maritime law"),
     };
 
     // Category name (as seeded from data/categories.json) -> the queued case.
@@ -54,6 +58,22 @@ public static class SeedSpecializationDemo
             "মেয়াদোত্তীর্ণ পণ্য বিক্রয়",
             "সুপারশপ থেকে কেনা পণ্যের মেয়াদ আগেই শেষ হয়ে গিয়েছিল।",
             "খসড়া: ভোক্তা অধিকার সংরক্ষণ আইন ২০০৯ অনুযায়ী অভিযোগপত্র।"),
+        ("Land & Property Dispute", DocumentType.LandPropertyDispute,
+            "জমির অবৈধ দখল ও নামজারি বিরোধ",
+            "পৈতৃক সম্পত্তি অন্য পক্ষ জোরপূর্বক দখল করে রেখেছে।",
+            "খসড়া: ভূমি বিরোধ ও উচ্ছেদ প্রতিকারের আবেদন।"),
+        ("Family & Domestic Dispute", DocumentType.FamilyDispute,
+            "পারিবারিক ভরণপোষণ ও দেনমোহর দাবি",
+            "স্বামী বিগত ছয় মাস যাবত ভরণপোষণ প্রদান করছেন না।",
+            "খসড়া: পারিবারিক আদালতে ভরণপোষণ ও খোরপোষ দাবির আরজি।"),
+        ("Cyber Crime & Digital Complaint", DocumentType.CyberCrime,
+            "অনলাইন হয়রানি ও ভুয়া ফেসবুক আইডি",
+            "আমার নাম ও ছবি ব্যবহার করে অপপ্রচার চালানো হচ্ছে।",
+            "খসড়া: সাইবার অপরাধ তদন্তে সাধারণ ডায়েরি ও অভিযোগ।"),
+        ("Environmental Complaint", DocumentType.EnvironmentalComplaint,
+            "কারখানার বিষাক্ত বর্জ্য নির্গমন",
+            "স্থানীয় নদী ও কৃষিজমিতে অপরিশোধিত বর্জ্য ফেলা হচ্ছে।",
+            "খসড়া: পরিবেশ অধিদপ্তরে দূষণ প্রতিকার ও মোবাইল কোর্টের আবেদন।"),
     };
 
     public static async Task SeedAsync(
