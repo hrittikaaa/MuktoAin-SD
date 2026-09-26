@@ -1152,35 +1152,7 @@
       var sub = document.querySelector(".page-head .page-sub");
       if (sub) sub.textContent = currentLang === "en" ? "Platform utilization, geographic legal demand, AI processing latency, and lawyer review turnaround metrics." : "প্ল্যাটফর্ম ব্যবহার, আইনি বিভাগের ভৌগোলিক বণ্টন, এআই প্রসেসিং লেটেন্সি ও আইনজীবী রিভিউ টার্নঅ্যারাউন্ড মেট্রিক্স।";
 
-      var kpis = document.querySelectorAll(".grid-4 .kpi");
-      if (kpis.length >= 4) {
-        var k1 = kpis[0].querySelector(".k-label");
-        var k1_sub = kpis[0].querySelector(".k-sub");
-        if (k1) k1.innerHTML = '<i data-lucide="folder-check"></i> ' + (currentLang === "en" ? "Total Resolved Cases" : "সর্বমোট সমাধানকৃত মামলা");
-        if (k1_sub) k1_sub.textContent = currentLang === "en" ? "New cases this week" : "এই সপ্তাহে নতুন";
-
-        var k2 = kpis[1].querySelector(".k-label");
-        var k2_num = kpis[1].querySelector(".k-num");
-        var k2_sub = kpis[1].querySelector(".k-sub");
-        if (k2) k2.innerHTML = '<i data-lucide="clock"></i> ' + (currentLang === "en" ? "Avg Lawyer Review Time" : "গড় আইনজীবী রিভিউ সময়");
-        if (k2_num) k2_num.textContent = currentLang === "en" ? "3.4 Hours" : "৩.৪ ঘণ্টা";
-        if (k2_sub) k2_sub.textContent = currentLang === "en" ? "Target: < 6 hours" : "টার্গেট: < ৬ ঘণ্টা";
-
-        var k3 = kpis[2].querySelector(".k-label");
-        var k3_sub = kpis[2].querySelector(".k-sub");
-        if (k3) k3.innerHTML = '<i data-lucide="cpu"></i> ' + (currentLang === "en" ? "AI Calls Today" : "AI কল ভলিউম (আজ)");
-        if (k3_sub) k3_sub.textContent = currentLang === "en" ? "Failure rate: 2.1%" : "ব্যর্থতার হার: ২.১%";
-
-        var k4 = kpis[3].querySelector(".k-label");
-        var k4_sub = kpis[3].querySelector(".k-sub");
-        if (k4) k4.innerHTML = '<i data-lucide="zap"></i> ' + (currentLang === "en" ? "Avg RAG Response Latency" : "গড় RAG রেসপন্স লেটেন্সি");
-        if (k4_sub) k4_sub.textContent = currentLang === "en" ? "Google Gemini + Qdrant" : "Google Gemini + Qdrant";
-      }
-
-      var chartH1 = document.querySelector(".card h3");
-      if (chartH1 && (chartH1.textContent.indexOf("মামলা বিভাজন") !== -1 || chartH1.textContent.indexOf("Case Share") !== -1)) {
-        chartH1.textContent = currentLang === "en" ? "Case Distribution by Legal Category (Case Share)" : "আইনি বিষয়ভিত্তিক মামলা বিভাজন (Case Share)";
-      }
+      // Admin Analytics Page: localized declaratively via data-bn/data-en attributes
 
     } else if (path.indexOf("/account/profile") !== -1) {
       // User Profile Page
