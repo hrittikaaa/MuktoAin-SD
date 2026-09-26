@@ -79,6 +79,7 @@
                     <label class="form-label" data-bn="চূড়ান্ত সংস্করণ (সম্পাদনা করুন)" data-en="Final version (edit)">চূড়ান্ত সংস্করণ (সম্পাদনা করুন)</label>
                     <textarea class="input" id="EditedContentMobile" name="EditedContent" rows="16"
                               style="width: 100%; font-family: var(--font-doc)"
+                              maxlength="50000"
                               data-counter="#review-counter">@Model.EditedContent</textarea>
                     <small class="muted tiny" id="review-counter"></small>
                 </div>
@@ -96,6 +97,7 @@
                 <div class="compare-pane compare-edit">
                     <h3 class="section-h"><i data-lucide="file-pen"></i> Editable (final)</h3>
                     <textarea class="input" id="EditedContentDesktop" name="EditedContent" rows="18"
+                              maxlength="50000"
                               style="width: 100%; font-family: var(--font-doc)">@Model.EditedContent</textarea>
                 </div>
             </div>

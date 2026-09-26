@@ -310,7 +310,7 @@
         </div>
         <form asp-action="SaveDraft" asp-route-id="@Model.CaseId" method="post" asp-route-code="@Model.TrackingCode">
             @Html.AntiForgeryToken()
-            <textarea name="editedContent" class="input" rows="14"
+            <textarea name="editedContent" class="input" rows="14" maxlength="50000"
                       style="width:100%; font-family: var(--font-doc)"
                       data-counter="#edit-counter">@(Model.ContentFinal ?? Model.DocumentContent)</textarea>
             <small class="muted tiny" id="edit-counter"></small>

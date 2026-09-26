@@ -130,7 +130,14 @@
                                     }
                                     else
                                     {
-                                        @Html.Raw(res.SectionTextSnippet.Replace(Model.Query, $"<mark>{Model.Query}</mark>"))
+                                        var encodedSnippet = System.Net.WebUtility.HtmlEncode(res.SectionTextSnippet);
+                                        var encodedQuery = System.Net.WebUtility.HtmlEncode(Model.Query);
+                                        var highlighted = System.Text.RegularExpressions.Regex.Replace(
+                                            encodedSnippet,
+                                            System.Text.RegularExpressions.Regex.Escape(encodedQuery),
+                                            "<mark>$0</mark>",
+                                            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                                        @Html.Raw(highlighted)
                                     }
                                 </div>
                                 <div class="row spread wrap" style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border);">
