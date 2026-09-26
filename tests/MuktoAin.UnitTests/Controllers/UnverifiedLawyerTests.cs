@@ -21,9 +21,12 @@ namespace MuktoAin.UnitTests.Controllers;
 // A lawyer whose bar verification was rejected (profile 7, user 42).
 // #5: resubmitting must not take a bar number another lawyer holds (UNIQUE
 // column -> used to be a 500) or one longer than the column.
+// #19: pages for verified lawyers only (History, Payments, RequestPayout)
+// send them to Status, like Queue and Review already do.
 public class UnverifiedLawyerTests
 {
     private readonly Mock<IRepository<LawyerProfile>> _profileRepo = new();
+    private readonly Mock<IRepository<PayoutRequest>> _payoutRepo = new();
     private readonly LawyerProfile _me = new()
     {
         LawyerProfileId = 7, UserId = 42, BarRegistrationNumber = "BAR-OLD",
@@ -53,7 +56,7 @@ public class UnverifiedLawyerTests
             Mock.Of<IRepository<CaseCategory>>(), Mock.Of<IRepository<District>>(), Mock.Of<IRepository<CaseActReference>>(),
             Mock.Of<IRepository<ActSection>>(), Mock.Of<IRepository<Act>>(), Mock.Of<IEncryptionService>(), caseService, notifications);
         var paymentService = new PaymentService(
-            Mock.Of<IRepository<PaymentOrder>>(), Mock.Of<IRepository<PayoutRequest>>(), _profileRepo.Object, caseRepo,
+            Mock.Of<IRepository<PaymentOrder>>(), _payoutRepo.Object, _profileRepo.Object, caseRepo,
             userManager.Object, Mock.Of<IAdminAuditService>(), notifications,
             Mock.Of<IPaymentGatewayResolver>(), Mock.Of<IAiTurnReservationStore>());
 
@@ -106,5 +109,23 @@ public class UnverifiedLawyerTests
         Assert.Equal("Labour law", _me.Specialization);
         Assert.Equal(VerificationStatus.Pending, _me.VerificationStatus);
         _profileRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+    }
+
+    private static void AssertSentToStatus(IActionResult result) =>
+        Assert.Equal(nameof(LawyerController.Status), Assert.IsType<RedirectToActionResult>(result).ActionName);
+
+    [Fact]
+    public async Task History_IsForVerifiedLawyersOnly() =>
+        AssertSentToStatus(await _controller.History(null, null, null, null));
+
+    [Fact]
+    public async Task Payments_IsForVerifiedLawyersOnly() =>
+        AssertSentToStatus(await _controller.Payments());
+
+    [Fact]
+    public async Task RequestPayout_IsForVerifiedLawyersOnly_AndCreatesNothing()
+    {
+        AssertSentToStatus(await _controller.RequestPayout());
+        _payoutRepo.Verify(r => r.AddAsync(It.IsAny<PayoutRequest>()), Times.Never);
     }
 }

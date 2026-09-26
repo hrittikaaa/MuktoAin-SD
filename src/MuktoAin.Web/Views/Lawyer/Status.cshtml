@@ -17,16 +17,19 @@
     </div>
 
     <div class="card" style="text-align: center; padding: 32px">
-        @if (Model.Status == "Rejected")
-        {
-            <div class="item-ico" style="margin: 0 auto 12px"><i data-lucide="x-circle"></i></div>
+        @{
+            // #12: an approved lawyer (e.g. arriving from the "verified"
+            // notification) used to see the Pending heading.
+            var (icon, headingBn, headingEn) = Model.Status switch
+            {
+                "Approved" => ("badge-check", "যাচাই সম্পন্ন", "Verified"),
+                "Rejected" => ("x-circle", "আবেদন প্রত্যাখ্যাত", "Rejected"),
+                _ => ("hourglass", "যাচাইকরণ অপেক্ষমান", "Verification Pending")
+            };
         }
-        else
-        {
-            <div class="item-ico" style="margin: 0 auto 12px"><i data-lucide="hourglass"></i></div>
-        }
+        <div class="item-ico" style="margin: 0 auto 12px"><i data-lucide="@icon"></i></div>
 
-        <h2>@(Model.Status == "Rejected" ? "আবেদন প্রত্যাখ্যাত / Rejected" : "যাচাইকরণ অপেক্ষমান / Verification Pending")</h2>
+        <h2 data-bn="@headingBn" data-en="@headingEn">@headingBn</h2>
         <p>
             <span class="badge badge-@badge">@Model.Status</span>
         </p>
@@ -34,7 +37,14 @@
             Bar #@Model.BarRegistrationNumber · @Model.Specialization
         </p>
 
-        @if (Model.Status == "Pending")
+        @if (Model.Status == "Approved")
+        {
+            <p class="muted tiny" data-bn="আপনার বার রেজিস্ট্রেশন যাচাই হয়েছে — এখন নথি পর্যালোচনা করতে পারবেন।" data-en="Your bar registration is verified — you can now review documents.">আপনার বার রেজিস্ট্রেশন যাচাই হয়েছে — এখন নথি পর্যালোচনা করতে পারবেন।</p>
+            <a class="btn btn-primary" asp-action="Queue">
+                <i data-lucide="file-check-2"></i> <span data-bn="রিভিউ কিউতে যান" data-en="Go to the review queue">রিভিউ কিউতে যান</span>
+            </a>
+        }
+        else if (Model.Status == "Pending")
         {
             <p class="muted tiny" data-bn="সাধারণত ২৪–৪৮ ঘণ্টার মধ্যে যাচাই সম্পন্ন হয়।" data-en="Verification typically takes 24–48 hours.">সাধারণত ২৪–৪৮ ঘণ্টার মধ্যে যাচাই সম্পন্ন হয়।</p>
             <div class="alert alert-info tiny" style="text-align: left">

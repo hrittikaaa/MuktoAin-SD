@@ -271,6 +271,7 @@ public class LawyerController : Controller
     {
         var profile = await MyProfileAsync();
         if (profile == null) return NotFound();
+        if (profile.VerificationStatus != VerificationStatus.Approved) return RedirectToAction(nameof(Status));
 
         // Dates are Dhaka calendar days (what the lawyer picked); ReviewedAt is
         // UTC, so convert the whole-day bounds. A reversed range is swapped.
@@ -323,6 +324,7 @@ public class LawyerController : Controller
     {
         var profile = await MyProfileAsync();
         if (profile == null) return NotFound();
+        if (profile.VerificationStatus != VerificationStatus.Approved) return RedirectToAction(nameof(Status));
 
         var earnings = await _paymentService.GetLawyerEarningsAsync(profile.LawyerProfileId);
         var vm = new LawyerPaymentsViewModel
@@ -350,6 +352,7 @@ public class LawyerController : Controller
     {
         var profile = await MyProfileAsync();
         if (profile == null) return NotFound();
+        if (profile.VerificationStatus != VerificationStatus.Approved) return RedirectToAction(nameof(Status));
 
         switch (await _paymentService.RequestPayoutAsync(profile.LawyerProfileId))
         {
