@@ -39,9 +39,66 @@
 
     <div class="card" style="margin-bottom: 20px">
         <h2 class="section-h">
+            <i data-lucide="banknote"></i>
+            <span data-bn="উত্তোলন / পে-আউট অনুরোধ" data-en="Payout requests">Payout requests</span>
+        </h2>
+        @if (payouts != null && payouts.Any())
+        {
+            <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th data-bn="রিকোয়েস্ট নং" data-en="Request">Request</th>
+                        <th data-bn="আইনজীবী" data-en="Lawyer">Lawyer</th>
+                        <th data-bn="পরিমাণ" data-en="Amount">Amount</th>
+                        <th data-bn="অনুরোধের সময়" data-en="Requested">Requested</th>
+                        <th data-bn="পদক্ষেপ" data-en="Action">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in payouts)
+                    {
+                        <tr>
+                            <td class="mono">#@p.PayoutRequestId</td>
+                            <td>
+                                <span data-bn="আইনজীবী #@ToBn(p.LawyerProfileId)" data-en="Lawyer #@p.LawyerProfileId">Lawyer #@p.LawyerProfileId</span>
+                            </td>
+                            <td>
+                                <span data-bn="৳@ToBn(p.Amount)" data-en="৳@p.Amount">৳@p.Amount</span>
+                            </td>
+                            <td>@p.RequestedAt.ToString("d MMM HH:mm")</td>
+                            <td>
+                                @if (isSuperAdmin)
+                                {
+                                    <form asp-action="ApprovePayout" method="post" style="display:inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="payoutRequestId" value="@p.PayoutRequestId" />
+                                        <button class="btn btn-outline btn-sm" type="submit" data-bn="অনুমোদন → পরিশোধ চিহ্নিত করুন" data-en="Approve → mark paid">Approve → mark paid</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <small class="muted" data-bn="কেবল সুপার-অ্যাডমিন" data-en="SuperAdmin only">SuperAdmin only</small>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            </div>
+        }
+        else
+        {
+            <p class="muted" data-bn="কোনো অপেক্ষমান পে-আউট অনুরোধ নেই।" data-en="No pending payout requests.">No pending payout requests.</p>
+        }
+    </div>
+
+    <div class="card">
+        <h2 class="section-h">
             <i data-lucide="landmark"></i>
             <span data-bn="পেমেন্ট অর্ডারসমূহ" data-en="Orders">Orders</span>
         </h2>
+        <div style="max-height: 520px; overflow: auto;">
         <table>
             <thead>
                 <tr>
@@ -125,60 +182,7 @@
                 }
             </tbody>
         </table>
-    </div>
-
-    <div class="card">
-        <h2 class="section-h">
-            <i data-lucide="banknote"></i>
-            <span data-bn="উত্তোলন / পে-আউট অনুরোধ" data-en="Payout requests">Payout requests</span>
-        </h2>
-        @if (payouts != null && payouts.Any())
-        {
-            <table>
-                <thead>
-                    <tr>
-                        <th data-bn="রিকোয়েস্ট নং" data-en="Request">Request</th>
-                        <th data-bn="আইনজীবী" data-en="Lawyer">Lawyer</th>
-                        <th data-bn="পরিমাণ" data-en="Amount">Amount</th>
-                        <th data-bn="অনুরোধের সময়" data-en="Requested">Requested</th>
-                        <th data-bn="পদক্ষেপ" data-en="Action">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var p in payouts)
-                    {
-                        <tr>
-                            <td class="mono">#@p.PayoutRequestId</td>
-                            <td>
-                                <span data-bn="আইনজীবী #@ToBn(p.LawyerProfileId)" data-en="Lawyer #@p.LawyerProfileId">Lawyer #@p.LawyerProfileId</span>
-                            </td>
-                            <td>
-                                <span data-bn="৳@ToBn(p.Amount)" data-en="৳@p.Amount">৳@p.Amount</span>
-                            </td>
-                            <td>@p.RequestedAt.ToString("d MMM HH:mm")</td>
-                            <td>
-                                @if (isSuperAdmin)
-                                {
-                                    <form asp-action="ApprovePayout" method="post" style="display:inline">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="payoutRequestId" value="@p.PayoutRequestId" />
-                                        <button class="btn btn-outline btn-sm" type="submit" data-bn="অনুমোদন → পরিশোধ চিহ্নিত করুন" data-en="Approve → mark paid">Approve → mark paid</button>
-                                    </form>
-                                }
-                                else
-                                {
-                                    <small class="muted" data-bn="কেবল সুপার-অ্যাডমিন" data-en="SuperAdmin only">SuperAdmin only</small>
-                                }
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
-        else
-        {
-            <p class="muted" data-bn="কোনো অপেক্ষমান পে-আউট অনুরোধ নেই।" data-en="No pending payout requests.">No pending payout requests.</p>
-        }
+        </div>
     </div>
 </main>
 
