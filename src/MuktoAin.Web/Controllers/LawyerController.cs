@@ -125,16 +125,15 @@ public class LawyerController : Controller
 
         var queue = await _reviewService.GetQueueAsync(profile.LawyerProfileId, filter, page, QueuePageSize);
 
-        var totalPages = Math.Max((int)Math.Ceiling(queue.TotalCount / (double)QueuePageSize), 1);
         var vm = new LawyerQueueViewModel
         {
             LawyerName = await MyNameAsync(profile),
             BarRegistrationNumber = profile.BarRegistrationNumber,
             Specialization = profile.Specialization ?? "",
-            PendingCount = queue.TotalCount, // KPI shows the full backlog, not the page
+            PendingCount = queue.PoolCount, // whole backlog, whatever filter is active
             ActiveFilter = filter ?? "All",
             FieldFallback = queue.FieldFallback,
-            Page = Math.Max(1, Math.Min(page, totalPages)),
+            Page = queue.Page,
             PageSize = QueuePageSize,
             TotalCount = queue.TotalCount,
             Items = queue.Items.Select(q => new LawyerQueueItemViewModel

@@ -104,6 +104,11 @@ public class LawyerReviewService
 
         var ordered = docs.OrderBy(d => d.CreatedAt).ToList();
         var totalCount = ordered.Count;
+        // Clamp before slicing, so a page past the end shows the last page's
+        // items rather than an empty table labelled as the last page (#14).
+        var totalPages = Math.Max((int)Math.Ceiling(totalCount / (double)pageSize), 1);
+        page = Math.Clamp(page, 1, totalPages);
+        var poolCount = await _docRepo.CountAsync(d => d.Status == DocumentStatus.UnderReview);
 
         var result = new List<QueueItemDto>();
         foreach (var d in ordered.Skip((page - 1) * pageSize).Take(pageSize))
@@ -135,7 +140,7 @@ public class LawyerReviewService
                 IsClaimed: d.AssignedLawyerProfileId.HasValue,
                 IsMine: lawyerProfileId.HasValue && d.AssignedLawyerProfileId == lawyerProfileId));
         }
-        return new QueuePageDto(totalCount, result, fieldFallback);
+        return new QueuePageDto(totalCount, result, fieldFallback, page, poolCount);
     }
 
     // Claim = optimistic lock. Returns false if another lawyer already holds it.

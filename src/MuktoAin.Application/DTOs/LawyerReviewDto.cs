@@ -23,10 +23,14 @@ public record QueueItemDto(
 // (for the pager), Items is the current page slice only.
 // FieldFallback: "MyField" was asked for but the lawyer's Specialization is
 // blank or matches no category, so the full pool was returned instead.
+// Page: the requested page clamped to the range. PoolCount: every document
+// awaiting review, whatever the filter (the "Pending" KPI).
 public record QueuePageDto(
     int TotalCount,
     IReadOnlyList<QueueItemDto> Items,
-    bool FieldFallback = false
+    bool FieldFallback = false,
+    int Page = 1,
+    int PoolCount = 0
 );
 
 public record ReviewWorkspaceDto(

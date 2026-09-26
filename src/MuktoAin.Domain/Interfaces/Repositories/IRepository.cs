@@ -17,6 +17,8 @@ public interface IRepository<T> where T : class
     Task<IEnumerable<T>> GetAllAsync();
     // Rows matching the predicate, filtered in the database (not in memory).
     Task<IReadOnlyList<T>> FindAsync(Expression<Func<T, bool>> predicate);
+    // Number of rows matching the predicate, counted in the database.
+    Task<int> CountAsync(Expression<Func<T, bool>> predicate);
     Task AddAsync(T entity);
     Task UpdateAsync(T entity);
     Task DeleteAsync(T entity);

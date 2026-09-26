@@ -377,6 +377,43 @@ public class LawyerReviewServiceTests
         Assert.False(queue.Items.Single(q => q.DocumentId == 1).IsClaimed);
     }
 
+    // #14: a page past the end used to return an empty slice while the
+    // controller showed "last page"; the service now clamps before slicing.
+    [Fact]
+    public async Task GetQueueAsync_PageBeyondLast_ReturnsTheLastPagesItems()
+    {
+        var docs = Enumerable.Range(1, 25).Select(i => new GeneratedDocument
+        {
+            DocumentId = i, CaseId = 10, Status = DocumentStatus.UnderReview, CreatedAt = new DateTime(2026, 9, 1).AddHours(i)
+        }).ToList();
+        _docRepo.SetupRows(docs);
+        SetUpCase(10, "Case A", 1, "Labour", 1, "Dhaka");
+
+        var queue = await _service.GetQueueAsync(lawyerProfileId: 5, filter: "All", page: 99, pageSize: 20);
+
+        Assert.Equal(2, queue.Page);
+        Assert.Equal(new[] { 21, 22, 23, 24, 25 }, queue.Items.Select(q => q.DocumentId));
+    }
+
+    // #15: the "Pending" KPI is the whole review backlog, whatever filter chip is active.
+    [Fact]
+    public async Task GetQueueAsync_PoolCount_IsTheWholeBacklogWhateverTheFilter()
+    {
+        _docRepo.SetupRows(new List<GeneratedDocument>
+        {
+            new() { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 5, CreatedAt = DateTime.UtcNow },
+            new() { DocumentId = 2, CaseId = 10, Status = DocumentStatus.UnderReview, CreatedAt = DateTime.UtcNow },
+            new() { DocumentId = 3, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 99, CreatedAt = DateTime.UtcNow },
+            new() { DocumentId = 4, CaseId = 10, Status = DocumentStatus.Approved, CreatedAt = DateTime.UtcNow }
+        });
+        SetUpCase(10, "Case A", 1, "Labour", 1, "Dhaka");
+
+        var mine = await _service.GetQueueAsync(lawyerProfileId: 5, filter: "Mine");
+
+        Assert.Equal(1, mine.TotalCount);
+        Assert.Equal(3, mine.PoolCount);
+    }
+
     // ── ClaimAsync Security Edge-Case Tests ──────────────────────────────
 
     [Fact]
