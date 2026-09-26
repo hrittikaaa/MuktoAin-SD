@@ -247,10 +247,27 @@ public class ChatService
         var recentTurns = string.Join("\n", messages.TakeLast(3)
             .Select(m => (m.Role == "user" ? "Citizen: " : "Assistant: ") + m.Content));
 
+        // Detect category from existing case file to inject category-specific field requirements.
+        var detectedCategory = CaseFileString(caseFileJson, "category")
+                               ?? CaseFileString(caseFileJson, "suggestedDraftType");
+        var categoryFieldsBlock = string.Empty;
+        IReadOnlyList<string> structurallyMissing = Array.Empty<string>();
+
+        if (!string.IsNullOrWhiteSpace(detectedCategory))
+        {
+            structurallyMissing = CategoryIntakeFields.ValidateCaseFile(detectedCategory, caseFileJson);
+            if (structurallyMissing.Count > 0)
+            {
+                categoryFieldsBlock = CategoryIntakeFields.BuildMissingFieldsPromptBlock(
+                    detectedCategory, structurallyMissing, language);
+            }
+        }
+
         var prompt = PromptTemplates.ConversationalIntake
             .Replace("{caseFile}", caseFileJson)
             .Replace("{recentTurns}", string.IsNullOrWhiteSpace(recentTurns) ? "(none)" : recentTurns)
             .Replace("{message}", question)
+            .Replace("{categoryFieldsBlock}", categoryFieldsBlock)
             .Replace("{language}", language == "en" ? "en" : "bn");
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -338,14 +355,25 @@ public class ChatService
 
         var activeCaseFileJson = session.CaseFileJson ?? envelope.CaseFileJson;
         var hasDistrict = !string.IsNullOrWhiteSpace(CaseFileString(activeCaseFileJson, "district"));
-        var hasCategory = envelope.SuggestedDraftType != null && MapCategory(envelope.SuggestedDraftType) != null;
+        var resolvedCategory = envelope.SuggestedDraftType
+                               ?? CaseFileString(activeCaseFileJson, "category");
+        var hasCategory = resolvedCategory != null && MapCategory(resolvedCategory) != null;
         var noMissingInfo = envelope.MissingInfo == null || envelope.MissingInfo.Count == 0;
+
+        // C# validates category-specific required fields — AI's readyToExplain is a suggestion only.
+        var categoryFieldsComplete = true;
+        if (hasCategory && !string.IsNullOrWhiteSpace(resolvedCategory))
+        {
+            var missingCritical = CategoryIntakeFields.ValidateCaseFile(resolvedCategory, activeCaseFileJson);
+            categoryFieldsComplete = missingCritical.Count == 0;
+        }
 
         var canDraft = envelope.CanDraft
             && envelope.ReadyToExplain
             && hasCategory
             && hasDistrict
-            && noMissingInfo;
+            && noMissingInfo
+            && categoryFieldsComplete;
 
         return new ChatTurnDto(reply, cited, DisclaimersFor(language),
             FromCache: false, RetrievalOnly: false, Tier: "full",

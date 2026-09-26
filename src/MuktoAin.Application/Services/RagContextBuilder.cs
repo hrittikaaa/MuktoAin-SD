@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using MuktoAin.Domain.Constants;
 using MuktoAin.Domain.Interfaces.Repositories;
 using MuktoAin.Domain.Interfaces.Services;
 using MuktoAin.Domain.Models;
@@ -73,6 +74,34 @@ public class RagContextBuilder : IRagContextBuilder
         }
 
         return await MergeScenarioPriorsAsync(query, vectorResults);
+    }
+
+    public async Task<IEnumerable<RetrievedSection>> RetrieveContextAsync(
+        string query, int topK, string? categoryKey)
+    {
+        if (string.IsNullOrWhiteSpace(categoryKey))
+            return await RetrieveContextAsync(query, topK);
+
+        // Retrieve a slightly larger pool, then filter + re-rank by category relevance.
+        var pool = (await RetrieveContextAsync(query, topK: Math.Max(topK, 8))).ToList();
+
+        var relevantActTitles = CategoryActFilter.GetRelevantActTitles(categoryKey);
+        if (relevantActTitles.Count == 0)
+            return pool.Take(topK);
+
+        // Partition: category-matching sections first, others second.
+        var matching = pool.Where(s => relevantActTitles.Any(
+            act => s.ActTitle.Contains(act, StringComparison.OrdinalIgnoreCase)
+                   || act.Contains(s.ActTitle, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+        var nonMatching = pool.Except(matching).ToList();
+
+        // Return matching sections first (up to topK), backfill with non-matching if needed.
+        var result = matching.Take(topK).ToList();
+        if (result.Count < topK)
+            result.AddRange(nonMatching.Take(topK - result.Count));
+
+        return result;
     }
 
     // Appends curated mapping sections not already in the retrieved set. The
