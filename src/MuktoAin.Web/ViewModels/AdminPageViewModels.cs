@@ -47,6 +47,12 @@ public class AdminCorpusViewModel
     public int TotalSections { get; set; }
     public int TotalChunks { get; set; }
     public int EmbeddedChunks { get; set; }
+    public int TotalActs { get; set; }
+    public string? SearchQuery { get; set; }
+    public int CurrentPage { get; set; } = 1;
+    public int PageSize { get; set; } = 25;
+    public int TotalFilteredActs { get; set; }
+    public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalFilteredActs / PageSize) : 0;
 }
 
 public class AdminActRowViewModel
