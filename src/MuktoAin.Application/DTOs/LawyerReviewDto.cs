@@ -11,10 +11,12 @@ public record QueueItemDto(
     DocumentStatus Status,
     bool CitizenEdited,
     int VersionNo,
-    string? ClaimedBy,       // lawyer display name when claimed by someone
+    string? ClaimedBy,       // claiming lawyer's bar number (admin-facing; not shown to other lawyers)
     DateTime CreatedAt,
     DateTime? ClaimedAt,
-    bool CanOpen             // false when claimed by another lawyer
+    bool CanOpen,            // false when claimed by another lawyer
+    bool IsClaimed = false,  // any lawyer holds it
+    bool IsMine = false      // the requesting lawyer holds it
 );
 
 // AUD-8: queue paging envelope — TotalCount is the FULL filtered pool size

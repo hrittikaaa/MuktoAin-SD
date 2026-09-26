@@ -125,7 +125,9 @@ public class LawyerReviewService
                 d.CreatedAt,
                 d.ClaimedAt,
                 CanOpen: !d.AssignedLawyerProfileId.HasValue
-                      || d.AssignedLawyerProfileId == lawyerProfileId));
+                      || d.AssignedLawyerProfileId == lawyerProfileId,
+                IsClaimed: d.AssignedLawyerProfileId.HasValue,
+                IsMine: lawyerProfileId.HasValue && d.AssignedLawyerProfileId == lawyerProfileId));
         }
         return new QueuePageDto(totalCount, result, fieldFallback);
     }

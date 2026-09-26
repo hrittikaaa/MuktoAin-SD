@@ -126,7 +126,8 @@ public class LawyerController : Controller
                 CitizenEdited = q.CitizenEdited,
                 VersionNo = q.VersionNo,
                 ClaimedBy = q.ClaimedBy,
-                IsMine = profile.LawyerProfileId != 0 && q.ClaimedBy == profile.BarRegistrationNumber,
+                IsClaimed = q.IsClaimed,
+                IsMine = q.IsMine,
                 WaitingHours = (int)Math.Max(0, (DateTime.UtcNow - q.CreatedAt).TotalHours),
                 CanOpen = q.CanOpen
             }).ToList()
@@ -225,8 +226,17 @@ public class LawyerController : Controller
         var profile = await MyProfileAsync();
         if (profile == null) return NotFound();
 
-        DateTime? fromDate = DateTime.TryParse(from, out var f) ? f.Date : null;
-        DateTime? toDate = DateTime.TryParse(to, out var t) ? t.Date.AddDays(1).AddTicks(-1) : null;
+        // Dates are Dhaka calendar days (what the lawyer picked); ReviewedAt is
+        // UTC, so convert the whole-day bounds. A reversed range is swapped.
+        DateOnly? fromDay = BdTime.TryParseDay(from, out var f) ? f : null;
+        DateOnly? toDay = BdTime.TryParseDay(to, out var t) ? t : null;
+        if (fromDay > toDay)
+        {
+            (fromDay, toDay) = (toDay, fromDay);
+            (from, to) = (to, from);
+        }
+        DateTime? fromDate = fromDay.HasValue ? BdTime.DayStartUtc(fromDay.Value) : null;
+        DateTime? toDate = toDay.HasValue ? BdTime.DayEndUtc(toDay.Value) : null;
 
         var history = await _reviewService.GetHistoryAsync(profile.LawyerProfileId, decision, fromDate, toDate);
         // Service already returns newest-first; only re-sort for the other options.

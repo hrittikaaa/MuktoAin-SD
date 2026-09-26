@@ -77,6 +77,33 @@ public class LawyerVerificationServiceTests
         Assert.Equal(VerificationStatus.Rejected, profile.VerificationStatus);
     }
 
+    [Theory]
+    [InlineData(VerificationStatus.Approved)]
+    [InlineData(VerificationStatus.Rejected)]
+    public async Task VerifyAsync_AlreadyDecidedProfile_ThrowsAndChangesNothing(VerificationStatus status)
+    {
+        var profile = new LawyerProfile { LawyerProfileId = 5, UserId = 42, VerificationStatus = status };
+        _profileRepo.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(profile);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _service.VerifyAsync(5, adminUserId: 1, approve: true));
+
+        Assert.Equal(status, profile.VerificationStatus);
+        _profileRepo.Verify(r => r.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task VerifyAsync_Reject_TrimsAndCapsReasonToColumnLength()
+    {
+        var profile = new LawyerProfile { LawyerProfileId = 4, UserId = 42 };
+        _profileRepo.Setup(r => r.GetByIdAsync(4)).ReturnsAsync(profile);
+
+        await _service.VerifyAsync(4, adminUserId: 1, approve: false, reason: "  " + new string('x', 600) + "  ");
+
+        Assert.Equal(LawyerVerificationService.MaxRejectionReasonLength, profile.RejectionReason!.Length);
+        Assert.All(profile.RejectionReason, c => Assert.Equal('x', c));
+    }
+
     [Fact]
     public async Task VerifyAsync_UnknownProfile_Throws()
     {

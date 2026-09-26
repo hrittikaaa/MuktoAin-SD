@@ -210,7 +210,8 @@ public class LawyerQueueItemViewModel
     public string DistrictName { get; set; } = string.Empty;
     public bool CitizenEdited { get; set; }
     public int VersionNo { get; set; }
-    public string? ClaimedBy { get; set; }
+    public string? ClaimedBy { get; set; } // bar number; never rendered to other lawyers
+    public bool IsClaimed { get; set; }
     public bool IsMine { get; set; }
     public int WaitingHours { get; set; }
     public bool CanOpen { get; set; }

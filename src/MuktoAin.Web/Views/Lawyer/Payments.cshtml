@@ -46,7 +46,7 @@
                             <td>৳@e.Gross</td>
                             <td>৳@e.Commission</td>
                             <td><b>৳@e.Net</b></td>
-                            <td class="tiny muted">@e.PaidAt.ToString("d MMM yyyy")</td>
+                            <td class="tiny muted">@BdTime.FromUtc(e.PaidAt).ToString("d MMM yyyy")</td>
                         </tr>
                     }
                 </tbody>

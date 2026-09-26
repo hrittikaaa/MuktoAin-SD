@@ -281,6 +281,40 @@ public class LawyerReviewServiceTests
         Assert.False(queue.Items.Single(q => q.DocumentId == 3).CanOpen);
     }
 
+    [Fact]
+    public async Task GetQueueAsync_IsMine_ComesFromAssignedProfileId()
+    {
+        var docUnclaimed = new GeneratedDocument
+        {
+            DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, CreatedAt = DateTime.UtcNow
+        };
+        var docMine = new GeneratedDocument
+        {
+            DocumentId = 2, CaseId = 20, Status = DocumentStatus.UnderReview,
+            AssignedLawyerProfileId = 5, CreatedAt = DateTime.UtcNow
+        };
+        var docOther = new GeneratedDocument
+        {
+            DocumentId = 3, CaseId = 30, Status = DocumentStatus.UnderReview,
+            AssignedLawyerProfileId = 99, CreatedAt = DateTime.UtcNow
+        };
+
+        _docRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<GeneratedDocument> { docUnclaimed, docMine, docOther });
+        SetUpCase(10, "Case A", 1, "Labour", 1, "Dhaka");
+        SetUpCase(20, "Case B", 2, "General Diary", 2, "Gazipur");
+        SetUpCase(30, "Case C", 3, "RTI", 3, "Sylhet");
+        // Profile lookups deliberately unset: ownership must not depend on
+        // resolving bar numbers.
+
+        var queue = await _service.GetQueueAsync(lawyerProfileId: 5, filter: "All");
+
+        Assert.False(queue.Items.Single(q => q.DocumentId == 1).IsMine);
+        Assert.True(queue.Items.Single(q => q.DocumentId == 2).IsMine);
+        Assert.False(queue.Items.Single(q => q.DocumentId == 3).IsMine);
+        Assert.True(queue.Items.Single(q => q.DocumentId == 3).IsClaimed);
+        Assert.False(queue.Items.Single(q => q.DocumentId == 1).IsClaimed);
+    }
+
     // ── ClaimAsync Security Edge-Case Tests ──────────────────────────────
 
     [Fact]
