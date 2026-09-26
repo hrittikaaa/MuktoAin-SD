@@ -257,7 +257,7 @@ public class LawyerReviewService
         var district = await _districtRepo.GetByIdAsync(c.DistrictId);
 
         var citations = new List<CitedSectionDto>();
-        var refs = (await _refRepo.GetAllAsync()).Where(r => r.CaseId == d.CaseId);
+        var refs = await _refRepo.FindAsync(r => r.CaseId == d.CaseId);
         foreach (var r in refs)
         {
             var s = await _sectionRepo.GetByIdAsync(r.SectionId);

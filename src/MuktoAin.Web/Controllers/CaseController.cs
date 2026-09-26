@@ -239,7 +239,8 @@ public class CaseController : Controller
 
         // Cited sections from CASE_ACT_REFERENCE (persisted at generation time).
         // The generic repo does no Includes and there is no lazy loading, so
-        // Section/Act are hydrated by id (same approach as LawyerReviewService).
+        // Cited sections from CASE_ACT_REFERENCE (persisted at generation time).
+        // Hydrate only the specific sections and acts referenced by this case.
         var refRepo = HttpContext.RequestServices
             .GetRequiredService<IRepository<MuktoAin.Domain.Entities.CaseActReference>>();
         var sectionRepo = HttpContext.RequestServices
@@ -247,26 +248,25 @@ public class CaseController : Controller
         var actRepo = HttpContext.RequestServices
             .GetRequiredService<IRepository<MuktoAin.Domain.Entities.Act>>();
 
-        var actRefs = (await refRepo.GetAllAsync()).Where(r => r.CaseId == id).ToList();
-        var sections = await sectionRepo.GetAllAsync();
-        var acts = await actRepo.GetAllAsync();
+        var actRefs = await refRepo.FindAsync(r => r.CaseId == id);
+        var citedSections = new List<CitedSectionViewModel>();
 
-        vm.CitedSections = actRefs
-            .Select(r =>
+        foreach (var r in actRefs)
+        {
+            var section = await sectionRepo.GetByIdAsync(r.SectionId);
+            var act = section != null ? await actRepo.GetByIdAsync(section.ActId) : null;
+            citedSections.Add(new CitedSectionViewModel
             {
-                var section = sections.FirstOrDefault(s => s.SectionId == r.SectionId);
-                var act = section == null ? null : acts.FirstOrDefault(a => a.ActId == section.ActId);
-                return new CitedSectionViewModel
-                {
-                    ActTitle = act?.Title ?? string.Empty,
-                    SectionNumber = string.IsNullOrWhiteSpace(section?.SectionNumber)
-                        ? string.Empty
-                        : $"ধারা {section.SectionNumber}",
-                    SectionText = section?.SectionText ?? string.Empty,
-                    RelevanceScore = $"{Math.Round(r.RelevanceScore * 100)}%"
-                };
-            })
-            .ToList();
+                ActTitle = act?.Title ?? string.Empty,
+                SectionNumber = string.IsNullOrWhiteSpace(section?.SectionNumber)
+                    ? string.Empty
+                    : $"ধারা {section.SectionNumber}",
+                SectionText = section?.SectionText ?? string.Empty,
+                RelevanceScore = $"{Math.Round(r.RelevanceScore * 100)}%"
+            });
+        }
+
+        vm.CitedSections = citedSections;
 
         return View(vm);
     }
