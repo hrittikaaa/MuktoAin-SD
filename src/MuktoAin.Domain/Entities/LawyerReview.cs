@@ -16,4 +16,9 @@ public class LawyerReview
     public ReviewDecision Decision { get; set; }
     public string Comments { get; set; } = string.Empty;
     public DateTime ReviewedAt { get; set; }
+
+    // Snapshot of the document when the decision was made (#17,
+    // scripts/21_review_timing_and_snapshot.sql). Null on older reviews.
+    public int? ReviewedVersionNo { get; set; }
+    public string? ReviewedContent { get; set; }
 }

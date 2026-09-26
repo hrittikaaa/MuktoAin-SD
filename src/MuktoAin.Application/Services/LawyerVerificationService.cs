@@ -1,4 +1,3 @@
-using MuktoAin.Application.DTOs;
 using MuktoAin.Domain.Entities;
 using MuktoAin.Domain.Enums;
 using MuktoAin.Domain.Interfaces.Repositories;
@@ -20,29 +19,22 @@ public class LawyerVerificationService
         _notificationRepo = notificationRepo;
     }
 
-    public async Task<int> ApplyAsync(int userId, LawyerApplicationDto dto)
-    {
-        var existing = await _profileRepo.GetAllAsync();
-        if (existing.Any(p => p.UserId == userId))
-            throw new InvalidOperationException("Verification already submitted");
-
-        var profile = new LawyerProfile
-        {
-            UserId = userId,
-            BarRegistrationNumber = dto.BarRegistrationNumber,
-            Specialization = dto.Specialization,
-            VerificationStatus = VerificationStatus.Pending
-        };
-
-        await _profileRepo.AddAsync(profile);
-        await _profileRepo.SaveChangesAsync();
-        return profile.LawyerProfileId;
-    }
+    // LAWYER_PROFILE.RejectionReason column length (LawyerProfileConfiguration).
+    public const int MaxRejectionReasonLength = 500;
 
     public async Task VerifyAsync(int lawyerProfileId, int adminUserId, bool approve, string? reason = null)
     {
         var profile = await _profileRepo.GetByIdAsync(lawyerProfileId);
         if (profile == null) throw new ArgumentException("Profile not found");
+        // Only a pending application is decided; a stale form or double submit
+        // must not flip an already-decided lawyer or re-stamp the audit trail.
+        if (profile.VerificationStatus != VerificationStatus.Pending)
+            throw new InvalidOperationException(
+                $"Lawyer profile {lawyerProfileId} is already {profile.VerificationStatus}.");
+
+        reason = reason?.Trim();
+        if (reason?.Length > MaxRejectionReasonLength)
+            reason = reason[..MaxRejectionReasonLength];
 
         profile.VerificationStatus = approve
             ? VerificationStatus.Approved

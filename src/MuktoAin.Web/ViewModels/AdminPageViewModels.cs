@@ -29,6 +29,13 @@ public class AdminLawyersViewModel
     public List<AdminLawyerRowViewModel> Pending { get; set; } = new();
     public List<AdminLawyerRowViewModel> Approved { get; set; } = new();
     public List<AdminLawyerRowViewModel> Rejected { get; set; } = new();
+    public List<AdminLawyerRowViewModel> FilteredLawyers { get; set; } = new();
+    public string StatusFilter { get; set; } = "All";
+    public string? SearchQuery { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 15;
+    public int TotalFilteredCount { get; set; }
+    public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalFilteredCount / PageSize) : 1;
 }
 
 public class AdminLawyerRowViewModel
@@ -72,6 +79,27 @@ public class AdminActRowViewModel
 public class AdminScenariosViewModel
 {
     public List<AdminScenarioRowViewModel> Mappings { get; set; } = new();
+    public List<AdminSectionOptionViewModel> AvailableSections { get; set; } = new();
+    public List<AdminActOptionViewModel> AvailableActs { get; set; } = new();
+    public string? SearchQuery { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+    public int TotalFilteredCount { get; set; }
+    public int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalFilteredCount / (double)PageSize));
+}
+
+public class AdminActOptionViewModel
+{
+    public int ActId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public int Year { get; set; }
+    public string DisplayText => Year > 0 ? $"{Title} ({Year})" : Title;
+}
+
+public class AdminSectionOptionViewModel
+{
+    public int SectionId { get; set; }
+    public string DisplayText { get; set; } = string.Empty;
 }
 
 public class AdminScenarioRowViewModel
@@ -94,6 +122,7 @@ public class AdminCategoryRowViewModel
     public string Name { get; set; } = string.Empty;
     public string NameBn { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string DescriptionBn { get; set; } = string.Empty;
     public string TemplateBadge { get; set; } = string.Empty;
 }
 
@@ -108,6 +137,7 @@ public class AdminAiLogsViewModel
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 50;
     public int TotalCount { get; set; }
+    public int RetentionDays { get; set; } = 180;
 }
 
 public class AdminAiLogRowViewModel
@@ -121,4 +151,30 @@ public class AdminAiLogRowViewModel
     public int? CaseId { get; set; }
     public string PromptPreview { get; set; } = string.Empty;
     public string ResponsePreview { get; set; } = string.Empty;
+}
+
+public class AdminAuditLogsViewModel
+{
+    public List<AdminAuditLogRowViewModel> Logs { get; set; } = new();
+    public List<string> AvailableActions { get; set; } = new();
+    public string? ActionFilter { get; set; }
+    public string? SearchQuery { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+    public int TotalCount { get; set; }
+    public int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalCount / (double)PageSize));
+}
+
+public class AdminAuditLogRowViewModel
+{
+    public int AdminAuditLogId { get; set; }
+    public int AdminUserId { get; set; }
+    public string AdminName { get; set; } = string.Empty;
+    public string AdminEmail { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public int? TargetUserId { get; set; }
+    public string? TargetUserName { get; set; }
+    public int? TargetEntityId { get; set; }
+    public string? Details { get; set; }
+    public DateTime CreatedAt { get; set; }
 }

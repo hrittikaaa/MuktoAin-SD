@@ -1,12 +1,11 @@
 @model LawyerReviewViewModel
 @{
     ViewData["Title"] = "পর্যালোচনা — DOC-" + Model.DocumentId + " — মুক্ত আইন";
-    var citations = (IReadOnlyList<MuktoAin.Application.DTOs.CitedSectionDto>?)ViewData["Citations"]
-        ?? new List<MuktoAin.Application.DTOs.CitedSectionDto>();
-    var narrative = (string?)ViewData["CitizenNarrative"] ?? "";
-    var district = (string?)ViewData["DistrictName"] ?? "";
-    var versionNo = (int?)ViewData["VersionNo"] ?? 1;
-    var citizenEdited = (bool?)ViewData["CitizenEdited"] ?? false;
+    var citations = Model.Citations;
+    var narrative = Model.CitizenNarrative;
+    var district = Model.DistrictName;
+    var versionNo = Model.VersionNo;
+    var citizenEdited = Model.CitizenEdited;
 }
 
 <main class="container" id="main">
@@ -28,8 +27,29 @@
                 <span class="badge badge-review" data-bn="নাগরিক সম্পাদিত" data-en="Citizen edited">নাগরিক সম্পাদিত</span>
             }
         </p>
+        @if (!Model.IsClaimedByMe)
+        {
+            <div class="alert alert-info tiny" style="margin-top: 8px">
+                <i data-lucide="eye"></i>
+                <span data-bn="শুধু দেখার মোড — সম্পাদনা ও সিদ্ধান্ত দিতে নিচে &quot;পর্যালোচনা শুরু করুন&quot; চাপুন। নাগরিকের বিবরণ তখন দেখা যাবে।" data-en="Preview only — press &quot;Start reviewing&quot; below to edit and decide. The citizen's narrative is shown then.">শুধু দেখার মোড — সম্পাদনা ও সিদ্ধান্ত দিতে নিচে "পর্যালোচনা শুরু করুন" চাপুন। নাগরিকের বিবরণ তখন দেখা যাবে।</span>
+            </div>
+        }
+        else
+        {
+        <!-- Hand the document back to the pool without a decision (#9) -->
+        <form asp-action="Release" asp-route-documentId="@Model.DocumentId" method="post" style="margin-top: 8px">
+            @Html.AntiForgeryToken()
+            <button class="btn btn-outline btn-sm" type="submit"
+                    data-confirm="নথিটি ছেড়ে দেবেন? এটি সারিতে ফিরে যাবে এবং অন্য আইনজীবী নিতে পারবেন। এই পাতায় লেখা মন্তব্য/সম্পাদনা সংরক্ষিত হবে না। / Release this document? It goes back to the queue for any lawyer to take. Comments and edits on this page are not saved.">
+                <i data-lucide="undo-2"></i> <span data-bn="ছেড়ে দিন" data-en="Release">ছেড়ে দিন</span>
+            </button>
+            <span class="muted tiny" data-bn="নথিটি ২৪ ঘণ্টা আপনার নামে থাকে; এরপর অন্য আইনজীবী নিতে পারেন।" data-en="The document is held for you for 24 hours; after that another lawyer can take it.">নথিটি ২৪ ঘণ্টা আপনার নামে থাকে; এরপর অন্য আইনজীবী নিতে পারেন।</span>
+        </form>
+        }
     </div>
 
+    @if (Model.IsClaimedByMe)
+    {
     <!-- Case context (PII session note) -->
     <details class="acc card" open>
         <summary><b data-bn="নাগরিকের বিবরণ (এই সেশনের জন্য ডিক্রিপ্টকৃত)" data-en="Citizen narrative (decrypted for this review session)">নাগরিকের বিবরণ (এই সেশনের জন্য ডিক্রিপ্টকৃত)</b></summary>
@@ -49,12 +69,12 @@
         }
     </details>
 
-    <form asp-action="SubmitReview" method="post">
+    <form asp-action="SubmitReview" method="post" id="review-form">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="DocumentId" />
-        <input type="hidden" asp-for="CaseId" />
-        <input type="hidden" asp-for="CaseTitle" />
-        <input type="hidden" asp-for="CategoryName" />
+
+        <!-- Errors from an invalid submit; the page is re-shown with the lawyer's own text -->
+        <div asp-validation-summary="All" class="alert alert-warn" style="margin-top: 16px;"></div>
 
         <!-- Compare: tabs on mobile (main.js data-tabs), side-by-side >=900px -->
         <div class="card" style="margin: 16px 0">
@@ -70,14 +90,14 @@
                     <div class="compare-pane compare-original">
                         <div class="paper-sheet" style="margin: 0">
                             <div class="paper-watermark"><span data-bn="খসড়া" data-en="DRAFT">খসড়া</span></div>
-                            <div class="serif md-content" style="font-family: var(--font-doc); font-size: 15px">@MarkdownText.ToHtml(Model.ContentDraft)</div>
+                            <div class="serif md-content" style="font-family: var(--font-doc); font-size: 15px">@DocumentText.ToHtml(Model.ContentDraft)</div>
                         </div>
                     </div>
                 </div>
 
                 <div class="tab-panel" data-tab-panel="editable" hidden>
                     <label class="form-label" data-bn="চূড়ান্ত সংস্করণ (সম্পাদনা করুন)" data-en="Final version (edit)">চূড়ান্ত সংস্করণ (সম্পাদনা করুন)</label>
-                    <textarea class="input" id="EditedContentMobile" name="EditedContent" rows="16"
+                    <textarea class="input" id="EditedContentMobile" rows="16"
                               style="width: 100%; font-family: var(--font-doc)"
                               maxlength="50000"
                               data-counter="#review-counter">@Model.EditedContent</textarea>
@@ -91,7 +111,7 @@
                     <h3 class="section-h"><i data-lucide="file-lock"></i> Original</h3>
                     <div class="paper-sheet" style="margin: 0">
                         <div class="paper-watermark"><span data-bn="খসড়া" data-en="DRAFT">খসড়া</span></div>
-                        <div class="serif md-content" style="font-family: var(--font-doc); font-size: 14px">@MarkdownText.ToHtml(Model.ContentDraft)</div>
+                        <div class="serif md-content" style="font-family: var(--font-doc); font-size: 14px">@DocumentText.ToHtml(Model.ContentDraft)</div>
                     </div>
                 </div>
                 <div class="compare-pane compare-edit">
@@ -107,9 +127,9 @@
         <div class="card" style="margin: 16px 0">
             <label class="form-label" asp-for="Comments">
                 <i data-lucide="message-square"></i>
-                <span data-bn="পর্যালোচনা মন্তব্য (আবশ্যক — নাগরিক দেখবেন)" data-en="Review comments (required — visible to the citizen)">পর্যালোচনা মন্তব্য (আবশ্যক — নাগরিক দেখবেন)</span>
+                <span data-bn="পর্যালোচনা মন্তব্য (আবশ্যক — নাগরিক দেখবেন; প্রত্যাখ্যানের ক্ষেত্রে এটিই কারণ এবং তাদের চ্যাটে যুক্ত হবে)" data-en="Review comments (required — visible to the citizen; for a rejection this is the reason and is added to their chat)">পর্যালোচনা মন্তব্য (আবশ্যক — নাগরিক দেখবেন; প্রত্যাখ্যানের ক্ষেত্রে এটিই কারণ এবং তাদের চ্যাটে যুক্ত হবে)</span>
             </label>
-            <textarea class="input" asp-for="Comments" rows="3" maxlength="1000"
+            <textarea class="input" asp-for="Comments" rows="3" maxlength="4000" required
                       placeholder="আপনার সিদ্ধান্তের কারণ ব্যাখ্যা করুন…"
                       data-counter="#comments-counter"></textarea>
             <small class="muted tiny" id="comments-counter"></small>
@@ -120,7 +140,7 @@
             <label class="muted" style="margin-right: 6px; font-weight: 600" data-bn="সিদ্ধান্ত:" data-en="Decision:">সিদ্ধান্ত:</label>
 
             <button class="btn btn-outline btn-sm" type="submit" name="Decision" value="Approved"
-                    data-confirm="মূল খসড়া কোনো পরিবর্তন ছাড়া অনুমোদন করবেন? / Approve the original without changes?">
+                    data-confirm="পর্যালোচনাধীন সংস্করণটি (নাগরিক সম্পাদনা করলে সেটিই) কোনো পরিবর্তন ছাড়া অনুমোদন করবেন? সম্পাদকে আপনার করা পরিবর্তন বাদ যাবে। / Approve the version under review (the citizen's edit, if any) unchanged? Changes you made in the editor will be discarded.">
                 <i data-lucide="check"></i> <span data-bn="অনুমোদন" data-en="Approve">অনুমোদন</span>
             </button>
 
@@ -128,15 +148,17 @@
                 <i data-lucide="check-check"></i> <span data-bn="সম্পাদনাসহ অনুমোদন" data-en="Approve with Edits">সম্পাদনাসহ অনুমোদন</span>
             </button>
 
-            <button class="btn btn-danger-outline btn-sm" type="button" data-open-modal="#reject-modal">
+            <button class="btn btn-danger-outline btn-sm" type="submit" name="Decision" value="Rejected"
+                    data-confirm="নথিটি প্রত্যাখ্যান করবেন? উপরের মন্তব্যটি কারণ হিসেবে নাগরিককে দেখানো হবে এবং তাদের চ্যাটে যুক্ত হবে। / Reject this document? The comment above is shown to the citizen as the reason and added to their chat.">
                 <i data-lucide="x"></i> <span data-bn="প্রত্যাখ্যান" data-en="Reject">প্রত্যাখ্যান</span>
             </button>
         </div>
 
         <script>
-          // keep mobile tab and desktop pane in sync so whichever the lawyer edits
-          // posts the correct value (single name="EditedContent" posts last-wins;
-          // this sync makes both always identical).
+          // Only the desktop textarea carries name="EditedContent" (it is always
+          // in the form, CSS-hidden on mobile, so exactly one value posts and
+          // desktop edits post even without JS). Mirror the mobile tab copy
+          // into it, and back, so both panes always show the same text.
           document.addEventListener("DOMContentLoaded", function () {
             var a = document.getElementById("EditedContentMobile");
             var b = document.getElementById("EditedContentDesktop");
@@ -144,36 +166,89 @@
             a.addEventListener("input", function () { b.value = a.value; });
             b.addEventListener("input", function () { a.value = b.value; });
           });
+
+          // `required` accepts whitespace-only text, which the server then
+          // rejects with a full page reload. Block it in the browser too, so
+          // the decision buttons (incl. the Reject confirm) stop right here.
+          document.addEventListener("DOMContentLoaded", function () {
+            var c = document.getElementById("Comments");
+            if (!c) return;
+            function check() {
+              c.setCustomValidity(c.value.trim() ? "" : "পর্যালোচনার মন্তব্য প্রয়োজন / Review comments are required");
+            }
+            c.addEventListener("input", check);
+            check();
+          });
         </script>
     </form>
-</main>
+    }
+    else
+    {
+        if (citations.Any())
+        {
+            <div class="card">
+                <h3 class="section-h"><i data-lucide="book-open"></i> <span data-bn="উদ্ধৃত ধারা" data-en="Cited sections">উদ্ধৃত ধারা</span></h3>
+                <div class="chip-row">
+                    @foreach (var c in citations)
+                    {
+                        <span class="citation-chip">@c.ActTitle @(string.IsNullOrWhiteSpace(c.SectionNumber) ? "" : "· ধারা " + c.SectionNumber)</span>
+                    }
+                </div>
+            </div>
+        }
 
-<!-- Reject modal: reason MANDATORY, shown to citizen, injected into their chat on return -->
-<div class="modal-backdrop" id="reject-modal" role="dialog" aria-modal="true" aria-labelledby="reject-title">
-    <div class="modal">
-        <div class="modal-handle"></div>
-        <div class="modal-head">
-            <div>
-                <span class="kicker" style="color: var(--danger)">FR-14</span>
-                <h3 id="reject-title" data-bn="প্রত্যাখ্যানের কারণ (বাধ্যতামূলক)" data-en="Rejection reason (mandatory)">প্রত্যাখ্যানের কারণ (বাধ্যতামূলক)</h3>
+        <!-- Read-only preview: the version a decision would be made on -->
+        <div class="card" style="margin: 16px 0">
+            <h3 class="section-h">
+                <i data-lucide="file-lock"></i>
+                @if (citizenEdited)
+                {
+                    <span data-bn="পর্যালোচনাধীন সংস্করণ (নাগরিক সম্পাদিত, শুধু পড়ার জন্য)" data-en="Version under review (citizen edited, read-only)">পর্যালোচনাধীন সংস্করণ (নাগরিক সম্পাদিত, শুধু পড়ার জন্য)</span>
+                }
+                else
+                {
+                    <span data-bn="এআই খসড়া (শুধু পড়ার জন্য)" data-en="AI draft (read-only)">এআই খসড়া (শুধু পড়ার জন্য)</span>
+                }
+            </h3>
+            <div class="paper-sheet" style="margin: 0">
+                <div class="paper-watermark"><span data-bn="খসড়া" data-en="DRAFT">খসড়া</span></div>
+                <div class="serif md-content" style="font-family: var(--font-doc); font-size: 15px">@DocumentText.ToHtml(Model.EditedContent ?? Model.ContentDraft)</div>
             </div>
-            <button class="icon-btn" type="button" data-close-modal aria-label="বন্ধ করুন"><i data-lucide="x"></i></button>
+            @if (citizenEdited)
+            {
+                <details class="acc" style="margin-top: 12px">
+                    <summary data-bn="মূল এআই খসড়া" data-en="Original AI draft">মূল এআই খসড়া</summary>
+                    <div class="paper-sheet" style="margin: 0">
+                        <div class="serif md-content" style="font-family: var(--font-doc); font-size: 14px">@DocumentText.ToHtml(Model.ContentDraft)</div>
+                    </div>
+                </details>
+            }
         </div>
-        <form asp-action="SubmitReview" method="post">
+
+        <!-- Claiming happens here, after the lawyer has read the draft -->
+        <form asp-action="Claim" asp-route-documentId="@Model.DocumentId" method="post"
+              class="sticky-action-bar row wrap" style="gap: 10px; padding: 14px 18px; align-items: center">
             @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="DocumentId" />
-            <input type="hidden" asp-for="CaseId" />
-            <input type="hidden" asp-for="CaseTitle" />
-            <input type="hidden" asp-for="CategoryName" />
-            <input type="hidden" name="Decision" value="Rejected" />
-            <input type="hidden" asp-for="EditedContent" />
-            <p class="muted tiny" data-bn="কারণটি নাগরিকের কাছে দেখানো হবে এবং তাদের চ্যাটে যুক্ত হবে।" data-en="The reason is shown to the citizen and injected into their chat.">কারণটি নাগরিকের কাছে দেখানো হবে এবং তাদের চ্যাটে যুক্ত হবে।</p>
-            <textarea class="input" asp-for="Comments" rows="4" maxlength="1000"
-                      placeholder="যেমন: উদ্ধৃত ধারা প্রযোজ্য নয় — §123 যাচাই করুন…"></textarea>
-            <div class="row" style="justify-content: flex-end; gap: 10px; margin-top: 14px">
-                <button class="btn btn-outline btn-sm" type="button" data-close-modal data-bn="বাতিল" data-en="Cancel">বাতিল</button>
-                <button class="btn btn-danger-outline btn-sm" type="submit" data-bn="নথি প্রত্যাখ্যান করুন" data-en="Reject document">নথি প্রত্যাখ্যান করুন</button>
-            </div>
+            <a class="btn btn-outline btn-sm" asp-action="Queue">
+                <i data-lucide="arrow-left"></i> <span data-bn="সারিতে ফিরুন" data-en="Back to queue">সারিতে ফিরুন</span>
+            </a>
+            @if (Model.HeldDocumentId is int held)
+            {
+                <!-- One review at a time: say so here instead of a claim that would be refused -->
+                <span class="muted tiny" data-bn="আপনি ইতিমধ্যে DOC-@held পর্যালোচনা করছেন — এটি শুরু করতে আগে সেটি শেষ করুন বা ছেড়ে দিন।" data-en="You are already reviewing DOC-@held — finish or release it before starting this one.">আপনি ইতিমধ্যে DOC-@held পর্যালোচনা করছেন — এটি শুরু করতে আগে সেটি শেষ করুন বা ছেড়ে দিন।</span>
+                <a class="btn btn-primary btn-sm" asp-action="Review" asp-route-id="@held">
+                    <i data-lucide="file-pen"></i> <span data-bn="DOC-@held-এ যান" data-en="Go to DOC-@held">DOC-@held-এ যান</span>
+                </a>
+            }
+            else
+            {
+                <button class="btn btn-primary btn-sm" type="submit"
+                        data-confirm-title="পর্যালোচনা শুরু করবেন? / Start reviewing?"
+                        data-confirm-ok="হ্যাঁ, শুরু করুন / Yes, start"
+                        data-confirm="নথিটি ২৪ ঘণ্টার জন্য আপনার নামে লক হবে — এই সময়ে অন্য কোনো আইনজীবী এটি খুলতে পারবেন না। তখন আপনি খসড়া সম্পাদনা ও সিদ্ধান্ত দিতে পারবেন এবং নাগরিকের বিবরণ দেখতে পারবেন। শেষ করতে না চাইলে &quot;ছেড়ে দিন&quot; চাপুন। একসময়ে একটি পর্যালোচনাই নেওয়া যায়। / This document will be locked to you for 24 hours — no other lawyer can open it meanwhile. You can then edit the draft, decide, and see the citizen's narrative. If you won't finish it, press &quot;Release&quot;. You can hold one review at a time.">
+                    <i data-lucide="file-pen"></i> <span data-bn="পর্যালোচনা শুরু করুন" data-en="Start reviewing">পর্যালোচনা শুরু করুন</span>
+                </button>
+            }
         </form>
-    </div>
-</div>
+    }
+</main>

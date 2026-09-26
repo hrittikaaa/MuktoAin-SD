@@ -69,6 +69,12 @@
   <data name="Account_BarRegistrationRequired" xml:space="preserve">
     <value>Bar Registration Number is required for lawyer accounts.</value>
   </data>
+  <data name="Account_BarRegistrationTaken" xml:space="preserve">
+    <value>This bar registration number is already registered.</value>
+  </data>
+  <data name="Account_LawyerRegistrationFailed" xml:space="preserve">
+    <value>Your lawyer registration could not be completed. Please check your bar registration number and try again.</value>
+  </data>
   <data name="Register_FullName_Required" xml:space="preserve">
     <value>Full Name is required</value>
   </data>

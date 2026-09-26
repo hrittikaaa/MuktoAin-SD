@@ -1,0 +1,233 @@
+@model AdminAuditLogsViewModel
+@{
+    ViewData["Title"] = "Admin Audit Logs — MuktoAin";
+    ViewData["IsAdminPage"] = true;
+}
+
+@functions {
+    private static string ToBn(int number)
+    {
+        var bnDigits = new[] { '০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯' };
+        var s = number.ToString();
+        var chars = s.Select(c => (c >= '0' && c <= '9') ? bnDigits[c - '0'] : c).ToArray();
+        return new string(chars);
+    }
+
+    private static string GetActionBadgeClass(string action)
+    {
+        if (action.Contains("Approve", StringComparison.OrdinalIgnoreCase)) return "badge-success";
+        if (action.Contains("Suspend", StringComparison.OrdinalIgnoreCase) || 
+            action.Contains("Reject", StringComparison.OrdinalIgnoreCase) || 
+            action.Contains("Delete", StringComparison.OrdinalIgnoreCase)) return "badge-danger";
+        if (action.Contains("Refund", StringComparison.OrdinalIgnoreCase) || 
+            action.Contains("Payout", StringComparison.OrdinalIgnoreCase)) return "badge-gold";
+        return "badge-primary";
+    }
+
+    private static string GetActionBn(string action)
+    {
+        return action switch
+        {
+            "ApproveLawyerVerification" => "আইনজীবী অনুমোদন",
+            "RejectLawyerVerification" => "আইনজীবী বাতিল",
+            "SuspendUser" => "ইউজার স্থগিত",
+            "UnsuspendUser" => "ইউজার পুনঃসক্রিয়",
+            "CreateAdmin" => "অ্যাডমিন তৈরি",
+            "PromoteToSuperAdmin" => "সুপার অ্যাডমিন পদোন্নতি",
+            "DeleteScenario" => "সিনারিও মুছে ফেলা",
+            "AddScenario" => "নতুন সিনারিও ম্যাপিং",
+            "RefundPayment" => "পেমেন্ট রিফান্ড",
+            "ApprovePayout" => "পে-আউট অনুমোদন",
+            _ => action
+        };
+    }
+}
+
+<main class="container" id="main">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a asp-controller="Admin" asp-action="Dashboard" data-bn="ড্যাশবোর্ড" data-en="Dashboard">Dashboard</a>
+        <span class="sep">/</span>
+        <span data-bn="অডিট হিস্ট্রি" data-en="Audit Logs">Audit Logs</span>
+    </nav>
+
+    <div class="page-head">
+        <span class="kicker"><i data-lucide="shield-check"></i> AUD-7 · Governance & Auditability</span>
+        <h1 class="page-title" data-bn="প্রশাসনিক কার্যক্রমের অডিট হিস্ট্রি" data-en="Administrative Audit Trail">Administrative Audit Trail</h1>
+        <p class="page-sub">
+            <span data-bn="প্ল্যাটফর্ম অ্যাডমিনদের প্রতিটি সিদ্ধান্ত ও গুরুত্বপূর্ণ অ্যাকশনের অপরিবর্তনীয় টাইমস্ট্যাম্পযুক্ত রেকর্ড। মোট @ToBn(Model.TotalCount) টি অডিট লগ।"
+                  data-en="Immutable, timestamped record of administrative decisions and security actions across the platform. Total @Model.TotalCount entries.">
+                Immutable, timestamped record of administrative decisions and security actions across the platform. Total @Model.TotalCount entries.
+            </span>
+        </p>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div class="grid grid-3" style="margin-bottom: 20px">
+        <div class="card">
+            <span class="kicker" data-bn="মোট সংরক্ষিত অডিট লগ" data-en="Total Recorded Logs">Total Recorded Logs</span>
+            <div style="font-size: 28px; font-weight: 700; margin-top: 4px;">
+                <span data-bn="@ToBn(Model.TotalCount)" data-en="@Model.TotalCount">@Model.TotalCount</span>
+            </div>
+            <span class="muted tiny" data-bn="ডাটাবেজে অপরিবর্তনীয় অডিট ট্রেইল" data-en="Append-only immutable audit trail">Append-only immutable audit trail</span>
+        </div>
+        <div class="card">
+            <span class="kicker" data-bn="বর্তমান ফিল্টারে প্রদর্শিত" data-en="Filtered Rows">Filtered Rows</span>
+            <div style="font-size: 28px; font-weight: 700; margin-top: 4px;">
+                <span data-bn="@ToBn(Model.Logs.Count)" data-en="@Model.Logs.Count">@Model.Logs.Count</span>
+            </div>
+            <span class="muted tiny" data-bn="পৃষ্ঠা @ToBn(Model.Page) / @ToBn(Model.TotalPages)" data-en="Page @Model.Page of @Model.TotalPages">Page @Model.Page of @Model.TotalPages</span>
+        </div>
+        <div class="card">
+            <span class="kicker" data-bn="অ্যাকশন ক্যাটাগরি" data-en="Action Types">Action Types</span>
+            <div style="font-size: 28px; font-weight: 700; margin-top: 4px;">
+                <span data-bn="@ToBn(Model.AvailableActions.Count)" data-en="@Model.AvailableActions.Count">@Model.AvailableActions.Count</span>
+            </div>
+            <span class="muted tiny" data-bn="ভেরিফিকেশন, একাউন্ট, রিফান্ড ও ম্যাপিং" data-en="Verification, accounts, refunds, mappings">Verification, accounts, refunds, mappings</span>
+        </div>
+    </div>
+
+    <!-- Search & Filter Toolbar -->
+    <div class="card" style="margin-bottom: 20px; padding: 16px;">
+        <form method="get" asp-action="AuditLogs" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <div style="flex: 2; min-width: 240px;">
+                <input type="text" name="q" value="@Model.SearchQuery" class="input" style="width: 100%;"
+                       placeholder="অ্যাকশন, অ্যাডমিন বা বিবরণ দিয়ে খুঁজুন..." 
+                       data-bn-placeholder="অ্যাকশন, অ্যাডমিন বা বিবরণ দিয়ে খুঁজুন..." 
+                       data-en-placeholder="Search by action, admin, details..." />
+            </div>
+
+            <div style="flex: 1.5; min-width: 200px;">
+                <select name="actionFilter" class="input" style="width: 100%;" onchange="this.form.submit()">
+                    <option value="All" selected="@(Model.ActionFilter == "All" ? "selected" : null)" data-bn="সকল অ্যাকশন (All Actions)" data-en="All Actions">সকল অ্যাকশন / All Actions</option>
+                    @foreach (var act in Model.AvailableActions)
+                    {
+                        var bn = GetActionBn(act);
+                        <option value="@act" selected="@(Model.ActionFilter == act ? "selected" : null)">@act (@bn)</option>
+                    }
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-sm" style="height: 38px;">
+                <i data-lucide="search"></i>
+                <span data-bn="খুঁজুন" data-en="Search">Search</span>
+            </button>
+
+            @if (!string.IsNullOrWhiteSpace(Model.SearchQuery) || (Model.ActionFilter != "All" && !string.IsNullOrWhiteSpace(Model.ActionFilter)))
+            {
+                <a asp-action="AuditLogs" class="btn btn-ghost btn-sm" style="text-decoration:none; height: 38px; display: inline-flex; align-items: center;">
+                    <i data-lucide="rotate-ccw"></i>
+                    <span data-bn="রিসেট" data-en="Reset">Reset</span>
+                </a>
+            }
+        </form>
+    </div>
+
+    <!-- Audit Logs Table -->
+    <div class="card" style="padding: 0; overflow: hidden;">
+        <div class="table-wrap">
+            <table class="min-w-table" style="width: 100%; margin: 0;">
+                <thead>
+                    <tr>
+                        <th style="width: 150px;" data-bn="সময়" data-en="Timestamp">Timestamp</th>
+                        <th style="width: 180px;" data-bn="দায়িত্বপ্রাপ্ত অ্যাডমিন" data-en="Admin">Admin</th>
+                        <th style="width: 190px;" data-bn="অ্যাকশন" data-en="Action">Action</th>
+                        <th style="width: 180px;" data-bn="টার্গেট (ইউজার/আইডি)" data-en="Target">Target</th>
+                        <th data-bn="বিবরণ ও কারণ" data-en="Details">Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var log in Model.Logs)
+                    {
+                        var badgeClass = GetActionBadgeClass(log.Action);
+                        var actionBn = GetActionBn(log.Action);
+                        <tr>
+                            <td class="mono" style="font-size: 12.5px;">
+                                @log.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")
+                            </td>
+                            <td>
+                                <b>@log.AdminName</b>
+                                @if (!string.IsNullOrWhiteSpace(log.AdminEmail))
+                                {
+                                    <small class="muted" style="display:block; font-size: 11.5px;">@log.AdminEmail</small>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge @badgeClass" data-bn="@actionBn" data-en="@log.Action">
+                                    @actionBn
+                                </span>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(log.TargetUserName))
+                                {
+                                    <span><b>@log.TargetUserName</b> (ID: @log.TargetUserId)</span>
+                                }
+                                else if (log.TargetUserId.HasValue)
+                                {
+                                    <span class="mono">User #@log.TargetUserId</span>
+                                }
+                                else if (log.TargetEntityId.HasValue)
+                                {
+                                    <span class="mono">Entity #@log.TargetEntityId</span>
+                                }
+                                else
+                                {
+                                    <span class="muted">—</span>
+                                }
+                            </td>
+                            <td style="font-size: 13.5px;">
+                                @if (!string.IsNullOrWhiteSpace(log.Details))
+                                {
+                                    <span>@log.Details</span>
+                                }
+                                else
+                                {
+                                    <span class="muted">—</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Logs.Any())
+                    {
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 36px 16px;" class="muted">
+                                <i data-lucide="inbox" style="width: 32px; height: 32px; display: block; margin: 0 auto 8px; opacity: 0.5;"></i>
+                                <span data-bn="কোনো অডিট লগ পাওয়া যায়নি।" data-en="No audit log entries found.">
+                                    No audit log entries found.
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    @if (Model.TotalPages > 1)
+    {
+        <div class="pagination" style="display: flex; justify-content: center; gap: 8px; margin-top: 20px;">
+            @if (Model.Page > 1)
+            {
+                <a asp-action="AuditLogs" 
+                   asp-route-q="@Model.SearchQuery" 
+                   asp-route-actionFilter="@Model.ActionFilter" 
+                   asp-route-page="@(Model.Page - 1)" 
+                   class="btn btn-outline btn-sm" data-bn="পূর্ববর্তী" data-en="Previous">Previous</a>
+            }
+            <span class="muted" style="align-self: center; font-size: 0.9rem;">
+                <span data-bn="পৃষ্ঠা @ToBn(Model.Page) / @ToBn(Model.TotalPages) (মোট @ToBn(Model.TotalCount))"
+                      data-en="Page @Model.Page of @Model.TotalPages (Total @Model.TotalCount)">
+                    Page @Model.Page of @Model.TotalPages (Total @Model.TotalCount)
+                </span>
+            </span>
+            @if (Model.Page < Model.TotalPages)
+            {
+                <a asp-action="AuditLogs" 
+                   asp-route-q="@Model.SearchQuery" 
+                   asp-route-actionFilter="@Model.ActionFilter" 
+                   asp-route-page="@(Model.Page + 1)" 
+                   class="btn btn-outline btn-sm" data-bn="পরবর্তী" data-en="Next">Next</a>
+            }
+        </div>
+    }
+</main>

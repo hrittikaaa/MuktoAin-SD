@@ -11,14 +11,19 @@ public class HomeController : Controller
         _logger = logger;
     }
 
+    // The home page IS the chat, which is citizen-only: lawyers land on their
+    // own dashboard instead (Queue bounces unverified lawyers to Status).
     [HttpGet]
     public IActionResult Index()
     {
+        if (IsLawyer) return RedirectToAction("Queue", "Lawyer");
         return View();
     }
 
     [HttpGet("/Chat")]
-    public IActionResult Chat() => View("Index");
+    public IActionResult Chat() => IsLawyer ? RedirectToAction("Queue", "Lawyer") : View("Index");
+
+    private bool IsLawyer => User?.IsInRole("Lawyer") == true;
 
     [HttpGet]
     public IActionResult About()

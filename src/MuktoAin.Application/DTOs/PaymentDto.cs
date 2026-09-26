@@ -18,10 +18,20 @@ public record PaymentOrderDto(
     string? LawyerName
 );
 
+// Balance: net honoraria not yet paid out or requested (what a new payout
+// request may claim). PendingPayout: requested and awaiting the admin.
 public record LawyerEarningsDto(
     decimal Balance,
-    List<EarningRowDto> History
+    List<EarningRowDto> History,
+    decimal PendingPayout = 0m
 );
+
+public enum PayoutRequestResult
+{
+    Requested,
+    NothingToPay,
+    AlreadyPending
+}
 
 public record EarningRowDto(
     int PaymentOrderId,

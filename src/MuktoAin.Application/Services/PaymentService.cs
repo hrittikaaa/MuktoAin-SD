@@ -363,18 +363,19 @@ public class PaymentService
         return result;
     }
 
+    // A payout request claims its amount the moment it is made, so pending
+    // requests reduce the available balance as well as paid ones -- otherwise
+    // the same money could be requested again before the admin pays the first.
     public async Task<LawyerEarningsDto> GetLawyerEarningsAsync(int lawyerProfileId)
     {
-        var all = await _orderRepo.GetAllAsync();
-        var paid = all.Where(o => o.LawyerProfileId == lawyerProfileId
-                               && o.Purpose == PaymentPurpose.Honorarium
-                               && o.Status == PaymentStatus.Paid)
+        var paid = (await _orderRepo.FindAsync(o => o.LawyerProfileId == lawyerProfileId
+                                                  && o.Purpose == PaymentPurpose.Honorarium
+                                                  && o.Status == PaymentStatus.Paid))
                       .OrderByDescending(o => o.PaidAt)
                       .ToList();
 
-        var payouts = (await _payoutRepo.GetAllAsync())
-            .Where(p => p.LawyerProfileId == lawyerProfileId && p.IsPaid)
-            .ToList();
+        var payouts = await _payoutRepo.FindAsync(p => p.LawyerProfileId == lawyerProfileId);
+        var pending = payouts.Where(p => !p.IsPaid).Sum(p => p.Amount);
 
         var balance = paid.Sum(o => o.NetToLawyer) - payouts.Sum(p => p.Amount);
 
@@ -382,19 +383,28 @@ public class PaymentService
             balance,
             paid.Select(o => new EarningRowDto(
                 o.PaymentOrderId, o.CaseId ?? 0, o.Amount, o.Commission, o.NetToLawyer,
-                o.PaidAt ?? o.CreatedAt)).ToList());
+                o.PaidAt ?? o.CreatedAt)).ToList(),
+            pending);
     }
 
-    public async Task RequestPayoutAsync(int lawyerProfileId, decimal amount)
+    // The amount is always the whole available balance, computed here -- never
+    // taken from the caller. One request at a time: while one is pending the
+    // lawyer waits for the admin.
+    public async Task<PayoutRequestResult> RequestPayoutAsync(int lawyerProfileId)
     {
+        var earnings = await GetLawyerEarningsAsync(lawyerProfileId);
+        if (earnings.PendingPayout > 0) return PayoutRequestResult.AlreadyPending;
+        if (earnings.Balance <= 0) return PayoutRequestResult.NothingToPay;
+
         await _payoutRepo.AddAsync(new PayoutRequest
         {
             LawyerProfileId = lawyerProfileId,
-            Amount = amount,
+            Amount = earnings.Balance,
             IsPaid = false,
             RequestedAt = DateTime.UtcNow
         });
         await _payoutRepo.SaveChangesAsync();
+        return PayoutRequestResult.Requested;
     }
 
     public async Task<IReadOnlyList<PayoutRequest>> GetPendingPayoutsAsync()

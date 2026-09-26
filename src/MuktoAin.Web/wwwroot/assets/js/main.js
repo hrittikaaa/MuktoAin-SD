@@ -1980,7 +1980,12 @@
       e.preventDefault();
       e.stopImmediatePropagation();
 
-      var rawMsg = currentLang === "en" 
+      // Validate before asking to confirm: an invalid form (e.g. a missing
+      // rejection reason) must never reach the dialog, let alone the server.
+      var ownForm = target.type === "submit" ? target.form : null;
+      if (ownForm && !target.formNoValidate && !ownForm.noValidate && !ownForm.reportValidity()) return;
+
+      var rawMsg = currentLang === "en"
         ? (target.dataset.confirmEn || target.dataset.confirm || "") 
         : (target.dataset.confirmBn || target.dataset.confirm || "");
 

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using MuktoAin.Application.DTOs;
 using MuktoAin.Application.Services;
 using MuktoAin.Domain.Common;
 using MuktoAin.Domain.Entities;
@@ -8,6 +9,7 @@ using MuktoAin.Domain.Interfaces;
 using MuktoAin.Domain.Interfaces.Repositories;
 using MuktoAin.Domain.Interfaces.Services;
 using Moq;
+using MuktoAin.UnitTests.TestSupport;
 
 namespace MuktoAin.UnitTests.Services;
 
@@ -543,5 +545,72 @@ public class PaymentServiceTests
         await _service.RefundAsync(7);
 
         _chatTurns.Verify(s => s.GetCreditBalanceAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // ── #3: lawyer payouts ──────────────────────────────────────────────
+    // A pending payout request already claims its amount: it must reduce the
+    // available balance, and a second request must not be possible meanwhile.
+
+    private void SetUpLedger(params PayoutRequest[] payouts)
+    {
+        _orderRepo.SetupRows(new List<PaymentOrder>
+        {
+            new() { PaymentOrderId = 1, LawyerProfileId = 7, Purpose = PaymentPurpose.Honorarium, Status = PaymentStatus.Paid, Amount = 1000m, Commission = 100m, NetToLawyer = 900m, PaidAt = DateTime.UtcNow },
+            new() { PaymentOrderId = 2, LawyerProfileId = 7, Purpose = PaymentPurpose.Honorarium, Status = PaymentStatus.Pending, Amount = 500m, NetToLawyer = 450m },
+            new() { PaymentOrderId = 3, LawyerProfileId = 8, Purpose = PaymentPurpose.Honorarium, Status = PaymentStatus.Paid, Amount = 2000m, NetToLawyer = 1800m, PaidAt = DateTime.UtcNow }
+        });
+        _payoutRepo.SetupRows(payouts);
+    }
+
+    [Fact]
+    public async Task GetLawyerEarningsAsync_PendingPayoutReducesAvailableBalance()
+    {
+        SetUpLedger(
+            new PayoutRequest { PayoutRequestId = 1, LawyerProfileId = 7, Amount = 300m, IsPaid = true },
+            new PayoutRequest { PayoutRequestId = 2, LawyerProfileId = 7, Amount = 200m, IsPaid = false },
+            new PayoutRequest { PayoutRequestId = 3, LawyerProfileId = 8, Amount = 999m, IsPaid = false });
+
+        var earnings = await _service.GetLawyerEarningsAsync(7);
+
+        Assert.Equal(400m, earnings.Balance);        // 900 paid net - 300 paid out - 200 requested
+        Assert.Equal(200m, earnings.PendingPayout);
+    }
+
+    [Fact]
+    public async Task RequestPayoutAsync_RequestsExactlyTheAvailableBalance()
+    {
+        SetUpLedger(new PayoutRequest { PayoutRequestId = 1, LawyerProfileId = 7, Amount = 300m, IsPaid = true });
+        PayoutRequest? added = null;
+        _payoutRepo.Setup(r => r.AddAsync(It.IsAny<PayoutRequest>())).Callback<PayoutRequest>(p => added = p).Returns(Task.CompletedTask);
+
+        var result = await _service.RequestPayoutAsync(7);
+
+        Assert.Equal(PayoutRequestResult.Requested, result);
+        Assert.NotNull(added);
+        Assert.Equal(600m, added!.Amount);
+        Assert.False(added.IsPaid);
+        _payoutRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task RequestPayoutAsync_WhileAnotherIsPending_IsRefused()
+    {
+        SetUpLedger(new PayoutRequest { PayoutRequestId = 2, LawyerProfileId = 7, Amount = 100m, IsPaid = false });
+
+        var result = await _service.RequestPayoutAsync(7);
+
+        Assert.Equal(PayoutRequestResult.AlreadyPending, result);
+        _payoutRepo.Verify(r => r.AddAsync(It.IsAny<PayoutRequest>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RequestPayoutAsync_NothingAvailable_IsRefused()
+    {
+        SetUpLedger(new PayoutRequest { PayoutRequestId = 1, LawyerProfileId = 7, Amount = 900m, IsPaid = true });
+
+        var result = await _service.RequestPayoutAsync(7);
+
+        Assert.Equal(PayoutRequestResult.NothingToPay, result);
+        _payoutRepo.Verify(r => r.AddAsync(It.IsAny<PayoutRequest>()), Times.Never);
     }
 }

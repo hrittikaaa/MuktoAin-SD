@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.RateLimiting;
 using MuktoAin.Application.DTOs;
 using MuktoAin.Application.Services;
@@ -31,6 +32,22 @@ public class ChatController : Controller
         _chatService = chatService;
         _budgetService = budgetService;
         _sectionRepo = sectionRepo;
+    }
+
+    // Chat is citizen/guest-only: lawyers review documents, they don't open
+    // cases or spend AI turns. Blocks every /Chat/* endpoint for the role.
+    public override void OnActionExecuting(ActionExecutingContext context)
+    {
+        if (User?.IsInRole(nameof(UserRole.Lawyer)) == true)
+        {
+            context.Result = StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                error = "Chat is not available for lawyer accounts.",
+                errorBn = "আইনজীবী অ্যাকাউন্টের জন্য চ্যাট প্রযোজ্য নয়।"
+            });
+            return;
+        }
+        base.OnActionExecuting(context);
     }
 
     private int? CurrentUserId()

@@ -6,55 +6,111 @@
     var totalPages = Model.PageSize > 0
         ? (int)Math.Ceiling(Model.TotalCount / (double)Model.PageSize)
         : 1;
+
+    var selectedType = Context.Request.Query["type"].ToString();
+    if (string.IsNullOrWhiteSpace(selectedType))
+    {
+        selectedType = "All";
+    }
+
+    var selectedLatency = Context.Request.Query["minLatency"].ToString();
+    if (string.IsNullOrWhiteSpace(selectedLatency))
+    {
+        selectedLatency = "0";
+    }
+}
+
+@functions {
+    private static string ToBn(int number)
+    {
+        var bnDigits = new[] { '০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯' };
+        var s = number.ToString();
+        var chars = s.Select(c => (c >= '0' && c <= '9') ? bnDigits[c - '0'] : c).ToArray();
+        return new string(chars);
+    }
 }
 
 <main class="container" id="main">
     <nav class="breadcrumbs" aria-label="Breadcrumb">
-        <a asp-controller="Admin" asp-action="Dashboard">Dashboard</a>
+        <a asp-controller="Admin" asp-action="Dashboard" data-bn="ড্যাশবোর্ড" data-en="Dashboard">Dashboard</a>
         <span class="sep">/</span>
-        <span>AI Logs</span>
+        <span data-bn="এআই লগসমূহ" data-en="AI Logs">AI Logs</span>
     </nav>
 
     <div class="page-head">
         <span class="kicker"><i data-lucide="activity"></i> FR-12</span>
-        <h1 class="page-title">AI Audit Log</h1>
-        <p class="page-sub">Every Gemini call — tokens, latency, outcome. Prompts are PII-scrubbed before storage (S-2.7).</p>
+        <h1 class="page-title" data-bn="এআই অডিট লগ" data-en="AI Audit Log">AI Audit Log</h1>
+        <p class="page-sub" data-bn="প্রতিটি জেমিনাই এআই রিকোয়েস্ট — টোকেন, লেটেন্সি ও ফলাফল। প্রম্পটগুলো সংরক্ষণের পূর্বে PII স্ক্রাব করা হয় (S-2.7)।"
+           data-en="Every Gemini call — tokens, latency, outcome. Prompts are PII-scrubbed before storage (S-2.7).">
+            Every Gemini call — tokens, latency, outcome. Prompts are PII-scrubbed before storage (S-2.7).
+        </p>
     </div>
 
     <div class="grid grid-3" style="margin-bottom: 16px">
-        <div class="card"><span class="kicker">Calls today</span><div style="font-size:32px;font-weight:700">@Model.CallsToday</div></div>
-        <div class="card"><span class="kicker">Rows shown</span><div style="font-size:32px;font-weight:700">@Model.Logs.Count</div></div>
-        <div class="card"><span class="kicker">Retention</span><div style="font-size:16px;font-weight:700;margin-top:10px">180 days (design)</div></div>
+        <div class="card">
+            <span class="kicker" data-bn="আজকের কল" data-en="Calls today">Calls today</span>
+            <div style="font-size:32px;font-weight:700">
+                <span data-bn="@ToBn(Model.CallsToday)" data-en="@Model.CallsToday">@Model.CallsToday</span>
+            </div>
+        </div>
+        <div class="card">
+            <span class="kicker" data-bn="প্রদর্শিত সারি" data-en="Rows shown">Rows shown</span>
+            <div style="font-size:32px;font-weight:700">
+                <span data-bn="@ToBn(Model.Logs.Count)" data-en="@Model.Logs.Count">@Model.Logs.Count</span>
+            </div>
+        </div>
+        <div class="card">
+            <span class="kicker" data-bn="সংরক্ষণ মেয়াদ" data-en="Retention">Retention</span>
+            <div style="font-size:16px;font-weight:700;margin-top:10px">
+                <span data-bn="@ToBn(Model.RetentionDays) দিন (ডিজাইন পলিসি)" data-en="@Model.RetentionDays days (design policy)">@Model.RetentionDays days (design policy)</span>
+            </div>
+        </div>
     </div>
 
     <div class="card" style="margin-bottom: 16px">
-        <form asp-action="AiLogs" method="get" class="row wrap" style="gap: 10px; align-items: flex-end">
+        <form asp-action="AiLogs" method="get" class="row wrap" style="gap: 12px; align-items: flex-end">
             <div>
-                <label class="form-label">Type</label>
+                <label class="form-label" data-bn="রিকোয়েস্ট ধরণ" data-en="Type">Type</label>
                 <select class="input" name="type">
-                    @foreach (var t in new[] { "All", "LawIdentification", "RightsExplanation", "Drafting" })
-                    {
-                        <option value="@t">@t</option>
-                    }
+                    <option value="All" selected="@(selectedType == "All" ? "selected" : null)" data-bn="সকল ধরণ" data-en="All">All</option>
+                    <option value="LawIdentification" selected="@(selectedType == "LawIdentification" ? "selected" : null)" data-bn="আইন সনাক্তকরণ (LawIdentification)" data-en="LawIdentification">LawIdentification</option>
+                    <option value="RightsExplanation" selected="@(selectedType == "RightsExplanation" ? "selected" : null)" data-bn="অধিকার ব্যাখ্যা (RightsExplanation)" data-en="RightsExplanation">RightsExplanation</option>
+                    <option value="Drafting" selected="@(selectedType == "Drafting" ? "selected" : null)" data-bn="দলিল ড্রাফটিং (Drafting)" data-en="Drafting">Drafting</option>
                 </select>
             </div>
             <div>
-                <label class="form-label">Min latency (ms)</label>
+                <label class="form-label" data-bn="সর্বনিম্ন লেটেন্সি (ms)" data-en="Min latency (ms)">Min latency (ms)</label>
                 <select class="input" name="minLatency">
-                    <option value="0">Any</option>
-                    <option value="1000">&gt; 1s</option>
-                    <option value="2000">&gt; 2s</option>
-                    <option value="5000">&gt; 5s</option>
+                    <option value="0" selected="@(selectedLatency == "0" ? "selected" : null)" data-bn="যেকোনো" data-en="Any">Any</option>
+                    <option value="1000" selected="@(selectedLatency == "1000" ? "selected" : null)" data-bn="> ১ সেকেন্ড" data-en="> 1s">&gt; 1s</option>
+                    <option value="2000" selected="@(selectedLatency == "2000" ? "selected" : null)" data-bn="> ২ সেকেন্ড" data-en="> 2s">&gt; 2s</option>
+                    <option value="5000" selected="@(selectedLatency == "5000" ? "selected" : null)" data-bn="> ৫ সেকেন্ড" data-en="> 5s">&gt; 5s</option>
                 </select>
             </div>
-            <button class="btn btn-outline btn-sm" type="submit">Apply</button>
+            <button class="btn btn-outline btn-sm" type="submit">
+                <i data-lucide="filter"></i>
+                <span data-bn="ফিল্টার প্রয়োগ" data-en="Apply">Apply</span>
+            </button>
+            @if (selectedType != "All" || selectedLatency != "0")
+            {
+                <a asp-action="AiLogs" class="btn btn-ghost btn-sm" style="text-decoration:none">
+                    <span data-bn="রিসেট" data-en="Clear">Clear</span>
+                </a>
+            }
         </form>
     </div>
 
     <div class="card">
         <table>
             <thead>
-                <tr><th>Time</th><th>Type</th><th>Model</th><th>Tokens</th><th>Latency</th><th>Case</th></tr>
+                <tr>
+                    <th data-bn="সময়" data-en="Time">Time</th>
+                    <th data-bn="ধরণ" data-en="Type">Type</th>
+                    <th data-bn="মডেল" data-en="Model">Model</th>
+                    <th data-bn="টোকেন" data-en="Tokens">Tokens</th>
+                    <th data-bn="লেটেন্সি" data-en="Latency">Latency</th>
+                    <th data-bn="মামলা" data-en="Case">Case</th>
+                </tr>
             </thead>
             <tbody>
                 @foreach (var l in Model.Logs)
@@ -63,9 +119,11 @@
                         <td class="mono tiny">@l.Time</td>
                         <td>@l.Type</td>
                         <td class="mono tiny">@l.Model</td>
-                        <td>@l.Tokens</td>
+                        <td><span data-bn="@ToBn(l.Tokens)" data-en="@l.Tokens">@l.Tokens</span></td>
                         <td>
-                            <span class="badge badge-@(l.LatencyMs > 5000 ? "rejected" : l.LatencyMs > 2000 ? "review" : "final")">@(l.LatencyMs)ms</span>
+                            <span class="badge badge-@(l.LatencyMs > 5000 ? "rejected" : l.LatencyMs > 2000 ? "review" : "final")">
+                                <span data-bn="@(ToBn(l.LatencyMs)) মিলি" data-en="@(l.LatencyMs)ms">@(l.LatencyMs)ms</span>
+                            </span>
                         </td>
                         <td>
                             @if (l.CaseId.HasValue)
@@ -74,8 +132,17 @@
                             }
                             else
                             {
-                                <span class="muted tiny">chat</span>
+                                <span class="muted tiny" data-bn="চ্যাট" data-en="chat">chat</span>
                             }
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Logs.Any())
+                {
+                    <tr>
+                        <td colspan="6" class="muted" style="text-align:center"
+                            data-bn="কোনো এআই লগ পাওয়া যায়নি।" data-en="No AI logs found.">
+                            No AI logs found.
                         </td>
                     </tr>
                 }
@@ -83,33 +150,37 @@
         </table>
         @if (totalPages > 1)
         {
-            <div class="pagination" style="margin-top: 12px">
+            <div class="pagination" style="display: flex; justify-content: center; gap: 8px; margin-top: 16px;">
                 @if (Model.Page > 1)
                 {
-                    <a asp-action="AiLogs" asp-route-type="@Context.Request.Query["type"]" asp-route-minLatency="@Context.Request.Query["minLatency"]" asp-route-page="@(Model.Page - 1)"><i data-lucide="chevron-left"></i></a>
+                    <a asp-action="AiLogs" asp-route-type="@Context.Request.Query["type"]" asp-route-minLatency="@Context.Request.Query["minLatency"]" asp-route-page="@(Model.Page - 1)"
+                       class="btn btn-outline btn-sm" data-bn="পূর্ববর্তী" data-en="Previous">Previous</a>
                 }
-                @for (var p = 1; p <= totalPages; p++)
-                {
-                    @if (p == Model.Page)
-                    {
-                        <button type="button" class="active" data-page="@p">@p</button>
-                    }
-                    else
-                    {
-                        <a asp-action="AiLogs" asp-route-type="@Context.Request.Query["type"]" asp-route-minLatency="@Context.Request.Query["minLatency"]" asp-route-page="@p">@p</a>
-                    }
-                }
+                <span class="muted" style="align-self: center; font-size: 0.9rem;">
+                    <span data-bn="পৃষ্ঠা @ToBn(Model.Page) / @ToBn(totalPages) (মোট @ToBn(Model.TotalCount))"
+                          data-en="Page @Model.Page of @totalPages (Total @Model.TotalCount)">
+                        Page @Model.Page of @totalPages (Total @Model.TotalCount)
+                    </span>
+                </span>
                 @if (Model.Page < totalPages)
                 {
-                    <a asp-action="AiLogs" asp-route-type="@Context.Request.Query["type"]" asp-route-minLatency="@Context.Request.Query["minLatency"]" asp-route-page="@(Model.Page + 1)"><i data-lucide="chevron-right"></i></a>
+                    <a asp-action="AiLogs" asp-route-type="@Context.Request.Query["type"]" asp-route-minLatency="@Context.Request.Query["minLatency"]" asp-route-page="@(Model.Page + 1)"
+                       class="btn btn-outline btn-sm" data-bn="পরবর্তী" data-en="Next">Next</a>
                 }
             </div>
         }
     </div>
 
     <details class="acc card" style="margin-top: 14px">
-        <summary><b>Inspect prompts/responses (first 200 rows, preview only)</b></summary>
-        @foreach (var l in Model.Logs.Take(20))
+        <summary>
+            <b>
+                <span data-bn="প্রম্পট ও রেসপন্স পরিদর্শন (সর্বোচ্চ @ToBn(Model.Logs.Count) টি রেকর্ড)"
+                      data-en="Inspect prompts/responses (up to @Model.Logs.Count logs, preview only)">
+                    Inspect prompts/responses (up to @Model.Logs.Count logs, preview only)
+                </span>
+            </b>
+        </summary>
+        @foreach (var l in Model.Logs)
         {
             <details class="acc">
                 <summary class="mono tiny">LOG-@l.LogId · @l.Type · @l.Time</summary>
@@ -119,3 +190,4 @@
         }
     </details>
 </main>
+
