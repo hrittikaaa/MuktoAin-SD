@@ -12,10 +12,10 @@ public record QueueItemDto(
     bool CitizenEdited,
     int VersionNo,
     string? ClaimedBy,       // claiming lawyer's bar number (admin-facing; not shown to other lawyers)
-    DateTime CreatedAt,
+    DateTime WaitingSince,   // sent to review (SubmittedForReviewAt), else CreatedAt for older rows
     DateTime? ClaimedAt,
-    bool CanOpen,            // false when claimed by another lawyer
-    bool IsClaimed = false,  // any lawyer holds it
+    bool CanOpen,            // false when another lawyer's claim is still active
+    bool IsClaimed = false,  // any lawyer holds an active claim on it
     bool IsMine = false      // the requesting lawyer holds it
 );
 
@@ -44,7 +44,8 @@ public record ReviewWorkspaceDto(
     string OriginalDraft,     // ContentDraft — immutable
     string? CitizenEditedDraft, // ContentFinal if CitizenEdited
     int VersionNo,
-    bool CitizenEdited
+    bool CitizenEdited,
+    bool IsClaimedByMe = true // false = read-only preview (no narrative, no decision form)
 );
 
 public record SubmitReviewDto(
@@ -66,8 +67,8 @@ public record ReviewHistoryItemDto(
     ReviewDecision Decision,
     string Comments,
     DateTime ReviewedAt,
-    int VersionNo,
-    string DocumentText // ContentFinal if approved, else ContentDraft (what was rejected)
+    int VersionNo,      // version decided on (snapshot; current version for older reviews)
+    string DocumentText // text as it stood after the decision (snapshot; current text for older reviews)
 );
 
 // One page of a lawyer's review history. TotalCount is the full filtered

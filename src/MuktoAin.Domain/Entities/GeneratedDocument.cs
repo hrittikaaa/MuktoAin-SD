@@ -30,6 +30,10 @@ public class GeneratedDocument
     // Redesign 2026-09 (FR-23): when this document was claimed from the pool
     public DateTime? ClaimedAt { get; set; }
 
+    // When the citizen last sent this document to the review pool (#16,
+    // scripts/21_review_timing_and_snapshot.sql). Null on older rows.
+    public DateTime? SubmittedForReviewAt { get; set; }
+
     // Redesign 2026-09 (FR-21): current citizen edit differs from the AI original
     public bool CitizenEdited { get; set; }
 

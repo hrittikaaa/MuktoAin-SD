@@ -272,7 +272,7 @@ public class LawyerReviewServiceTests
         var docClaimed = new GeneratedDocument
         {
             DocumentId = 2, CaseId = 20, Status = DocumentStatus.UnderReview,
-            AssignedLawyerProfileId = 99, CreatedAt = DateTime.UtcNow
+            AssignedLawyerProfileId = 99, ClaimedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow
         };
 
         _docRepo.SetupRows(new List<GeneratedDocument> { docUnclaimed, docClaimed });
@@ -291,12 +291,12 @@ public class LawyerReviewServiceTests
         var docMine = new GeneratedDocument
         {
             DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview,
-            AssignedLawyerProfileId = 5, CreatedAt = DateTime.UtcNow
+            AssignedLawyerProfileId = 5, ClaimedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow
         };
         var docOther = new GeneratedDocument
         {
             DocumentId = 2, CaseId = 20, Status = DocumentStatus.UnderReview,
-            AssignedLawyerProfileId = 99, CreatedAt = DateTime.UtcNow
+            AssignedLawyerProfileId = 99, ClaimedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow
         };
 
         _docRepo.SetupRows(new List<GeneratedDocument> { docMine, docOther });
@@ -320,12 +320,12 @@ public class LawyerReviewServiceTests
         var docMine = new GeneratedDocument
         {
             DocumentId = 2, CaseId = 20, Status = DocumentStatus.UnderReview,
-            AssignedLawyerProfileId = 5, CreatedAt = DateTime.UtcNow
+            AssignedLawyerProfileId = 5, ClaimedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow
         };
         var docOther = new GeneratedDocument
         {
             DocumentId = 3, CaseId = 30, Status = DocumentStatus.UnderReview,
-            AssignedLawyerProfileId = 99, CreatedAt = DateTime.UtcNow
+            AssignedLawyerProfileId = 99, ClaimedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow
         };
 
         _docRepo.SetupRows(new List<GeneratedDocument> { docUnclaimed, docMine, docOther });
@@ -353,12 +353,12 @@ public class LawyerReviewServiceTests
         var docMine = new GeneratedDocument
         {
             DocumentId = 2, CaseId = 20, Status = DocumentStatus.UnderReview,
-            AssignedLawyerProfileId = 5, CreatedAt = DateTime.UtcNow
+            AssignedLawyerProfileId = 5, ClaimedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow
         };
         var docOther = new GeneratedDocument
         {
             DocumentId = 3, CaseId = 30, Status = DocumentStatus.UnderReview,
-            AssignedLawyerProfileId = 99, CreatedAt = DateTime.UtcNow
+            AssignedLawyerProfileId = 99, ClaimedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow
         };
 
         _docRepo.SetupRows(new List<GeneratedDocument> { docUnclaimed, docMine, docOther });
@@ -401,9 +401,9 @@ public class LawyerReviewServiceTests
     {
         _docRepo.SetupRows(new List<GeneratedDocument>
         {
-            new() { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 5, CreatedAt = DateTime.UtcNow },
+            new() { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 5, ClaimedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
             new() { DocumentId = 2, CaseId = 10, Status = DocumentStatus.UnderReview, CreatedAt = DateTime.UtcNow },
-            new() { DocumentId = 3, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 99, CreatedAt = DateTime.UtcNow },
+            new() { DocumentId = 3, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 99, ClaimedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
             new() { DocumentId = 4, CaseId = 10, Status = DocumentStatus.Approved, CreatedAt = DateTime.UtcNow }
         });
         SetUpCase(10, "Case A", 1, "Labour", 1, "Dhaka");
@@ -824,7 +824,7 @@ public class LawyerReviewServiceTests
     {
         var doc = new GeneratedDocument { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 3 };
         _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(doc);
-        var owner = new Case { CaseId = 10, UserId = 55, IsAnonymous = false };
+        var owner = new Case { CaseId = 10, UserId = 55, IsAnonymous = false, Status = CaseStatus.UnderReview };
         _caseRepo.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(owner);
         Notification? captured = null;
         _notificationRepo.Setup(n => n.AddAsync(It.IsAny<Notification>()))
@@ -846,7 +846,7 @@ public class LawyerReviewServiceTests
     {
         var doc = new GeneratedDocument { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 3 };
         _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(doc);
-        var anon = new Case { CaseId = 10, UserId = null, IsAnonymous = true };
+        var anon = new Case { CaseId = 10, UserId = null, IsAnonymous = true, Status = CaseStatus.UnderReview };
         _caseRepo.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(anon);
 
         await _service.SubmitReviewAsync(new SubmitReviewDto(1, LawyerProfileId: 3,
@@ -943,7 +943,7 @@ public class LawyerReviewServiceTests
                 Status = DocumentStatus.UnderReview,
                 CreatedAt = new DateTime(2026, 9, 1).AddHours(i)
             };
-            if (i % 2 == 0) doc.AssignedLawyerProfileId = 9; // claimed by someone
+            if (i % 2 == 0) { doc.AssignedLawyerProfileId = 9; doc.ClaimedAt = DateTime.UtcNow; } // claimed by someone
             claimed.Add(doc);
         }
         _docRepo.SetupRows(claimed);
@@ -1024,13 +1024,279 @@ public class LawyerReviewServiceTests
         SetUpMixedCategoryQueue("Labour");
         _docRepo.SetupRows(new List<GeneratedDocument>
         {
-            new() { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 99, CreatedAt = new DateTime(2026, 9, 1) },
-            new() { DocumentId = 4, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 5, CreatedAt = new DateTime(2026, 9, 2) },
+            new() { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 99, ClaimedAt = DateTime.UtcNow, CreatedAt = new DateTime(2026, 9, 1) },
+            new() { DocumentId = 4, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 5, ClaimedAt = DateTime.UtcNow, CreatedAt = new DateTime(2026, 9, 2) },
         });
 
         var queue = await _service.GetQueueAsync(lawyerProfileId: 5, filter: "MyField");
 
         var item = Assert.Single(queue.Items);
         Assert.Equal(4, item.DocumentId);
+    }
+
+    // ── Claim expiry, release, one active claim (#9, #10) ───────────────
+
+    [Fact]
+    public async Task ClaimAsync_LapsedClaimOfAnotherLawyer_CanBeTakenOver()
+    {
+        var doc = new GeneratedDocument
+        {
+            DocumentId = 1, Status = DocumentStatus.UnderReview,
+            AssignedLawyerProfileId = 99,
+            ClaimedAt = DateTime.UtcNow - LawyerReviewService.ClaimTtl - TimeSpan.FromMinutes(1)
+        };
+        _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(doc);
+        _docRepo.SetupRows(new List<GeneratedDocument> { doc });
+
+        Assert.True(await _service.ClaimAsync(1, 5));
+        Assert.Equal(5, doc.AssignedLawyerProfileId);
+    }
+
+    [Fact]
+    public async Task ClaimAsync_LawyerAlreadyHoldsAnotherActiveReview_IsRefused()
+    {
+        var held = new GeneratedDocument
+        {
+            DocumentId = 1, Status = DocumentStatus.UnderReview,
+            AssignedLawyerProfileId = 5, ClaimedAt = DateTime.UtcNow.AddMinutes(-5)
+        };
+        var free = new GeneratedDocument { DocumentId = 2, Status = DocumentStatus.UnderReview };
+        _docRepo.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(free);
+        _docRepo.SetupRows(new List<GeneratedDocument> { held, free });
+
+        Assert.False(await _service.ClaimAsync(2, 5));
+        Assert.Null(free.AssignedLawyerProfileId);
+        Assert.Equal(1, await _service.GetOtherActiveClaimAsync(5, exceptDocumentId: 2));
+    }
+
+    [Fact]
+    public async Task ClaimAsync_OwnClaim_IsRenewedEvenWithAnotherActiveReview()
+    {
+        var other = new GeneratedDocument
+        {
+            DocumentId = 1, Status = DocumentStatus.UnderReview,
+            AssignedLawyerProfileId = 5, ClaimedAt = DateTime.UtcNow.AddMinutes(-5)
+        };
+        var mine = new GeneratedDocument
+        {
+            DocumentId = 2, Status = DocumentStatus.UnderReview,
+            AssignedLawyerProfileId = 5, ClaimedAt = DateTime.UtcNow.AddHours(-30)
+        };
+        _docRepo.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(mine);
+        _docRepo.SetupRows(new List<GeneratedDocument> { other, mine });
+
+        Assert.True(await _service.ClaimAsync(2, 5));
+        Assert.True(mine.ClaimedAt > DateTime.UtcNow.AddMinutes(-1));
+    }
+
+    [Fact]
+    public async Task ReleaseAsync_Holder_ReturnsDocumentToPool()
+    {
+        var doc = new GeneratedDocument
+        {
+            DocumentId = 1, Status = DocumentStatus.UnderReview,
+            AssignedLawyerProfileId = 5, ClaimedAt = DateTime.UtcNow
+        };
+        _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(doc);
+
+        Assert.True(await _service.ReleaseAsync(1, 5));
+        Assert.Null(doc.AssignedLawyerProfileId);
+        Assert.Null(doc.ClaimedAt);
+        _docRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(99, DocumentStatus.UnderReview)] // another lawyer's claim
+    [InlineData(5, DocumentStatus.Rejected)]     // already decided
+    public async Task ReleaseAsync_NotHolderOrNotUnderReview_IsRefused(int assignedTo, DocumentStatus status)
+    {
+        var doc = new GeneratedDocument
+        {
+            DocumentId = 1, Status = status,
+            AssignedLawyerProfileId = assignedTo, ClaimedAt = DateTime.UtcNow
+        };
+        _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(doc);
+
+        Assert.False(await _service.ReleaseAsync(1, 5));
+        Assert.Equal(assignedTo, doc.AssignedLawyerProfileId);
+        _docRepo.Verify(r => r.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetQueueAsync_LapsedClaim_ShowsAsUnclaimedAndOpenable()
+    {
+        SetUpQueueOfDocs(1);
+        var lapsed = new GeneratedDocument
+        {
+            DocumentId = 1, CaseId = 101, Status = DocumentStatus.UnderReview,
+            AssignedLawyerProfileId = 99, ClaimedAt = DateTime.UtcNow.AddDays(-2),
+            CreatedAt = new DateTime(2026, 9, 1)
+        };
+        _docRepo.SetupRows(new List<GeneratedDocument> { lapsed });
+
+        var all = await _service.GetQueueAsync(lawyerProfileId: 5);
+        var unclaimed = await _service.GetQueueAsync(lawyerProfileId: 5, filter: "Unclaimed");
+
+        var item = Assert.Single(all.Items);
+        Assert.True(item.CanOpen);
+        Assert.False(item.IsClaimed);
+        Assert.Null(item.ClaimedBy);
+        Assert.Single(unclaimed.Items);
+    }
+
+    // ── Wait time counts from the send to review (#16) ──────────────────
+
+    [Fact]
+    public async Task GetQueueAsync_OrdersAndWaitsBySubmittedForReviewAt()
+    {
+        SetUpQueueOfDocs(2);
+        var sent = new DateTime(2026, 9, 20);
+        _docRepo.SetupRows(new List<GeneratedDocument>
+        {
+            // Older draft, but sent to review later than document 2.
+            new() { DocumentId = 1, CaseId = 101, Status = DocumentStatus.UnderReview,
+                    CreatedAt = new DateTime(2026, 8, 1), SubmittedForReviewAt = sent.AddDays(1) },
+            new() { DocumentId = 2, CaseId = 102, Status = DocumentStatus.UnderReview,
+                    CreatedAt = new DateTime(2026, 9, 10), SubmittedForReviewAt = sent },
+        });
+
+        var queue = await _service.GetQueueAsync(lawyerProfileId: 5);
+
+        Assert.Equal(new[] { 2, 1 }, queue.Items.Select(i => i.DocumentId));
+        Assert.Equal(sent, queue.Items[0].WaitingSince);
+    }
+
+    // ── Case transitions are checked (#11) ──────────────────────────────
+
+    [Theory]
+    [InlineData(ReviewDecision.Approved)]
+    [InlineData(ReviewDecision.Rejected)]
+    public async Task SubmitReviewAsync_CaseNotUnderReview_SavesNothing(ReviewDecision decision)
+    {
+        var doc = new GeneratedDocument
+        {
+            DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview,
+            ContentDraft = "draft", AssignedLawyerProfileId = 5
+        };
+        _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(doc);
+        _caseRepo.Setup(r => r.GetByIdAsync(10))
+            .ReturnsAsync(new Case { CaseId = 10, Status = CaseStatus.Finalized });
+
+        var ok = await _service.SubmitReviewAsync(new SubmitReviewDto(1, 5, decision, "reason", null));
+
+        Assert.False(ok);
+        Assert.Equal(DocumentStatus.UnderReview, doc.Status);
+        Assert.Null(doc.ContentFinal);
+        _reviewRepo.Verify(r => r.AddAsync(It.IsAny<LawyerReview>()), Times.Never);
+        _reviewRepo.Verify(r => r.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task SubmitReviewAsync_Approve_FinalizesCase()
+    {
+        var doc = new GeneratedDocument
+        {
+            DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview,
+            ContentDraft = "draft", AssignedLawyerProfileId = 5
+        };
+        var c = new Case { CaseId = 10, Status = CaseStatus.UnderReview };
+        _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(doc);
+        _caseRepo.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(c);
+
+        Assert.True(await _service.SubmitReviewAsync(
+            new SubmitReviewDto(1, 5, ReviewDecision.Approved, "ok", null)));
+        Assert.Equal(CaseStatus.Finalized, c.Status);
+        Assert.Equal(DocumentStatus.Approved, doc.Status);
+    }
+
+    // ── History keeps what was reviewed (#17) ───────────────────────────
+
+    [Fact]
+    public async Task SubmitReviewAsync_SnapshotsVersionAndText()
+    {
+        var doc = new GeneratedDocument
+        {
+            DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview,
+            ContentDraft = "draft", ContentFinal = "citizen v3", CitizenEdited = true,
+            VersionNo = 3, AssignedLawyerProfileId = 5
+        };
+        _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(doc);
+        _caseRepo.Setup(r => r.GetByIdAsync(10))
+            .ReturnsAsync(new Case { CaseId = 10, Status = CaseStatus.UnderReview });
+        LawyerReview? saved = null;
+        _reviewRepo.Setup(r => r.AddAsync(It.IsAny<LawyerReview>()))
+            .Callback<LawyerReview>(r => saved = r).Returns(Task.CompletedTask);
+
+        await _service.SubmitReviewAsync(new SubmitReviewDto(1, 5, ReviewDecision.Rejected, "fix it", null));
+
+        Assert.NotNull(saved);
+        Assert.Equal(3, saved!.ReviewedVersionNo);
+        Assert.Equal("citizen v3", saved.ReviewedContent);
+    }
+
+    [Fact]
+    public async Task GetHistoryAsync_UsesSnapshotNotCurrentDocument()
+    {
+        // The document has since been re-edited by the citizen (v5).
+        SetUpDocumentAndCase(1, 10, "Case A", 1, "Labour", contentFinal: "citizen v5");
+        _reviewRepo.SetupRows(new List<LawyerReview>
+        {
+            new() { ReviewId = 1, DocumentId = 1, LawyerProfileId = 5, Decision = ReviewDecision.Rejected,
+                    Comments = "no", ReviewedAt = new DateTime(2026, 9, 1),
+                    ReviewedVersionNo = 3, ReviewedContent = "citizen v3" }
+        });
+
+        var item = Assert.Single(await _service.GetHistoryAsync(lawyerProfileId: 5));
+
+        Assert.Equal(3, item.VersionNo);
+        Assert.Equal("citizen v3", item.DocumentText);
+    }
+
+    // ── Preview before claiming ─────────────────────────────────────────
+
+    [Fact]
+    public async Task GetPreviewAsync_UnclaimedDocument_ShowsDraftButNotNarrative()
+    {
+        SetUpCase(10, "Case A", 1, "Labour", 1, "Dhaka", description: "secret narrative");
+        var doc = new GeneratedDocument
+        {
+            DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview,
+            ContentDraft = "AI draft", ContentFinal = "citizen edit", CitizenEdited = true
+        };
+        _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(doc);
+
+        var preview = await _service.GetPreviewAsync(1, 5);
+
+        Assert.NotNull(preview);
+        Assert.False(preview!.IsClaimedByMe);
+        Assert.Equal("", preview.CitizenNarrative);
+        Assert.Equal("AI draft", preview.OriginalDraft);
+        Assert.Equal("citizen edit", preview.CitizenEditedDraft);
+        Assert.Null(doc.AssignedLawyerProfileId); // viewing claims nothing
+    }
+
+    [Fact]
+    public async Task GetPreviewAsync_ActiveClaimOfAnotherLawyer_ReturnsNull()
+    {
+        SetUpCase(10, "Case A", 1, "Labour", 1, "Dhaka");
+        _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new GeneratedDocument
+        {
+            DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview,
+            AssignedLawyerProfileId = 99, ClaimedAt = DateTime.UtcNow
+        });
+
+        Assert.Null(await _service.GetPreviewAsync(1, 5));
+    }
+
+    [Fact]
+    public async Task GetPreviewAsync_DocumentNotUnderReview_ReturnsNull()
+    {
+        SetUpCase(10, "Case A", 1, "Labour", 1, "Dhaka");
+        _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new GeneratedDocument
+        {
+            DocumentId = 1, CaseId = 10, Status = DocumentStatus.Draft
+        });
+
+        Assert.Null(await _service.GetPreviewAsync(1, 5));
     }
 }
