@@ -578,15 +578,9 @@
       var subEl = document.querySelector(".page-head .page-sub");
       if (subEl) subEl.innerHTML = dict["home-sub"];
 
-      var composerBtn1 = document.querySelector("#composer-mode button:first-child");
-      if (composerBtn1) composerBtn1.innerHTML = '<i data-lucide="message-square"></i> ' + dict["home-tab-rights"];
-      var composerBtn2 = document.querySelector("#composer-mode button:last-child");
-      if (composerBtn2) composerBtn2.innerHTML = '<i data-lucide="search"></i> ' + dict["home-tab-search"];
-
       var textarea = document.querySelector(".composer textarea");
       if (textarea) {
-        var isSearch = composerBtn2 && composerBtn2.classList.contains("active");
-        textarea.placeholder = isSearch ? dict["home-search-placeholder"] : dict["home-composer-placeholder"];
+        textarea.placeholder = dict["home-composer-placeholder"];
       }
 
       var exLabel = document.querySelector(".page-head .tiny.muted");
@@ -813,7 +807,7 @@
       var searchBtn = document.querySelector(".search-bar button[type=\"submit\"]");
       if (searchBtn) searchBtn.innerHTML = '<i data-lucide="search"></i> ' + dict["search-btn"];
 
-      var popLabel = document.querySelector(".search-bar .row.wrap .tiny.muted");
+      var popLabel = document.querySelector(".search-bar .popular-label, .search-bar .tiny.muted");
       if (popLabel) popLabel.textContent = dict["search-popular-label"];
 
       // Popular-search chips carry both a label and the actual query they submit
@@ -2065,20 +2059,6 @@
         ta.style.height = Math.min(ta.scrollHeight, 130) + "px";
       });
     });
-
-    /* chat mode switch (Ask vs Search) */
-    var composerMode = document.getElementById("composer-mode");
-    if (composerMode) {
-      composerMode.addEventListener("chipchange", function (e) {
-        var ta = document.querySelector(".composer textarea");
-        if (!ta) return;
-        var dict = translations[currentLang];
-        var isSearch = e.detail.textContent.indexOf("খুঁজ") !== -1 || e.detail.textContent.indexOf("Search") !== -1;
-        ta.placeholder = isSearch
-          ? dict["home-search-placeholder"]
-          : dict["home-composer-placeholder"];
-      });
-    }
 
     renderIcons();
   });

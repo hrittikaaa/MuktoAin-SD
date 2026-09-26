@@ -93,7 +93,7 @@
             if (m) m.classList.remove("open");
         });
         var dEmail = el("draft-email");
-        if (dEmail) dEmail.value = "";
+        if (dEmail) dEmail.value = dEmail.getAttribute("data-default-email") || "";
         var dAnon = el("draft-anonymous");
         if (dAnon) dAnon.checked = false;
         ["draft-category-label", "draft-district-label", "draft-title-label"].forEach(function (id) {
@@ -107,9 +107,6 @@
             dSub.disabled = true;
             restoreDraftSubmitLabel(dSub);
         }
-        document.querySelectorAll("#composer-mode [data-mode]").forEach(function (chip) {
-            chip.classList.toggle("active", chip.dataset.mode === "rights");
-        });
         markActiveHistory();
     }
 
@@ -653,36 +650,9 @@
         wrap.appendChild(actions);
 
         thread.appendChild(wrap);
-        if (!state.blocked) quickReplies(!!data.canDraft);
         if (!state.blocked && data.canDraft) draftSuggestion();
         renderIcons();
         scrollBottom();
-    }
-
-    function quickReplies(canDraft) {
-        if (state.committed || state.blocked) return;
-        var qr = document.createElement("div");
-        qr.className = "quick-replies";
-        var options = [];
-        if (canDraft) {
-            options.push(["নথি বানাতে চাই", "I want a document", "draft"]);
-        }
-        options.push(["আরও প্রশ্ন আছে", "I have more questions", "more"]);
-        options.push(["না, ধন্যবাদ", "No, thanks", "done"]);
-
-        options.forEach(function (pair) {
-            var b = document.createElement("button");
-            b.className = "btn btn-outline btn-sm";
-            b.type = "button";
-            bilingual(b, pair[0], pair[1]);
-            b.addEventListener("click", function () {
-                if (pair[2] === "draft") openDraftModal();
-                else if (pair[2] === "more") input.focus();
-                else showToast(curLang() === "en" ? "Thanks! Come back anytime." : "ধন্যবাদ! যেকোনো সময় আবার আসুন।");
-            });
-            qr.appendChild(b);
-        });
-        thread.appendChild(qr);
     }
 
     function draftSuggestion() {
@@ -1438,6 +1408,17 @@
         welcome = el("chat-welcome");
         if (!thread || !input || !sendBtn) return;
 
+        function autoResizeInput() {
+            if (!input) return;
+            input.style.height = "auto";
+            if (input.value) {
+                input.style.height = Math.min(input.scrollHeight, 130) + "px";
+            } else {
+                input.style.height = "24px";
+            }
+        }
+        input.addEventListener("input", autoResizeInput);
+
         // category chips prefill the composer — data-prefill is Bangla, data-prefill-en
         // (when present) is the English variant; pick per the active toggle language.
         document.querySelectorAll("[data-prefill]").forEach(function (chip) {
@@ -1446,31 +1427,27 @@
                     if (state.committed || state.loading || state.committing) return;
                     var enPrefill = chip.getAttribute("data-prefill-en");
                     input.value = (curLang() === "en" && enPrefill) ? enPrefill : chip.getAttribute("data-prefill");
+                    autoResizeInput();
                     input.focus();
                 });
             }
         });
 
-        // A2: mode chips actually switch behavior — "search" routes the
-        // question through keyword section retrieval (FR-7).
-        document.querySelectorAll("#composer-mode [data-mode]").forEach(function (chip) {
-            chip.addEventListener("click", function () {
-                if (state.committed || state.loading || state.committing) return;
-                document.querySelectorAll("#composer-mode [data-mode]").forEach(function (c) { c.classList.remove("active"); });
-                chip.classList.add("active");
-                state.mode = chip.dataset.mode || "rights";
-            });
-        });
-
         // A3: clear the composer only when ask() actually accepted the
         // message — a turn in flight must not silently drop what you typed.
         sendBtn.addEventListener("click", function () {
-            if (ask(input.value)) input.value = "";
+            if (ask(input.value)) {
+                input.value = "";
+                autoResizeInput();
+            }
         });
         input.addEventListener("keydown", function (e) {
             if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                if (ask(input.value)) input.value = "";
+                if (ask(input.value)) {
+                    input.value = "";
+                    autoResizeInput();
+                }
             }
         });
 
@@ -1488,6 +1465,7 @@
         var pf = shell ? (shell.dataset.prefill || "") : "";
         if (pf && new URLSearchParams(location.search).get("id") == null) {
             input.value = pf;
+            autoResizeInput();
             input.focus();
         }
 
