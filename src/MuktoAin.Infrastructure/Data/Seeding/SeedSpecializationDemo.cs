@@ -82,8 +82,36 @@ public static class SeedSpecializationDemo
         IEncryptionService encryptionService,
         ILogger logger)
     {
-        if (await userManager.FindByEmailAsync(Lawyers[0].Email) is not null)
+        var firstLawyer = await userManager.FindByEmailAsync(Lawyers[0].Email);
+        if (firstLawyer is not null)
         {
+            // Self-heal demo specialization cases if key rotated in dev
+            var specCitizen = await userManager.FindByEmailAsync("fieldcitizen@demo.muktoain.bd");
+            if (specCitizen is not null)
+            {
+                var specCases = await context.Cases.Where(c => c.UserId == specCitizen.Id).ToListAsync();
+                var healed = false;
+                for (var i = 0; i < specCases.Count; i++)
+                {
+                    var sc = specCases[i];
+                    try
+                    {
+                        encryptionService.Decrypt(sc.Title);
+                    }
+                    catch
+                    {
+                        var tmpl = QueuedCases[i % QueuedCases.Length];
+                        sc.Title = encryptionService.Encrypt(tmpl.Title);
+                        sc.Description = encryptionService.Encrypt(tmpl.Description);
+                        healed = true;
+                    }
+                }
+                if (healed)
+                {
+                    await context.SaveChangesAsync();
+                    logger.LogInformation("Self-healed undecryptable specialization demo cases.");
+                }
+            }
             return; // already seeded
         }
 
