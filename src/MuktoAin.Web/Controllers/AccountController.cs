@@ -18,6 +18,7 @@ public class AccountController : Controller
     private readonly SignInManager<User> _signInManager;
     private readonly UserManager<User> _userManager;
     private readonly IRepository<LawyerProfile> _lawyerProfileRepo;
+    private readonly IRepository<LawyerReview> _lawyerReviewRepo;
     private readonly IChatHistoryRepository _chatHistory;
     private readonly ILogger<AccountController> _logger;
     private readonly IStringLocalizer<SharedResource> _localizer;
@@ -27,6 +28,7 @@ public class AccountController : Controller
         SignInManager<User> signInManager,
         UserManager<User> userManager,
         IRepository<LawyerProfile> lawyerProfileRepo,
+        IRepository<LawyerReview> lawyerReviewRepo,
         ILogger<AccountController> logger,
         IStringLocalizer<SharedResource> localizer,
         IChatHistoryRepository chatHistory,
@@ -35,6 +37,7 @@ public class AccountController : Controller
         _signInManager = signInManager;
         _userManager = userManager;
         _lawyerProfileRepo = lawyerProfileRepo;
+        _lawyerReviewRepo = lawyerReviewRepo;
         _logger = logger;
         _localizer = localizer;
         _chatHistory = chatHistory;
@@ -220,15 +223,16 @@ public class AccountController : Controller
 
         if (user.Role == UserRole.Lawyer)
         {
-            var profiles = await _lawyerProfileRepo.GetAllAsync();
-            var lawyerProfile = profiles.FirstOrDefault(p => p.UserId == user.Id);
+            var lawyerProfile = (await _lawyerProfileRepo.FindAsync(p => p.UserId == user.Id)).FirstOrDefault();
             if (lawyerProfile != null)
             {
                 vm.BarRegistrationNumber = lawyerProfile.BarRegistrationNumber;
                 vm.Specialization = lawyerProfile.Specialization;
                 vm.VerificationStatus = lawyerProfile.VerificationStatus.ToString();
                 vm.VerifiedAt = lawyerProfile.VerifiedAt;
-                vm.TotalReviewsCompleted = lawyerProfile.Reviews?.Count ?? 0;
+                // Counted in LAWYER_REVIEW: the Reviews navigation is never loaded (#18).
+                var lawyerProfileId = lawyerProfile.LawyerProfileId;
+                vm.TotalReviewsCompleted = await _lawyerReviewRepo.CountAsync(r => r.LawyerProfileId == lawyerProfileId);
             }
         }
 
@@ -273,8 +277,7 @@ public class AccountController : Controller
 
         if (user.Role == UserRole.Lawyer)
         {
-            var profiles = await _lawyerProfileRepo.GetAllAsync();
-            var lawyerProfile = profiles.FirstOrDefault(p => p.UserId == user.Id);
+            var lawyerProfile = (await _lawyerProfileRepo.FindAsync(p => p.UserId == user.Id)).FirstOrDefault();
             if (lawyerProfile != null)
             {
                 lawyerProfile.Specialization = model.Specialization?.Trim();

@@ -26,6 +26,7 @@ public class AccountControllerTests
     private readonly Mock<UserManager<User>> _userManager;
     private readonly Mock<SignInManager<User>> _signInManager;
     private readonly Mock<IRepository<LawyerProfile>> _lawyerProfileRepo;
+    private readonly Mock<IRepository<LawyerReview>> _lawyerReviewRepo = new();
     private readonly Mock<IChatHistoryRepository> _chatHistory = new();
     private readonly Mock<IRepository<Notification>> _notificationRepo;
     private readonly AccountController _controller;
@@ -51,6 +52,7 @@ public class AccountControllerTests
             _signInManager.Object,
             _userManager.Object,
             _lawyerProfileRepo.Object,
+            _lawyerReviewRepo.Object,
             Mock.Of<ILogger<AccountController>>(),
             TestStringLocalizer.Create(),
             _chatHistory.Object,
@@ -370,6 +372,30 @@ public class AccountControllerTests
         Assert.Equal("Citizen", model.Role);
     }
 
+    // #18: the count was read from a navigation collection that is never
+    // loaded, so it was always 0; it is now counted from LAWYER_REVIEW.
+    [Fact]
+    public async Task Profile_Get_Lawyer_ShowsCompletedReviewCount()
+    {
+        var user = new User { Id = 15, Email = "lawyer@muktoain.bd", FullName = "Adv. Hasan", Role = UserRole.Lawyer };
+        _userManager.Setup(m => m.GetUserAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal>())).ReturnsAsync(user);
+        _lawyerProfileRepo.SetupRows(new List<LawyerProfile>
+        {
+            new() { LawyerProfileId = 7, UserId = 15, BarRegistrationNumber = "DHA-999", VerificationStatus = VerificationStatus.Approved }
+        });
+        _lawyerReviewRepo.SetupRows(new List<LawyerReview>
+        {
+            new() { ReviewId = 1, LawyerProfileId = 7 },
+            new() { ReviewId = 2, LawyerProfileId = 7 },
+            new() { ReviewId = 3, LawyerProfileId = 99 }
+        });
+
+        var model = Assert.IsType<ProfileViewModel>(Assert.IsType<ViewResult>(await _controller.Profile()).Model);
+
+        Assert.Equal(2, model.TotalReviewsCompleted);
+        Assert.Equal("Approved", model.VerificationStatus);
+    }
+
     [Fact]
     public async Task Profile_Post_WhenValid_UpdatesUserAndRedirects()
     {
@@ -382,8 +408,7 @@ public class AccountControllerTests
         };
         _userManager.Setup(m => m.GetUserAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal>())).ReturnsAsync(user);
         _userManager.Setup(m => m.UpdateAsync(It.IsAny<User>())).ReturnsAsync(IdentityResult.Success);
-        _lawyerProfileRepo.Setup(r => r.GetAllAsync())
-            .ReturnsAsync(new List<LawyerProfile> { new LawyerProfile { UserId = 15, BarRegistrationNumber = "DHA-999" } });
+        _lawyerProfileRepo.SetupRows(new List<LawyerProfile> { new LawyerProfile { UserId = 15, BarRegistrationNumber = "DHA-999" } });
 
         var model = new ProfileViewModel
         {
