@@ -405,7 +405,19 @@ public class AdminController : Controller
 
         var adminId = int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value,
             out var id) ? id : 0;
-        await _lawyerVerification.VerifyAsync(lawyerProfileId, adminId, approve, reason);
+        try
+        {
+            await _lawyerVerification.VerifyAsync(lawyerProfileId, adminId, approve, reason);
+        }
+        catch (InvalidOperationException)
+        {
+            // Already decided (stale page or double submit) -- nothing changed.
+            TempData["Error"] = "এই আবেদনটি ইতিমধ্যে নিষ্পত্তি হয়েছে।";
+            TempData["ErrorEn"] = "This application has already been decided.";
+            return !string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)
+                ? LocalRedirect(returnUrl)
+                : RedirectToAction(nameof(Lawyers));
+        }
 
         TempData["Success"] = approve
             ? "আইনজীবী যাচাই অনুমোদিত হয়েছে।"

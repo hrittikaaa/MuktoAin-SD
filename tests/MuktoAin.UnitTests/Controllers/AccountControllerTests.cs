@@ -11,6 +11,7 @@ using MuktoAin.Domain.Entities;
 using MuktoAin.Domain.Enums;
 using MuktoAin.Domain.Interfaces.Repositories;
 using MuktoAin.UnitTests.Localization;
+using MuktoAin.UnitTests.TestSupport;
 using MuktoAin.Web.Controllers;
 using MuktoAin.Web.ViewModels;
 
@@ -25,6 +26,7 @@ public class AccountControllerTests
     private readonly Mock<UserManager<User>> _userManager;
     private readonly Mock<SignInManager<User>> _signInManager;
     private readonly Mock<IRepository<LawyerProfile>> _lawyerProfileRepo;
+    private readonly Mock<IRepository<LawyerReview>> _lawyerReviewRepo = new();
     private readonly Mock<IChatHistoryRepository> _chatHistory = new();
     private readonly Mock<IRepository<Notification>> _notificationRepo;
     private readonly AccountController _controller;
@@ -35,6 +37,7 @@ public class AccountControllerTests
 
         _lawyerProfileRepo = new Mock<IRepository<LawyerProfile>>();
         _lawyerProfileRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+        _lawyerProfileRepo.SetupRows(new List<LawyerProfile>());
 
         _userManager = NewUserManager();
         _signInManager = NewSignInManager(_userManager.Object);
@@ -49,6 +52,7 @@ public class AccountControllerTests
             _signInManager.Object,
             _userManager.Object,
             _lawyerProfileRepo.Object,
+            _lawyerReviewRepo.Object,
             Mock.Of<ILogger<AccountController>>(),
             TestStringLocalizer.Create(),
             _chatHistory.Object,
@@ -204,6 +208,54 @@ public class AccountControllerTests
         _lawyerProfileRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
+    // #5: BarRegistrationNumber is UNIQUE in LAWYER_PROFILE. A taken number
+    // must be a form error before any account exists -- not a 500 after the
+    // Identity user was already created (which left a stuck, profile-less lawyer).
+    [Fact]
+    public async Task Register_LawyerWithTakenBarNumber_AddsFieldErrorAndDoesNotCreateUser()
+    {
+        _lawyerProfileRepo.SetupRows(new List<LawyerProfile>
+        {
+            new() { LawyerProfileId = 1, UserId = 9, BarRegistrationNumber = "BAR-2026-9999" }
+        });
+        var model = new RegisterViewModel
+        {
+            FullName = "Second Lawyer", Email = "second@muktoain.bd",
+            Password = "Lawyer@123", ConfirmPassword = "Lawyer@123",
+            Role = "Lawyer", BarRegistrationNumber = "  BAR-2026-9999 "
+        };
+
+        var result = await _controller.Register(model);
+
+        Assert.IsType<ViewResult>(result);
+        var error = Assert.Single(_controller.ModelState["BarRegistrationNumber"]!.Errors);
+        Assert.Contains("already registered", error.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+        _userManager.Verify(m => m.CreateAsync(It.IsAny<User>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Register_LawyerProfileSaveFails_RemovesTheNewUserAndShowsError()
+    {
+        _userManager.Setup(m => m.CreateAsync(It.IsAny<User>(), It.IsAny<string>()))
+            .Callback<User, string>((u, _) => u.Id = 42)
+            .ReturnsAsync(IdentityResult.Success);
+        _userManager.Setup(m => m.DeleteAsync(It.IsAny<User>())).ReturnsAsync(IdentityResult.Success);
+        _lawyerProfileRepo.Setup(r => r.SaveChangesAsync())
+            .ThrowsAsync(new InvalidOperationException("unique constraint (race)"));
+        var model = new RegisterViewModel
+        {
+            FullName = "Racing Lawyer", Email = "race@muktoain.bd",
+            Password = "Lawyer@123", ConfirmPassword = "Lawyer@123",
+            Role = "Lawyer", BarRegistrationNumber = "BAR-RACE-1"
+        };
+
+        var result = await _controller.Register(model);
+
+        Assert.IsType<ViewResult>(result);
+        Assert.False(_controller.ModelState.IsValid);
+        _userManager.Verify(m => m.DeleteAsync(It.Is<User>(u => u.Id == 42)), Times.Once);
+    }
+
     [Fact]
     public async Task Register_LawyerRole_NotifiesAllAdmins()
     {
@@ -320,6 +372,30 @@ public class AccountControllerTests
         Assert.Equal("Citizen", model.Role);
     }
 
+    // #18: the count was read from a navigation collection that is never
+    // loaded, so it was always 0; it is now counted from LAWYER_REVIEW.
+    [Fact]
+    public async Task Profile_Get_Lawyer_ShowsCompletedReviewCount()
+    {
+        var user = new User { Id = 15, Email = "lawyer@muktoain.bd", FullName = "Adv. Hasan", Role = UserRole.Lawyer };
+        _userManager.Setup(m => m.GetUserAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal>())).ReturnsAsync(user);
+        _lawyerProfileRepo.SetupRows(new List<LawyerProfile>
+        {
+            new() { LawyerProfileId = 7, UserId = 15, BarRegistrationNumber = "DHA-999", VerificationStatus = VerificationStatus.Approved }
+        });
+        _lawyerReviewRepo.SetupRows(new List<LawyerReview>
+        {
+            new() { ReviewId = 1, LawyerProfileId = 7 },
+            new() { ReviewId = 2, LawyerProfileId = 7 },
+            new() { ReviewId = 3, LawyerProfileId = 99 }
+        });
+
+        var model = Assert.IsType<ProfileViewModel>(Assert.IsType<ViewResult>(await _controller.Profile()).Model);
+
+        Assert.Equal(2, model.TotalReviewsCompleted);
+        Assert.Equal("Approved", model.VerificationStatus);
+    }
+
     [Fact]
     public async Task Profile_Post_WhenValid_UpdatesUserAndRedirects()
     {
@@ -332,8 +408,7 @@ public class AccountControllerTests
         };
         _userManager.Setup(m => m.GetUserAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal>())).ReturnsAsync(user);
         _userManager.Setup(m => m.UpdateAsync(It.IsAny<User>())).ReturnsAsync(IdentityResult.Success);
-        _lawyerProfileRepo.Setup(r => r.GetAllAsync())
-            .ReturnsAsync(new List<LawyerProfile> { new LawyerProfile { UserId = 15, BarRegistrationNumber = "DHA-999" } });
+        _lawyerProfileRepo.SetupRows(new List<LawyerProfile> { new LawyerProfile { UserId = 15, BarRegistrationNumber = "DHA-999" } });
 
         var model = new ProfileViewModel
         {

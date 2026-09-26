@@ -83,8 +83,13 @@ public class CaseService
         switch (callerRole)
         {
             case UserRole.Admin:
-            case UserRole.Lawyer:
                 break;
+            case UserRole.Lawyer:
+                // Lawyers read case data only through their claimed review
+                // workspace (LawyerReviewService.GetForReviewAsync), never via
+                // the citizen case/document pages -- the Lawyer role is granted
+                // at registration, before bar verification.
+                return null;
             case UserRole.Citizen:
                 if (c.IsAnonymous || c.UserId == null)
                 {

@@ -6,6 +6,7 @@ using MuktoAin.Domain.Enums;
 using MuktoAin.Domain.Interfaces;
 using MuktoAin.Domain.Interfaces.Repositories;
 using Moq;
+using MuktoAin.UnitTests.TestSupport;
 
 namespace MuktoAin.UnitTests.Services;
 
@@ -67,7 +68,7 @@ public class LawyerReviewServiceTests
     {
         SetUpDocumentAndCase(1, 10, "Case A", 1, "Family");
         SetUpDocumentAndCase(2, 20, "Case B", 2, "Labour");
-        _reviewRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<LawyerReview>
+        _reviewRepo.SetupRows(new List<LawyerReview>
         {
             new() { ReviewId = 1, DocumentId = 1, LawyerProfileId = 5, Decision = ReviewDecision.Approved, Comments = "ok", ReviewedAt = new DateTime(2026, 9, 1) },
             new() { ReviewId = 2, DocumentId = 2, LawyerProfileId = 5, Decision = ReviewDecision.Rejected, Comments = "no", ReviewedAt = new DateTime(2026, 9, 5) },
@@ -88,7 +89,7 @@ public class LawyerReviewServiceTests
     {
         SetUpDocumentAndCase(1, 10, "Case A", 1, "Family");
         SetUpDocumentAndCase(2, 20, "Case B", 2, "Labour");
-        _reviewRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<LawyerReview>
+        _reviewRepo.SetupRows(new List<LawyerReview>
         {
             new() { ReviewId = 1, DocumentId = 1, LawyerProfileId = 5, Decision = ReviewDecision.Approved, Comments = "ok", ReviewedAt = new DateTime(2026, 9, 1) },
             new() { ReviewId = 2, DocumentId = 2, LawyerProfileId = 5, Decision = ReviewDecision.Rejected, Comments = "no", ReviewedAt = new DateTime(2026, 9, 5) }
@@ -103,7 +104,7 @@ public class LawyerReviewServiceTests
     [Fact]
     public async Task GetHistoryAsync_NoReviews_ReturnsEmptyList()
     {
-        _reviewRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<LawyerReview>());
+        _reviewRepo.SetupRows(new List<LawyerReview>());
 
         var result = await _service.GetHistoryAsync(lawyerProfileId: 5);
 
@@ -120,7 +121,7 @@ public class LawyerReviewServiceTests
         _encryptionService.Setup(e => e.Decrypt(opaqueCiphertext))
             .Throws(new System.Security.Cryptography.CryptographicException("key not found in the key ring"));
         SetUpDocumentAndCase(1, 10, opaqueCiphertext, 1, "RTI Request");
-        _reviewRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<LawyerReview>
+        _reviewRepo.SetupRows(new List<LawyerReview>
         {
             new() { ReviewId = 1, DocumentId = 1, LawyerProfileId = 5, Decision = ReviewDecision.Approved, Comments = "ok", ReviewedAt = new DateTime(2026, 9, 1) }
         });
@@ -138,7 +139,7 @@ public class LawyerReviewServiceTests
         SetUpDocumentAndCase(1, 10, "Case A", 1, "Family",
             districtId: 3, districtName: "Chattogram",
             contentDraft: "original draft", contentFinal: "final approved text");
-        _reviewRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<LawyerReview>
+        _reviewRepo.SetupRows(new List<LawyerReview>
         {
             new() { ReviewId = 1, DocumentId = 1, LawyerProfileId = 5, Decision = ReviewDecision.Approved, Comments = "ok", ReviewedAt = new DateTime(2026, 9, 1) }
         });
@@ -155,7 +156,7 @@ public class LawyerReviewServiceTests
     {
         SetUpDocumentAndCase(1, 10, "Case A", 1, "Family",
             contentDraft: "original draft", contentFinal: null);
-        _reviewRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<LawyerReview>
+        _reviewRepo.SetupRows(new List<LawyerReview>
         {
             new() { ReviewId = 1, DocumentId = 1, LawyerProfileId = 5, Decision = ReviewDecision.Rejected, Comments = "no", ReviewedAt = new DateTime(2026, 9, 1) }
         });
@@ -164,6 +165,67 @@ public class LawyerReviewServiceTests
 
         var item = Assert.Single(result);
         Assert.Equal("original draft", item.DocumentText);
+    }
+
+    // #23: history is sorted and paged in the service, and only the visible
+    // page is enriched (document/case lookups), like the queue (AUD-8).
+    [Fact]
+    public async Task GetHistoryPageAsync_DateSort_EnrichesOnlyTheRequestedPage()
+    {
+        var reviews = Enumerable.Range(1, 25).Select(i => new LawyerReview
+        {
+            ReviewId = i, DocumentId = i, LawyerProfileId = 5, Decision = ReviewDecision.Approved,
+            Comments = "ok", ReviewedAt = new DateTime(2026, 9, 1).AddHours(i)
+        }).ToList();
+        foreach (var r in reviews) SetUpDocumentAndCase(r.DocumentId, 100 + r.DocumentId, $"Case {r.DocumentId}", 1, "Labour");
+        _reviewRepo.SetupRows(reviews);
+
+        var page2 = await _service.GetHistoryPageAsync(5, null, null, null, sort: null, page: 2, pageSize: 20);
+
+        Assert.Equal(25, page2.TotalCount);
+        Assert.Equal(2, page2.Page);
+        Assert.Equal(new[] { 5, 4, 3, 2, 1 }, page2.Items.Select(h => h.ReviewId)); // newest first, oldest five on page 2
+        _docRepo.Verify(r => r.GetByIdAsync(It.IsAny<object>()), Times.Exactly(5));
+    }
+
+    [Fact]
+    public async Task GetHistoryPageAsync_CaseTitleSort_OrdersAcrossAllPages_AndClampsPage()
+    {
+        SetUpDocumentAndCase(1, 10, "Bravo", 1, "Labour");
+        SetUpDocumentAndCase(2, 20, "alpha", 1, "Labour");
+        SetUpDocumentAndCase(3, 30, "Charlie", 1, "Labour");
+        _reviewRepo.SetupRows(new List<LawyerReview>
+        {
+            new() { ReviewId = 1, DocumentId = 1, LawyerProfileId = 5, Decision = ReviewDecision.Approved, Comments = "a", ReviewedAt = new DateTime(2026, 9, 3) },
+            new() { ReviewId = 2, DocumentId = 2, LawyerProfileId = 5, Decision = ReviewDecision.Approved, Comments = "b", ReviewedAt = new DateTime(2026, 9, 1) },
+            new() { ReviewId = 3, DocumentId = 3, LawyerProfileId = 5, Decision = ReviewDecision.Approved, Comments = "c", ReviewedAt = new DateTime(2026, 9, 2) }
+        });
+
+        var first = await _service.GetHistoryPageAsync(5, null, null, null, "case_asc", page: 1, pageSize: 2);
+        var beyond = await _service.GetHistoryPageAsync(5, null, null, null, "case_asc", page: 99, pageSize: 2);
+
+        Assert.Equal(new[] { "alpha", "Bravo" }, first.Items.Select(h => h.CaseTitle));
+        Assert.Equal(2, beyond.Page);
+        Assert.Equal("Charlie", Assert.Single(beyond.Items).CaseTitle);
+    }
+
+    // #22: the queue selects its pool in the database instead of loading every document.
+    [Fact]
+    public async Task GetQueueAsync_QueriesThePool_NeverLoadsWholeTables()
+    {
+        _docRepo.SetupRows(new List<GeneratedDocument>
+        {
+            new() { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, CreatedAt = DateTime.UtcNow }
+        });
+        SetUpCase(10, "Case A", 1, "Labour", 1, "Dhaka");
+        _caseRepo.SetupRows(new List<Case> { new() { CaseId = 10, CategoryId = 1, DistrictId = 1 } });
+        _profileRepo.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(new LawyerProfile { LawyerProfileId = 5, Specialization = "Labour law" });
+
+        foreach (var filter in new[] { "All", "Unclaimed", "Mine", "MyField" })
+            await _service.GetQueueAsync(lawyerProfileId: 5, filter: filter);
+
+        _docRepo.Verify(r => r.GetAllAsync(), Times.Never);
+        _caseRepo.Verify(r => r.GetAllAsync(), Times.Never);
     }
 
     // ── GetQueueAsync Tests ──────────────────────────────────────────────
@@ -187,7 +249,7 @@ public class LawyerReviewServiceTests
             CreatedAt = new DateTime(2026, 8, 20, 10, 0, 0)
         };
 
-        _docRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<GeneratedDocument> { doc1, doc2, docDraft });
+        _docRepo.SetupRows(new List<GeneratedDocument> { doc1, doc2, docDraft });
         SetUpCase(10, "Case A", 1, "Labour", 1, "Dhaka");
         SetUpCase(20, "Case B", 2, "General Diary", 2, "Gazipur");
 
@@ -213,7 +275,7 @@ public class LawyerReviewServiceTests
             AssignedLawyerProfileId = 99, CreatedAt = DateTime.UtcNow
         };
 
-        _docRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<GeneratedDocument> { docUnclaimed, docClaimed });
+        _docRepo.SetupRows(new List<GeneratedDocument> { docUnclaimed, docClaimed });
         SetUpCase(10, "Case A", 1, "Labour", 1, "Dhaka");
         SetUpCase(20, "Case B", 2, "General Diary", 2, "Gazipur");
 
@@ -237,7 +299,7 @@ public class LawyerReviewServiceTests
             AssignedLawyerProfileId = 99, CreatedAt = DateTime.UtcNow
         };
 
-        _docRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<GeneratedDocument> { docMine, docOther });
+        _docRepo.SetupRows(new List<GeneratedDocument> { docMine, docOther });
         SetUpCase(10, "Case A", 1, "Labour", 1, "Dhaka");
         SetUpCase(20, "Case B", 2, "General Diary", 2, "Gazipur");
 
@@ -266,7 +328,7 @@ public class LawyerReviewServiceTests
             AssignedLawyerProfileId = 99, CreatedAt = DateTime.UtcNow
         };
 
-        _docRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<GeneratedDocument> { docUnclaimed, docMine, docOther });
+        _docRepo.SetupRows(new List<GeneratedDocument> { docUnclaimed, docMine, docOther });
         SetUpCase(10, "Case A", 1, "Labour", 1, "Dhaka");
         SetUpCase(20, "Case B", 2, "General Diary", 2, "Gazipur");
         SetUpCase(30, "Case C", 3, "RTI", 3, "Sylhet");
@@ -279,6 +341,77 @@ public class LawyerReviewServiceTests
         Assert.True(queue.Items.Single(q => q.DocumentId == 1).CanOpen);
         Assert.True(queue.Items.Single(q => q.DocumentId == 2).CanOpen);
         Assert.False(queue.Items.Single(q => q.DocumentId == 3).CanOpen);
+    }
+
+    [Fact]
+    public async Task GetQueueAsync_IsMine_ComesFromAssignedProfileId()
+    {
+        var docUnclaimed = new GeneratedDocument
+        {
+            DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, CreatedAt = DateTime.UtcNow
+        };
+        var docMine = new GeneratedDocument
+        {
+            DocumentId = 2, CaseId = 20, Status = DocumentStatus.UnderReview,
+            AssignedLawyerProfileId = 5, CreatedAt = DateTime.UtcNow
+        };
+        var docOther = new GeneratedDocument
+        {
+            DocumentId = 3, CaseId = 30, Status = DocumentStatus.UnderReview,
+            AssignedLawyerProfileId = 99, CreatedAt = DateTime.UtcNow
+        };
+
+        _docRepo.SetupRows(new List<GeneratedDocument> { docUnclaimed, docMine, docOther });
+        SetUpCase(10, "Case A", 1, "Labour", 1, "Dhaka");
+        SetUpCase(20, "Case B", 2, "General Diary", 2, "Gazipur");
+        SetUpCase(30, "Case C", 3, "RTI", 3, "Sylhet");
+        // Profile lookups deliberately unset: ownership must not depend on
+        // resolving bar numbers.
+
+        var queue = await _service.GetQueueAsync(lawyerProfileId: 5, filter: "All");
+
+        Assert.False(queue.Items.Single(q => q.DocumentId == 1).IsMine);
+        Assert.True(queue.Items.Single(q => q.DocumentId == 2).IsMine);
+        Assert.False(queue.Items.Single(q => q.DocumentId == 3).IsMine);
+        Assert.True(queue.Items.Single(q => q.DocumentId == 3).IsClaimed);
+        Assert.False(queue.Items.Single(q => q.DocumentId == 1).IsClaimed);
+    }
+
+    // #14: a page past the end used to return an empty slice while the
+    // controller showed "last page"; the service now clamps before slicing.
+    [Fact]
+    public async Task GetQueueAsync_PageBeyondLast_ReturnsTheLastPagesItems()
+    {
+        var docs = Enumerable.Range(1, 25).Select(i => new GeneratedDocument
+        {
+            DocumentId = i, CaseId = 10, Status = DocumentStatus.UnderReview, CreatedAt = new DateTime(2026, 9, 1).AddHours(i)
+        }).ToList();
+        _docRepo.SetupRows(docs);
+        SetUpCase(10, "Case A", 1, "Labour", 1, "Dhaka");
+
+        var queue = await _service.GetQueueAsync(lawyerProfileId: 5, filter: "All", page: 99, pageSize: 20);
+
+        Assert.Equal(2, queue.Page);
+        Assert.Equal(new[] { 21, 22, 23, 24, 25 }, queue.Items.Select(q => q.DocumentId));
+    }
+
+    // #15: the "Pending" KPI is the whole review backlog, whatever filter chip is active.
+    [Fact]
+    public async Task GetQueueAsync_PoolCount_IsTheWholeBacklogWhateverTheFilter()
+    {
+        _docRepo.SetupRows(new List<GeneratedDocument>
+        {
+            new() { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 5, CreatedAt = DateTime.UtcNow },
+            new() { DocumentId = 2, CaseId = 10, Status = DocumentStatus.UnderReview, CreatedAt = DateTime.UtcNow },
+            new() { DocumentId = 3, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 99, CreatedAt = DateTime.UtcNow },
+            new() { DocumentId = 4, CaseId = 10, Status = DocumentStatus.Approved, CreatedAt = DateTime.UtcNow }
+        });
+        SetUpCase(10, "Case A", 1, "Labour", 1, "Dhaka");
+
+        var mine = await _service.GetQueueAsync(lawyerProfileId: 5, filter: "Mine");
+
+        Assert.Equal(1, mine.TotalCount);
+        Assert.Equal(3, mine.PoolCount);
     }
 
     // ── ClaimAsync Security Edge-Case Tests ──────────────────────────────
@@ -438,19 +571,20 @@ public class LawyerReviewServiceTests
         var doc = new GeneratedDocument
         {
             DocumentId = 1, CaseId = 10, ContentDraft = "AI Draft",
-            ContentFinal = null, VersionNo = 1, CitizenEdited = false
+            ContentFinal = null, VersionNo = 1, CitizenEdited = false,
+            Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 5
         };
         _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(doc);
         SetUpCase(10, "ENC_Title", 1, "Labour", 1, "Dhaka", "ENC_Description");
 
-        _refRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<CaseActReference>
+        _refRepo.SetupRows(new List<CaseActReference>
         {
             new() { CaseActReferenceId = 1, CaseId = 10, SectionId = 100, RelevanceScore = 0.95m, RetrievalMethod = RetrievalMethod.Vector }
         });
         _sectionRepo.Setup(r => r.GetByIdAsync(100)).ReturnsAsync(new ActSection { SectionId = 100, ActId = 50, SectionNumber = "Section 33", SectionText = "Wages payment" });
         _actRepo.Setup(r => r.GetByIdAsync(50)).ReturnsAsync(new Act { ActId = 50, Title = "Labour Act 2006", ActNumber = "XLII", Year = 2006 });
 
-        var workspace = await _service.GetForReviewAsync(1);
+        var workspace = await _service.GetForReviewAsync(1, lawyerProfileId: 5);
 
         Assert.NotNull(workspace);
         Assert.Equal(1, workspace!.DocumentId);
@@ -470,12 +604,55 @@ public class LawyerReviewServiceTests
     {
         _docRepo.Setup(r => r.GetByIdAsync(404)).ReturnsAsync((GeneratedDocument?)null);
 
-        var result = await _service.GetForReviewAsync(404);
+        var result = await _service.GetForReviewAsync(404, lawyerProfileId: 5);
 
         Assert.Null(result);
     }
 
+    // #2: the workspace exposes the decrypted citizen narrative, so it opens
+    // only for a document under review that THIS lawyer has claimed.
+    [Theory]
+    [InlineData(DocumentStatus.UnderReview, null)]   // unclaimed -- must Claim first
+    [InlineData(DocumentStatus.UnderReview, 99)]     // another lawyer's claim
+    [InlineData(DocumentStatus.Approved, 5)]         // already decided
+    [InlineData(DocumentStatus.Rejected, 5)]
+    [InlineData(DocumentStatus.Draft, 5)]            // never sent to review
+    public async Task GetForReviewAsync_NotMyActiveClaim_ReturnsNull(DocumentStatus status, int? assignedTo)
+    {
+        _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new GeneratedDocument
+        {
+            DocumentId = 1, CaseId = 10, ContentDraft = "AI Draft",
+            Status = status, AssignedLawyerProfileId = assignedTo
+        });
+        SetUpCase(10, "Title", 1, "Labour", 1, "Dhaka", "Private narrative");
+
+        Assert.Null(await _service.GetForReviewAsync(1, lawyerProfileId: 5));
+        _encryptionService.Verify(e => e.Decrypt(It.IsAny<string>()), Times.Never);
+    }
+
     // ── SubmitReviewAsync Business Logic & Security Edge-Case Tests ──────
+
+    // #4: "Approve" publishes the version under review -- the citizen's edit
+    // when there is one -- not the original AI draft.
+    [Fact]
+    public async Task SubmitReviewAsync_Approved_CitizenEditedDraft_KeepsCitizenVersion()
+    {
+        var doc = new GeneratedDocument
+        {
+            DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 5,
+            ContentDraft = "AI Draft", ContentFinal = "Citizen's corrected draft", CitizenEdited = true
+        };
+        _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(doc);
+        _caseRepo.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(new Case { CaseId = 10, Status = CaseStatus.UnderReview });
+
+        var ok = await _service.SubmitReviewAsync(new SubmitReviewDto(1, LawyerProfileId: 5,
+            Decision: ReviewDecision.Approved, Comments: "Approved as edited by the citizen", EditedContent: null));
+
+        Assert.True(ok);
+        Assert.Equal(DocumentStatus.Approved, doc.Status);
+        Assert.Equal("Citizen's corrected draft", doc.ContentFinal);
+        Assert.Equal("AI Draft", doc.ContentDraft);
+    }
 
     [Fact]
     public async Task SubmitReviewAsync_Approved_SetsStatusApproved_FinalEqualsDraft_TransitionsCaseFinalized()
@@ -645,7 +822,7 @@ public class LawyerReviewServiceTests
     [Fact]
     public async Task SubmitReviewAsync_NotifiesTheCaseOwner()
     {
-        var doc = new GeneratedDocument { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview };
+        var doc = new GeneratedDocument { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 3 };
         _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(doc);
         var owner = new Case { CaseId = 10, UserId = 55, IsAnonymous = false };
         _caseRepo.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(owner);
@@ -667,7 +844,7 @@ public class LawyerReviewServiceTests
     [Fact]
     public async Task SubmitReviewAsync_SkipsNotification_WhenCaseIsAnonymous()
     {
-        var doc = new GeneratedDocument { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview };
+        var doc = new GeneratedDocument { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 3 };
         _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(doc);
         var anon = new Case { CaseId = 10, UserId = null, IsAnonymous = true };
         _caseRepo.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(anon);
@@ -676,6 +853,22 @@ public class LawyerReviewServiceTests
             Decision: ReviewDecision.Approved, Comments: "ok", EditedContent: null));
 
         _notificationRepo.Verify(n => n.AddAsync(It.IsAny<Notification>()), Times.Never);
+    }
+
+    // #2: no implicit claim on submit -- a decision needs the lawyer's own claim.
+    [Fact]
+    public async Task SubmitReviewAsync_UnclaimedDocument_FailsAndChangesNothing()
+    {
+        var doc = new GeneratedDocument { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, ContentDraft = "draft" };
+        _docRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(doc);
+
+        var ok = await _service.SubmitReviewAsync(new SubmitReviewDto(1, LawyerProfileId: 3,
+            Decision: ReviewDecision.Approved, Comments: "ok", EditedContent: null));
+
+        Assert.False(ok);
+        Assert.Null(doc.AssignedLawyerProfileId);
+        Assert.Equal(DocumentStatus.UnderReview, doc.Status);
+        _reviewRepo.Verify(r => r.AddAsync(It.IsAny<LawyerReview>()), Times.Never);
     }
 
     private void SetUpCase(
@@ -711,7 +904,7 @@ public class LawyerReviewServiceTests
                 CreatedAt = new DateTime(2026, 9, 1).AddHours(i)
             });
         }
-        _docRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(docs);
+        _docRepo.SetupRows(docs);
         _caseRepo.Setup(r => r.GetWithDocumentsAsync(It.IsAny<int>()))
             .ReturnsAsync((int caseId) => new Case
             {
@@ -753,7 +946,7 @@ public class LawyerReviewServiceTests
             if (i % 2 == 0) doc.AssignedLawyerProfileId = 9; // claimed by someone
             claimed.Add(doc);
         }
-        _docRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(claimed);
+        _docRepo.SetupRows(claimed);
 
         var result = await _service.GetQueueAsync(lawyerProfileId: 5, filter: "Unclaimed", page: 1, pageSize: 20);
 
@@ -773,11 +966,11 @@ public class LawyerReviewServiceTests
             new() { DocumentId = 2, CaseId = 20, Status = DocumentStatus.UnderReview, CreatedAt = new DateTime(2026, 9, 2) },
             new() { DocumentId = 3, CaseId = 30, Status = DocumentStatus.UnderReview, CreatedAt = new DateTime(2026, 9, 3) },
         };
-        _docRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(docs);
+        _docRepo.SetupRows(docs);
         SetUpCase(10, "Case A", 1, "Labour", 1, "Dhaka");
         SetUpCase(20, "Case B", 2, "General Diary", 1, "Dhaka");
         SetUpCase(30, "Case C", 4, "Consumer", 1, "Dhaka");
-        _caseRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Case>
+        _caseRepo.SetupRows(new List<Case>
         {
             new() { CaseId = 10, CategoryId = 1 },
             new() { CaseId = 20, CategoryId = 2 },
@@ -829,7 +1022,7 @@ public class LawyerReviewServiceTests
     public async Task GetQueueAsync_FilterMyField_HidesOtherLawyersClaims_KeepsOwnClaim()
     {
         SetUpMixedCategoryQueue("Labour");
-        _docRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<GeneratedDocument>
+        _docRepo.SetupRows(new List<GeneratedDocument>
         {
             new() { DocumentId = 1, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 99, CreatedAt = new DateTime(2026, 9, 1) },
             new() { DocumentId = 4, CaseId = 10, Status = DocumentStatus.UnderReview, AssignedLawyerProfileId = 5, CreatedAt = new DateTime(2026, 9, 2) },

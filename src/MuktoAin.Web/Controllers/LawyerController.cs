@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using MuktoAin.Application.DTOs;
 using MuktoAin.Application.Services;
 using MuktoAin.Domain.Entities;
@@ -16,20 +17,17 @@ namespace MuktoAin.Web.Controllers;
 public class LawyerController : Controller
 {
     private readonly LawyerReviewService _reviewService;
-    private readonly LawyerVerificationService _verificationService;
     private readonly PaymentService _paymentService;
     private readonly IRepository<LawyerProfile> _profileRepo;
     private readonly UserManager<User> _userManager;
 
     public LawyerController(
         LawyerReviewService reviewService,
-        LawyerVerificationService verificationService,
         PaymentService paymentService,
         IRepository<LawyerProfile> profileRepo,
         UserManager<User> userManager)
     {
         _reviewService = reviewService;
-        _verificationService = verificationService;
         _paymentService = paymentService;
         _profileRepo = profileRepo;
         _userManager = userManager;
@@ -39,9 +37,15 @@ public class LawyerController : Controller
     {
         var idStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(idStr, out var userId)) return null;
-        var all = await _profileRepo.GetAllAsync();
-        return all.FirstOrDefault(p => p.UserId == userId);
+        return (await _profileRepo.FindAsync(p => p.UserId == userId)).FirstOrDefault();
     }
+
+    // The sign-in cookie already carries the display name (FullName claim);
+    // fall back to the user record only when it is missing.
+    private async Task<string> MyNameAsync(LawyerProfile profile) =>
+        User.FindFirst("FullName")?.Value
+        ?? (await _userManager.FindByIdAsync(profile.UserId.ToString()))?.FullName
+        ?? "";
 
     // Unverified lawyers land here instead of the queue.
     [HttpGet]
@@ -49,16 +53,13 @@ public class LawyerController : Controller
     {
         var profile = await MyProfileAsync();
         if (profile == null) return NotFound();
-        var user = await _userManager.FindByIdAsync(profile.UserId.ToString());
-
         var vm = new LawyerStatusViewModel
         {
-            LawyerName = user?.FullName ?? "",
+            LawyerName = await MyNameAsync(profile),
             BarRegistrationNumber = profile.BarRegistrationNumber,
             Specialization = profile.Specialization ?? "",
             Status = profile.VerificationStatus.ToString(),
-            RejectionReason = profile.RejectionReason,
-            SubmittedAt = profile.VerifiedAt ?? DateTime.UtcNow // display only
+            RejectionReason = profile.RejectionReason
         };
         return View(vm);
     }
@@ -79,9 +80,27 @@ public class LawyerController : Controller
             return RedirectToAction(nameof(Status));
         }
 
-        profile.BarRegistrationNumber = vm.BarRegistrationNumber;
+        // #5: BarRegistrationNumber is UNIQUE (and NVARCHAR(100)) -- refuse a
+        // number another lawyer holds or one that won't fit, instead of a 500.
+        var barNumber = vm.BarRegistrationNumber.Trim();
+        if (barNumber.Length > MaxBarNumberLength)
+        {
+            TempData["Error"] = $"বার নম্বর সর্বোচ্চ {MaxBarNumberLength} অক্ষরের হতে পারে।";
+            TempData["ErrorEn"] = $"Bar number can be at most {MaxBarNumberLength} characters.";
+            return RedirectToAction(nameof(Status));
+        }
+        var takenByOther = (await _profileRepo.FindAsync(p =>
+            p.BarRegistrationNumber == barNumber && p.LawyerProfileId != profile.LawyerProfileId)).Count > 0;
+        if (takenByOther)
+        {
+            TempData["Error"] = "এই বার রেজিস্ট্রেশন নম্বরটি ইতিমধ্যে নিবন্ধিত।";
+            TempData["ErrorEn"] = "This bar registration number is already registered.";
+            return RedirectToAction(nameof(Status));
+        }
+
+        profile.BarRegistrationNumber = barNumber;
         if (!string.IsNullOrWhiteSpace(vm.Specialization))
-            profile.Specialization = vm.Specialization;
+            profile.Specialization = vm.Specialization.Trim();
         profile.VerificationStatus = VerificationStatus.Pending;
         await _profileRepo.SaveChangesAsync();
 
@@ -89,6 +108,8 @@ public class LawyerController : Controller
         TempData["SuccessEn"] = "Application resubmitted — verification typically takes 24–48h.";
         return RedirectToAction(nameof(Status));
     }
+
+    private const int MaxBarNumberLength = 100; // LAWYER_PROFILE.BarRegistrationNumber NVARCHAR(100)
 
     private const int QueuePageSize = 20;
 
@@ -104,16 +125,15 @@ public class LawyerController : Controller
 
         var queue = await _reviewService.GetQueueAsync(profile.LawyerProfileId, filter, page, QueuePageSize);
 
-        var totalPages = Math.Max((int)Math.Ceiling(queue.TotalCount / (double)QueuePageSize), 1);
         var vm = new LawyerQueueViewModel
         {
-            LawyerName = (await _userManager.FindByIdAsync(profile.UserId.ToString()))?.FullName ?? "",
+            LawyerName = await MyNameAsync(profile),
             BarRegistrationNumber = profile.BarRegistrationNumber,
             Specialization = profile.Specialization ?? "",
-            PendingCount = queue.TotalCount, // KPI shows the full backlog, not the page
+            PendingCount = queue.PoolCount, // whole backlog, whatever filter is active
             ActiveFilter = filter ?? "All",
             FieldFallback = queue.FieldFallback,
-            Page = Math.Max(1, Math.Min(page, totalPages)),
+            Page = queue.Page,
             PageSize = QueuePageSize,
             TotalCount = queue.TotalCount,
             Items = queue.Items.Select(q => new LawyerQueueItemViewModel
@@ -126,7 +146,8 @@ public class LawyerController : Controller
                 CitizenEdited = q.CitizenEdited,
                 VersionNo = q.VersionNo,
                 ClaimedBy = q.ClaimedBy,
-                IsMine = profile.LawyerProfileId != 0 && q.ClaimedBy == profile.BarRegistrationNumber,
+                IsClaimed = q.IsClaimed,
+                IsMine = q.IsMine,
                 WaitingHours = (int)Math.Max(0, (DateTime.UtcNow - q.CreatedAt).TotalHours),
                 CanOpen = q.CanOpen
             }).ToList()
@@ -160,28 +181,7 @@ public class LawyerController : Controller
         if (profile == null || profile.VerificationStatus != VerificationStatus.Approved)
             return RedirectToAction(nameof(Status));
 
-        var ws = await _reviewService.GetForReviewAsync(id);
-        if (ws == null) return NotFound();
-
-        var doc = ws; // workspace dto
-        var vm = new LawyerReviewViewModel
-        {
-            DocumentId = doc.DocumentId,
-            CaseId = doc.CaseId,
-            CaseTitle = doc.CaseTitle,
-            CategoryName = doc.CategoryName,
-            ContentDraft = doc.OriginalDraft,
-            EditedContent = doc.CitizenEditedDraft ?? doc.OriginalDraft,
-            Decision = nameof(ReviewDecision.EditedApproved),
-            Comments = string.Empty
-        };
-        // Context extras for the view
-        ViewData["DistrictName"] = doc.DistrictName;
-        ViewData["CitizenNarrative"] = doc.CitizenNarrative;
-        ViewData["Citations"] = doc.Citations;
-        ViewData["VersionNo"] = doc.VersionNo;
-        ViewData["CitizenEdited"] = doc.CitizenEdited;
-        return View(vm);
+        return await ReviewWorkspaceAsync(id, profile.LawyerProfileId, posted: null);
     }
 
     [HttpPost]
@@ -192,26 +192,73 @@ public class LawyerController : Controller
         if (profile == null || profile.VerificationStatus != VerificationStatus.Approved)
             return RedirectToAction(nameof(Status));
 
-        if (!Enum.TryParse<ReviewDecision>(vm.Decision, out var decision))
-            decision = ReviewDecision.EditedApproved;
+        // Decision/Comments rules live on LawyerReviewViewModel (DataAnnotations).
+        // An unknown decision is an error, never a silent default (#8).
+        var isDecision = Enum.GetNames<ReviewDecision>().Contains(vm.Decision);
+        if (!isDecision && ModelState.GetFieldValidationState(nameof(vm.Decision)) != ModelValidationState.Invalid)
+            ModelState.AddModelError(nameof(vm.Decision),
+                "সিদ্ধান্ত অবশ্যই Approved, EditedApproved অথবা Rejected হতে হবে / Decision must be Approved, EditedApproved or Rejected");
+        if (vm.Decision == nameof(ReviewDecision.EditedApproved) && string.IsNullOrWhiteSpace(vm.EditedContent))
+            ModelState.AddModelError(nameof(vm.EditedContent),
+                "সম্পাদনাসহ অনুমোদনের জন্য সম্পাদিত পাঠ্য আবশ্যক / Edited text is required to approve with edits");
 
+        // Re-show the workspace with the lawyer's own text and comment instead
+        // of redirecting (a redirect reloads the document and loses them, #6).
+        if (!ModelState.IsValid)
+            return await ReviewWorkspaceAsync(vm.DocumentId, profile.LawyerProfileId, posted: vm);
+
+        var decision = Enum.Parse<ReviewDecision>(vm.Decision);
         var ok = await _reviewService.SubmitReviewAsync(new SubmitReviewDto(
             vm.DocumentId,
             profile.LawyerProfileId,
             decision,
-            vm.Comments ?? string.Empty,
+            vm.Comments.Trim(),
             decision == ReviewDecision.EditedApproved ? vm.EditedContent : null));
 
         if (!ok)
         {
-            TempData["Error"] = "পর্যালোচনা সংরক্ষণ হয়নি — মন্তব্য আবশ্যক (এবং সম্পাদনার সাথে অনুমোদনের ক্ষেত্রে সম্পাদিত পাঠ্য)। অন্য কেউ নথিটি বদলে থাকলে পাতাটি আবার লোড করুন।";
-            TempData["ErrorEn"] = "Review not saved — comments are mandatory (and edited text for approve-with-edits). If someone else changed this document, reload and try again.";
+            // Input was valid, so the document changed underneath (claim lost,
+            // already decided, or a concurrent save) -- reload is correct here.
+            TempData["Error"] = "পর্যালোচনা সংরক্ষণ হয়নি — নথিটি ইতিমধ্যে পরিবর্তিত হয়েছে। সারি থেকে আবার খুলুন।";
+            TempData["ErrorEn"] = "Review not saved — the document changed in the meantime. Open it again from the queue.";
             return RedirectToAction(nameof(Review), new { id = vm.DocumentId });
         }
 
         TempData["Success"] = "পর্যালোচনা সম্পন্ন — পরবর্তী নথিতে যাচ্ছেন।";
         TempData["SuccessEn"] = "Review saved — advancing to the next document.";
         return RedirectToAction(nameof(Queue));
+    }
+
+    // Builds the review page from the lawyer's own active claim. `posted`
+    // (an invalid submission) keeps the lawyer's decision, edited text and
+    // comment on top of the freshly loaded workspace context.
+    private async Task<IActionResult> ReviewWorkspaceAsync(int documentId, int lawyerProfileId, LawyerReviewViewModel? posted)
+    {
+        var ws = await _reviewService.GetForReviewAsync(documentId, lawyerProfileId);
+        if (ws == null)
+        {
+            TempData["Error"] = "এই নথিটি আপনার নেওয়া পর্যালোচনাধীন নথি নয় — সারি থেকে খুলুন।";
+            TempData["ErrorEn"] = "This document isn't under review in your name — open it from the queue.";
+            return RedirectToAction(nameof(Queue));
+        }
+
+        var vm = new LawyerReviewViewModel
+        {
+            DocumentId = ws.DocumentId,
+            CaseId = ws.CaseId,
+            CaseTitle = ws.CaseTitle,
+            CategoryName = ws.CategoryName,
+            ContentDraft = ws.OriginalDraft,
+            EditedContent = posted != null ? posted.EditedContent : ws.CitizenEditedDraft ?? ws.OriginalDraft,
+            Decision = posted?.Decision ?? nameof(ReviewDecision.EditedApproved),
+            Comments = posted?.Comments ?? string.Empty,
+            DistrictName = ws.DistrictName,
+            CitizenNarrative = ws.CitizenNarrative,
+            Citations = ws.Citations,
+            VersionNo = ws.VersionNo,
+            CitizenEdited = ws.CitizenEdited
+        };
+        return View(nameof(Review), vm);
     }
 
     private const int HistoryPageSize = 20;
@@ -224,32 +271,34 @@ public class LawyerController : Controller
     {
         var profile = await MyProfileAsync();
         if (profile == null) return NotFound();
+        if (profile.VerificationStatus != VerificationStatus.Approved) return RedirectToAction(nameof(Status));
 
-        DateTime? fromDate = DateTime.TryParse(from, out var f) ? f.Date : null;
-        DateTime? toDate = DateTime.TryParse(to, out var t) ? t.Date.AddDays(1).AddTicks(-1) : null;
-
-        var history = await _reviewService.GetHistoryAsync(profile.LawyerProfileId, decision, fromDate, toDate);
-        // Service already returns newest-first; only re-sort for the other options.
-        IEnumerable<ReviewHistoryItemDto> sorted = sort switch
+        // Dates are Dhaka calendar days (what the lawyer picked); ReviewedAt is
+        // UTC, so convert the whole-day bounds. A reversed range is swapped.
+        DateOnly? fromDay = BdTime.TryParseDay(from, out var f) ? f : null;
+        DateOnly? toDay = BdTime.TryParseDay(to, out var t) ? t : null;
+        if (fromDay > toDay)
         {
-            "date_asc" => history.OrderBy(h => h.ReviewedAt),
-            "case_asc" => history.OrderBy(h => h.CaseTitle, StringComparer.OrdinalIgnoreCase),
-            _ => history
-        };
+            (fromDay, toDay) = (toDay, fromDay);
+            (from, to) = (to, from);
+        }
+        DateTime? fromDate = fromDay.HasValue ? BdTime.DayStartUtc(fromDay.Value) : null;
+        DateTime? toDate = toDay.HasValue ? BdTime.DayEndUtc(toDay.Value) : null;
+
+        var history = await _reviewService.GetHistoryPageAsync(
+            profile.LawyerProfileId, decision, fromDate, toDate, sort, page, HistoryPageSize);
 
         var vm = new LawyerHistoryViewModel
         {
-            LawyerName = (await _userManager.FindByIdAsync(profile.UserId.ToString()))?.FullName ?? "",
+            LawyerName = await MyNameAsync(profile),
             BarRegistrationNumber = profile.BarRegistrationNumber,
             ActiveFilter = decision ?? "All",
             FromDate = from,
             ToDate = to,
             Sort = sort ?? "date_desc",
-            TotalCount = history.Count
-        };
-        vm.Page = Math.Max(1, Math.Min(page, Math.Max((int)Math.Ceiling(vm.TotalCount / (double)HistoryPageSize), 1)));
-        vm.Items = sorted.Skip((vm.Page - 1) * HistoryPageSize).Take(HistoryPageSize)
-            .Select(h => new LawyerHistoryItemViewModel
+            TotalCount = history.TotalCount,
+            Page = history.Page,
+            Items = history.Items.Select(h => new LawyerHistoryItemViewModel
             {
                 ReviewId = h.ReviewId,
                 DocumentId = h.DocumentId,
@@ -262,7 +311,8 @@ public class LawyerController : Controller
                 ReviewedAt = h.ReviewedAt,
                 VersionNo = h.VersionNo,
                 DocumentText = h.DocumentText
-            }).ToList();
+            }).ToList()
+        };
 
         return View(vm);
     }
@@ -274,13 +324,15 @@ public class LawyerController : Controller
     {
         var profile = await MyProfileAsync();
         if (profile == null) return NotFound();
+        if (profile.VerificationStatus != VerificationStatus.Approved) return RedirectToAction(nameof(Status));
 
         var earnings = await _paymentService.GetLawyerEarningsAsync(profile.LawyerProfileId);
         var vm = new LawyerPaymentsViewModel
         {
-            LawyerName = (await _userManager.FindByIdAsync(profile.UserId.ToString()))?.FullName ?? "",
+            LawyerName = await MyNameAsync(profile),
             BarRegistrationNumber = profile.BarRegistrationNumber,
             Balance = earnings.Balance,
+            PendingPayout = earnings.PendingPayout,
             History = earnings.History.Select(h => new EarningRowViewModel
             {
                 PaymentOrderId = h.PaymentOrderId,
@@ -300,17 +352,23 @@ public class LawyerController : Controller
     {
         var profile = await MyProfileAsync();
         if (profile == null) return NotFound();
+        if (profile.VerificationStatus != VerificationStatus.Approved) return RedirectToAction(nameof(Status));
 
-        var earnings = await _paymentService.GetLawyerEarningsAsync(profile.LawyerProfileId);
-        if (earnings.Balance <= 0)
+        switch (await _paymentService.RequestPayoutAsync(profile.LawyerProfileId))
         {
-            TempData["Error"] = "পরিশোধযোগ্য ব্যালেন্স নেই।";
-            TempData["ErrorEn"] = "No payable balance.";
-            return RedirectToAction(nameof(Payments));
+            case PayoutRequestResult.AlreadyPending:
+                TempData["Error"] = "একটি পরিশোধের অনুরোধ ইতিমধ্যে অপেক্ষমাণ — অ্যাডমিন পরিশোধ করলে নতুন অনুরোধ করতে পারবেন।";
+                TempData["ErrorEn"] = "A payout request is already pending — you can request again once the admin has paid it.";
+                break;
+            case PayoutRequestResult.NothingToPay:
+                TempData["Error"] = "পরিশোধযোগ্য ব্যালেন্স নেই।";
+                TempData["ErrorEn"] = "No payable balance.";
+                break;
+            default:
+                TempData["Success"] = "পরিশোধের অনুরোধ জমা হয়েছে (স্যান্ডবক্স)।";
+                TempData["SuccessEn"] = "Payout request submitted (sandbox).";
+                break;
         }
-        await _paymentService.RequestPayoutAsync(profile.LawyerProfileId, earnings.Balance);
-        TempData["Success"] = "পরিশোধের অনুরোধ জমা হয়েছে (স্যান্ডবক্স)।";
-        TempData["SuccessEn"] = "Payout request submitted (sandbox).";
         return RedirectToAction(nameof(Payments));
     }
 }

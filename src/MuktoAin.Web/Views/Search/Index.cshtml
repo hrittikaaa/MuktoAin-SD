@@ -150,14 +150,20 @@
                                         }
                                     </div>
                                     <div class="row wrap" style="gap: 8px;">
-                                        <a class="chip chip-sm" asp-controller="Home" asp-action="Index"
-                                           asp-route-prefill='@($"এই ধারাটি আমার মামলায় প্রযোজ্য কি? {res.ActTitle} {(string.IsNullOrWhiteSpace(res.SectionNumber) ? "" : "ধারা " + res.SectionNumber)}")'>
-                                            AI-কে জিজ্ঞেস করুন
-                                        </a>
-                                        <a class="btn btn-quiet btn-sm" asp-controller="Case" asp-action="Submit"
-                                           data-bn="এই ধারা উদ্ধৃত করে মামলা দাখিল →" data-en="File a Case Citing This Section →">
-                                            এই ধারা উদ্ধৃত করে মামলা দাখিল →
-                                        </a>
+                                        @if (!User.IsInRole("Lawyer"))
+                                        {
+                                            <a class="chip chip-sm" asp-controller="Home" asp-action="Index"
+                                               asp-route-prefill='@($"এই ধারাটি আমার মামলায় প্রযোজ্য কি? {res.ActTitle} {(string.IsNullOrWhiteSpace(res.SectionNumber) ? "" : "ধারা " + res.SectionNumber)}")'>
+                                                AI-কে জিজ্ঞেস করুন
+                                            </a>
+                                        }
+                                        @if (!User.IsInRole("Lawyer"))
+                                        {
+                                            <a class="btn btn-quiet btn-sm" asp-controller="Case" asp-action="Submit"
+                                               data-bn="এই ধারা উদ্ধৃত করে মামলা দাখিল →" data-en="File a Case Citing This Section →">
+                                                এই ধারা উদ্ধৃত করে মামলা দাখিল →
+                                            </a>
+                                        }
                                     </div>
                                 </div>
                             </div>
@@ -194,10 +200,13 @@
                                         </div>
                                         <div class="row spread wrap" style="margin-top: 20px; gap: 10px;">
                                             <button class="btn btn-ghost" type="button" data-close-modal data-bn="বন্ধ করুন" data-en="Close">বন্ধ করুন</button>
-                                            <a class="btn btn-primary" asp-controller="Case" asp-action="Submit"
-                                               data-bn="এই ধারা উদ্ধৃত করে মামলা দাখিল →" data-en="File a Case Citing This Section →">
-                                                এই ধারা উদ্ধৃত করে মামলা দাখিল →
-                                            </a>
+                                            @if (!User.IsInRole("Lawyer"))
+                                            {
+                                                <a class="btn btn-primary" asp-controller="Case" asp-action="Submit"
+                                                   data-bn="এই ধারা উদ্ধৃত করে মামলা দাখিল →" data-en="File a Case Citing This Section →">
+                                                    এই ধারা উদ্ধৃত করে মামলা দাখিল →
+                                                </a>
+                                            }
                                         </div>
                                     </div>
                                 </div>

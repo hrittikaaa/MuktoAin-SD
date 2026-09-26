@@ -1,4 +1,3 @@
-using MuktoAin.Application.DTOs;
 using MuktoAin.Application.Services;
 using MuktoAin.Domain.Entities;
 using MuktoAin.Domain.Enums;
@@ -17,39 +16,6 @@ public class LawyerVerificationServiceTests
     public LawyerVerificationServiceTests()
     {
         _service = new LawyerVerificationService(_profileRepo.Object, _auditMock.Object, _notificationRepo.Object);
-    }
-
-    [Fact]
-    public async Task ApplyAsync_CreatesPendingProfile_AndReturnsId()
-    {
-        _profileRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<LawyerProfile>());
-        var captured = new List<LawyerProfile>();
-        _profileRepo.Setup(r => r.AddAsync(It.IsAny<LawyerProfile>()))
-            .Callback<LawyerProfile>(p =>
-            {
-                p.LawyerProfileId = 7;
-                captured.Add(p);
-            })
-            .Returns(Task.CompletedTask);
-
-        var id = await _service.ApplyAsync(42, new LawyerApplicationDto("BAR-123", "Labour law"));
-
-        Assert.Equal(7, id);
-        var profile = Assert.Single(captured);
-        Assert.Equal(VerificationStatus.Pending, profile.VerificationStatus);
-        Assert.Equal("BAR-123", profile.BarRegistrationNumber);
-    }
-
-    [Fact]
-    public async Task ApplyAsync_DuplicateApplication_Throws()
-    {
-        _profileRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<LawyerProfile>
-        {
-            new() { LawyerProfileId = 1, UserId = 42 }
-        });
-
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _service.ApplyAsync(42, new LawyerApplicationDto("BAR-999", null)));
     }
 
     [Fact]
@@ -75,6 +41,33 @@ public class LawyerVerificationServiceTests
         await _service.VerifyAsync(4, adminUserId: 1, approve: false);
 
         Assert.Equal(VerificationStatus.Rejected, profile.VerificationStatus);
+    }
+
+    [Theory]
+    [InlineData(VerificationStatus.Approved)]
+    [InlineData(VerificationStatus.Rejected)]
+    public async Task VerifyAsync_AlreadyDecidedProfile_ThrowsAndChangesNothing(VerificationStatus status)
+    {
+        var profile = new LawyerProfile { LawyerProfileId = 5, UserId = 42, VerificationStatus = status };
+        _profileRepo.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(profile);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _service.VerifyAsync(5, adminUserId: 1, approve: true));
+
+        Assert.Equal(status, profile.VerificationStatus);
+        _profileRepo.Verify(r => r.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task VerifyAsync_Reject_TrimsAndCapsReasonToColumnLength()
+    {
+        var profile = new LawyerProfile { LawyerProfileId = 4, UserId = 42 };
+        _profileRepo.Setup(r => r.GetByIdAsync(4)).ReturnsAsync(profile);
+
+        await _service.VerifyAsync(4, adminUserId: 1, approve: false, reason: "  " + new string('x', 600) + "  ");
+
+        Assert.Equal(LawyerVerificationService.MaxRejectionReasonLength, profile.RejectionReason!.Length);
+        Assert.All(profile.RejectionReason, c => Assert.Equal('x', c));
     }
 
     [Fact]

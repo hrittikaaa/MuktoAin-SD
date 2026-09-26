@@ -75,6 +75,14 @@ public class LawyerReviewViewModel
     public string CategoryName { get; set; } = string.Empty;
     public string ContentDraft { get; set; } = string.Empty;
     public string? EditedContent { get; set; }
+
+    // Read-only workspace context (rebuilt from the claim on every render; never posted).
+    public string DistrictName { get; set; } = string.Empty;
+    public string CitizenNarrative { get; set; } = string.Empty;
+    public IReadOnlyList<MuktoAin.Application.DTOs.CitedSectionDto> Citations { get; set; } = Array.Empty<MuktoAin.Application.DTOs.CitedSectionDto>();
+    public int VersionNo { get; set; } = 1;
+    public bool CitizenEdited { get; set; }
+
     [RegularExpression("^(Approved|EditedApproved|Rejected)$",
         ErrorMessage = "সিদ্ধান্ত অবশ্যই Approved, EditedApproved অথবা Rejected হতে হবে / Decision must be Approved, EditedApproved or Rejected")]
     public string Decision { get; set; } = "Approved"; // Approved, EditedApproved, Rejected
@@ -181,7 +189,6 @@ public class LawyerStatusViewModel
     public string Specialization { get; set; } = string.Empty;
     public string Status { get; set; } = "Pending"; // Pending / Approved / Rejected
     public string? RejectionReason { get; set; }
-    public DateTime SubmittedAt { get; set; }
 }
 
 public class LawyerQueueViewModel
@@ -210,7 +217,8 @@ public class LawyerQueueItemViewModel
     public string DistrictName { get; set; } = string.Empty;
     public bool CitizenEdited { get; set; }
     public int VersionNo { get; set; }
-    public string? ClaimedBy { get; set; }
+    public string? ClaimedBy { get; set; } // bar number; never rendered to other lawyers
+    public bool IsClaimed { get; set; }
     public bool IsMine { get; set; }
     public int WaitingHours { get; set; }
     public bool CanOpen { get; set; }
@@ -250,5 +258,6 @@ public class LawyerPaymentsViewModel
     public string LawyerName { get; set; } = string.Empty;
     public string BarRegistrationNumber { get; set; } = string.Empty;
     public decimal Balance { get; set; }
+    public decimal PendingPayout { get; set; } // requested, awaiting the admin
     public List<EarningRowViewModel> History { get; set; } = new();
 }

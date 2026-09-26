@@ -1,12 +1,11 @@
 @model LawyerReviewViewModel
 @{
     ViewData["Title"] = "পর্যালোচনা — DOC-" + Model.DocumentId + " — মুক্ত আইন";
-    var citations = (IReadOnlyList<MuktoAin.Application.DTOs.CitedSectionDto>?)ViewData["Citations"]
-        ?? new List<MuktoAin.Application.DTOs.CitedSectionDto>();
-    var narrative = (string?)ViewData["CitizenNarrative"] ?? "";
-    var district = (string?)ViewData["DistrictName"] ?? "";
-    var versionNo = (int?)ViewData["VersionNo"] ?? 1;
-    var citizenEdited = (bool?)ViewData["CitizenEdited"] ?? false;
+    var citations = Model.Citations;
+    var narrative = Model.CitizenNarrative;
+    var district = Model.DistrictName;
+    var versionNo = Model.VersionNo;
+    var citizenEdited = Model.CitizenEdited;
 }
 
 <main class="container" id="main">
@@ -49,12 +48,12 @@
         }
     </details>
 
-    <form asp-action="SubmitReview" method="post">
+    <form asp-action="SubmitReview" method="post" id="review-form">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="DocumentId" />
-        <input type="hidden" asp-for="CaseId" />
-        <input type="hidden" asp-for="CaseTitle" />
-        <input type="hidden" asp-for="CategoryName" />
+
+        <!-- Errors from an invalid submit; the page is re-shown with the lawyer's own text -->
+        <div asp-validation-summary="All" class="alert alert-warn" style="margin-top: 16px;"></div>
 
         <!-- Compare: tabs on mobile (main.js data-tabs), side-by-side >=900px -->
         <div class="card" style="margin: 16px 0">
@@ -77,7 +76,7 @@
 
                 <div class="tab-panel" data-tab-panel="editable" hidden>
                     <label class="form-label" data-bn="চূড়ান্ত সংস্করণ (সম্পাদনা করুন)" data-en="Final version (edit)">চূড়ান্ত সংস্করণ (সম্পাদনা করুন)</label>
-                    <textarea class="input" id="EditedContentMobile" name="EditedContent" rows="16"
+                    <textarea class="input" id="EditedContentMobile" rows="16"
                               style="width: 100%; font-family: var(--font-doc)"
                               data-counter="#review-counter">@Model.EditedContent</textarea>
                     <small class="muted tiny" id="review-counter"></small>
@@ -105,9 +104,9 @@
         <div class="card" style="margin: 16px 0">
             <label class="form-label" asp-for="Comments">
                 <i data-lucide="message-square"></i>
-                <span data-bn="পর্যালোচনা মন্তব্য (আবশ্যক — নাগরিক দেখবেন)" data-en="Review comments (required — visible to the citizen)">পর্যালোচনা মন্তব্য (আবশ্যক — নাগরিক দেখবেন)</span>
+                <span data-bn="পর্যালোচনা মন্তব্য (আবশ্যক — নাগরিক দেখবেন; প্রত্যাখ্যানের ক্ষেত্রে এটিই কারণ এবং তাদের চ্যাটে যুক্ত হবে)" data-en="Review comments (required — visible to the citizen; for a rejection this is the reason and is added to their chat)">পর্যালোচনা মন্তব্য (আবশ্যক — নাগরিক দেখবেন; প্রত্যাখ্যানের ক্ষেত্রে এটিই কারণ এবং তাদের চ্যাটে যুক্ত হবে)</span>
             </label>
-            <textarea class="input" asp-for="Comments" rows="3" maxlength="1000"
+            <textarea class="input" asp-for="Comments" rows="3" maxlength="4000" required
                       placeholder="আপনার সিদ্ধান্তের কারণ ব্যাখ্যা করুন…"
                       data-counter="#comments-counter"></textarea>
             <small class="muted tiny" id="comments-counter"></small>
@@ -118,7 +117,7 @@
             <label class="muted" style="margin-right: 6px; font-weight: 600" data-bn="সিদ্ধান্ত:" data-en="Decision:">সিদ্ধান্ত:</label>
 
             <button class="btn btn-outline btn-sm" type="submit" name="Decision" value="Approved"
-                    data-confirm="মূল খসড়া কোনো পরিবর্তন ছাড়া অনুমোদন করবেন? / Approve the original without changes?">
+                    data-confirm="পর্যালোচনাধীন সংস্করণটি (নাগরিক সম্পাদনা করলে সেটিই) কোনো পরিবর্তন ছাড়া অনুমোদন করবেন? সম্পাদকে আপনার করা পরিবর্তন বাদ যাবে। / Approve the version under review (the citizen's edit, if any) unchanged? Changes you made in the editor will be discarded.">
                 <i data-lucide="check"></i> <span data-bn="অনুমোদন" data-en="Approve">অনুমোদন</span>
             </button>
 
@@ -126,15 +125,17 @@
                 <i data-lucide="check-check"></i> <span data-bn="সম্পাদনাসহ অনুমোদন" data-en="Approve with Edits">সম্পাদনাসহ অনুমোদন</span>
             </button>
 
-            <button class="btn btn-danger-outline btn-sm" type="button" data-open-modal="#reject-modal">
+            <button class="btn btn-danger-outline btn-sm" type="submit" name="Decision" value="Rejected"
+                    data-confirm="নথিটি প্রত্যাখ্যান করবেন? উপরের মন্তব্যটি কারণ হিসেবে নাগরিককে দেখানো হবে এবং তাদের চ্যাটে যুক্ত হবে। / Reject this document? The comment above is shown to the citizen as the reason and added to their chat.">
                 <i data-lucide="x"></i> <span data-bn="প্রত্যাখ্যান" data-en="Reject">প্রত্যাখ্যান</span>
             </button>
         </div>
 
         <script>
-          // keep mobile tab and desktop pane in sync so whichever the lawyer edits
-          // posts the correct value (single name="EditedContent" posts last-wins;
-          // this sync makes both always identical).
+          // Only the desktop textarea carries name="EditedContent" (it is always
+          // in the form, CSS-hidden on mobile, so exactly one value posts and
+          // desktop edits post even without JS). Mirror the mobile tab copy
+          // into it, and back, so both panes always show the same text.
           document.addEventListener("DOMContentLoaded", function () {
             var a = document.getElementById("EditedContentMobile");
             var b = document.getElementById("EditedContentDesktop");
@@ -145,33 +146,3 @@
         </script>
     </form>
 </main>
-
-<!-- Reject modal: reason MANDATORY, shown to citizen, injected into their chat on return -->
-<div class="modal-backdrop" id="reject-modal" role="dialog" aria-modal="true" aria-labelledby="reject-title">
-    <div class="modal">
-        <div class="modal-handle"></div>
-        <div class="modal-head">
-            <div>
-                <span class="kicker" style="color: var(--danger)">FR-14</span>
-                <h3 id="reject-title" data-bn="প্রত্যাখ্যানের কারণ (বাধ্যতামূলক)" data-en="Rejection reason (mandatory)">প্রত্যাখ্যানের কারণ (বাধ্যতামূলক)</h3>
-            </div>
-            <button class="icon-btn" type="button" data-close-modal aria-label="বন্ধ করুন"><i data-lucide="x"></i></button>
-        </div>
-        <form asp-action="SubmitReview" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="DocumentId" />
-            <input type="hidden" asp-for="CaseId" />
-            <input type="hidden" asp-for="CaseTitle" />
-            <input type="hidden" asp-for="CategoryName" />
-            <input type="hidden" name="Decision" value="Rejected" />
-            <input type="hidden" asp-for="EditedContent" />
-            <p class="muted tiny" data-bn="কারণটি নাগরিকের কাছে দেখানো হবে এবং তাদের চ্যাটে যুক্ত হবে।" data-en="The reason is shown to the citizen and injected into their chat.">কারণটি নাগরিকের কাছে দেখানো হবে এবং তাদের চ্যাটে যুক্ত হবে।</p>
-            <textarea class="input" asp-for="Comments" rows="4" maxlength="1000"
-                      placeholder="যেমন: উদ্ধৃত ধারা প্রযোজ্য নয় — §123 যাচাই করুন…"></textarea>
-            <div class="row" style="justify-content: flex-end; gap: 10px; margin-top: 14px">
-                <button class="btn btn-outline btn-sm" type="button" data-close-modal data-bn="বাতিল" data-en="Cancel">বাতিল</button>
-                <button class="btn btn-danger-outline btn-sm" type="submit" data-bn="নথি প্রত্যাখ্যান করুন" data-en="Reject document">নথি প্রত্যাখ্যান করুন</button>
-            </div>
-        </form>
-    </div>
-</div>

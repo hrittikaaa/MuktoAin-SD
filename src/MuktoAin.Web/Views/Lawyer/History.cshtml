@@ -34,12 +34,7 @@
         {
             <a class="chip chip-sm @(Model.ActiveFilter == f ? "active" : "")"
                asp-action="History" asp-route-decision="@f" asp-route-from="@Model.FromDate" asp-route-to="@Model.ToDate" asp-route-sort="@Model.Sort">
-                @(f switch {
-                    "All" => "সকল / All",
-                    "Approved" => "অনুমোদিত / Approved",
-                    "EditedApproved" => "সম্পাদিত-অনুমোদিত / Edited",
-                    _ => "প্রত্যাখ্যাত / Rejected"
-                })
+                <span data-bn="@StatusText.Bn(f)" data-en="@StatusText.En(f)">@StatusText.Bn(f)</span>
             </a>
         }
     </div>
@@ -48,25 +43,31 @@
     <form method="get" asp-action="History" class="card" style="margin-bottom: 16px; padding: 14px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
         <input type="hidden" name="decision" value="@Model.ActiveFilter" />
         <div class="form-group" style="margin: 0">
-            <label class="form-label tiny">শুরু / From</label>
+            <label class="form-label tiny" data-bn="শুরু" data-en="From">শুরু</label>
             <input type="date" name="from" class="form-control" value="@Model.FromDate" style="min-height: 36px; padding: 7px 10px; font-size: 13.5px;" />
         </div>
         <div class="form-group" style="margin: 0">
-            <label class="form-label tiny">শেষ / To</label>
+            <label class="form-label tiny" data-bn="শেষ" data-en="To">শেষ</label>
             <input type="date" name="to" class="form-control" value="@Model.ToDate" style="min-height: 36px; padding: 7px 10px; font-size: 13.5px;" />
         </div>
         <div class="form-group" style="margin: 0">
-            <label class="form-label tiny">সাজান / Sort by</label>
+            <label class="form-label tiny" data-bn="সাজান" data-en="Sort by">সাজান</label>
             <select name="sort" class="form-control" style="min-height: 36px; padding: 7px 10px; font-size: 13.5px;" onchange="this.form.submit()">
-                @if (Model.Sort == "date_desc") { <option value="date_desc" selected>Newest first</option> } else { <option value="date_desc">Newest first</option> }
-                @if (Model.Sort == "date_asc") { <option value="date_asc" selected>Oldest first</option> } else { <option value="date_asc">Oldest first</option> }
-                @if (Model.Sort == "case_asc") { <option value="case_asc" selected>Case title A-Z</option> } else { <option value="case_asc">Case title A-Z</option> }
+                @foreach (var (value, bn, en) in new[]
+                {
+                    ("date_desc", "নতুন আগে", "Newest first"),
+                    ("date_asc", "পুরনো আগে", "Oldest first"),
+                    ("case_asc", "মামলার শিরোনাম (A-Z)", "Case title A-Z")
+                })
+                {
+                    <option value="@value" selected="@(Model.Sort == value)" data-bn="@bn" data-en="@en">@bn</option>
+                }
             </select>
         </div>
-        <button type="submit" class="btn btn-outline btn-sm"><i data-lucide="filter"></i> Filter</button>
+        <button type="submit" class="btn btn-outline btn-sm"><i data-lucide="filter"></i> <span data-bn="ফিল্টার" data-en="Filter">ফিল্টার</span></button>
         @if (!string.IsNullOrEmpty(Model.FromDate) || !string.IsNullOrEmpty(Model.ToDate))
         {
-            <a class="btn btn-quiet btn-sm" asp-action="History" asp-route-decision="@Model.ActiveFilter" asp-route-sort="@Model.Sort">Clear dates</a>
+            <a class="btn btn-quiet btn-sm" asp-action="History" asp-route-decision="@Model.ActiveFilter" asp-route-sort="@Model.Sort" data-bn="তারিখ মুছুন" data-en="Clear dates">তারিখ মুছুন</a>
         }
     </form>
 
@@ -83,13 +84,13 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Case</th>
-                        <th>Category</th>
-                        <th>Decision</th>
-                        <th>Comment</th>
-                        <th>Version</th>
-                        <th>Reviewed</th>
-                        <th>Details</th>
+                        <th data-bn="মামলা" data-en="Case">মামলা</th>
+                        <th data-bn="বিভাগ" data-en="Category">বিভাগ</th>
+                        <th data-bn="সিদ্ধান্ত" data-en="Decision">সিদ্ধান্ত</th>
+                        <th data-bn="মন্তব্য" data-en="Comment">মন্তব্য</th>
+                        <th data-bn="সংস্করণ" data-en="Version">সংস্করণ</th>
+                        <th data-bn="পর্যালোচনার সময়" data-en="Reviewed (BD time)">পর্যালোচনার সময়</th>
+                        <th data-bn="বিস্তারিত" data-en="Details">বিস্তারিত</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -107,11 +108,11 @@
                                         _ => "badge-rejected"
                                     };
                                 }
-                                <span class="badge @badgeClass">@h.Decision</span>
+                                <span class="badge @badgeClass" data-bn="@StatusText.Bn(h.Decision)" data-en="@StatusText.En(h.Decision)">@StatusText.Bn(h.Decision)</span>
                             </td>
                             <td class="tiny">@h.Comments</td>
                             <td>v@(h.VersionNo)</td>
-                            <td class="tiny muted">@h.ReviewedAt.ToString("d MMM yyyy, HH:mm")</td>
+                            <td class="tiny muted">@BdTime.FromUtc(h.ReviewedAt).ToString("d MMM yyyy, HH:mm")</td>
                             <td>
                                 <button class="btn btn-outline btn-sm" type="button" data-open-modal="#hist-@h.ReviewId">
                                     <i data-lucide="file-text"></i> <span data-bn="বিস্তারিত" data-en="Details">বিস্তারিত</span>
@@ -129,15 +130,19 @@
                     {
                         <a asp-action="History" asp-route-decision="@Model.ActiveFilter" asp-route-from="@Model.FromDate" asp-route-to="@Model.ToDate" asp-route-sort="@Model.Sort" asp-route-page="@(Model.Page - 1)"><i data-lucide="chevron-left"></i></a>
                     }
-                    @for (var p = 1; p <= totalPages; p++)
+                    @foreach (var p in Pager.Window(Model.Page, totalPages))
                     {
-                        @if (p == Model.Page)
+                        @if (p is null)
                         {
-                            <button type="button" class="active" data-page="@p">@ToBn(p)</button>
+                            <span class="muted" aria-hidden="true">…</span>
+                        }
+                        else if (p == Model.Page)
+                        {
+                            <button type="button" class="active" data-page="@p">@ToBn(p.Value)</button>
                         }
                         else
                         {
-                            <a asp-action="History" asp-route-decision="@Model.ActiveFilter" asp-route-from="@Model.FromDate" asp-route-to="@Model.ToDate" asp-route-sort="@Model.Sort" asp-route-page="@p">@ToBn(p)</a>
+                            <a asp-action="History" asp-route-decision="@Model.ActiveFilter" asp-route-from="@Model.FromDate" asp-route-to="@Model.ToDate" asp-route-sort="@Model.Sort" asp-route-page="@p">@ToBn(p.Value)</a>
                         }
                     }
                     @if (Model.Page < totalPages)
@@ -164,7 +169,7 @@
                 <button class="icon-btn" type="button" data-close-modal aria-label="Close"><i data-lucide="x"></i></button>
             </div>
             <p class="tiny muted" style="margin: 0 0 10px">
-                @h.CategoryName · @h.DistrictName · পর্যালোচনা: @h.ReviewedAt.ToString("d MMM yyyy, HH:mm")
+                @h.CategoryName · @h.DistrictName · পর্যালোচনা: @BdTime.FromUtc(h.ReviewedAt).ToString("d MMM yyyy, HH:mm")
             </p>
             <p class="tiny" style="margin: 0 0 10px"><b>মন্তব্য / Comments:</b> @h.Comments</p>
             <label class="form-label tiny">পর্যালোচিত দলিল / Reviewed document text</label>

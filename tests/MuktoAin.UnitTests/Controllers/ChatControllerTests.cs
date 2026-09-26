@@ -683,5 +683,35 @@ public class ChatControllerTests
         Assert.NotNull(sessionBlockedProp);
         Assert.True((bool)sessionBlockedProp.GetValue(val)!);
     }
-}
 
+    [Fact]
+    public void LawyerRole_IsBlockedFromEveryChatEndpoint()
+    {
+        _controller.ControllerContext.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
+            new[] { new Claim(ClaimTypes.NameIdentifier, "42"), new Claim(ClaimTypes.Role, "Lawyer") }, "test"));
+        var context = new Microsoft.AspNetCore.Mvc.Filters.ActionExecutingContext(
+            new ActionContext(_controller.HttpContext, new Microsoft.AspNetCore.Routing.RouteData(),
+                new Microsoft.AspNetCore.Mvc.Abstractions.ActionDescriptor()),
+            new List<Microsoft.AspNetCore.Mvc.Filters.IFilterMetadata>(),
+            new Dictionary<string, object?>(), _controller);
+
+        _controller.OnActionExecuting(context);
+
+        var result = Assert.IsType<ObjectResult>(context.Result);
+        Assert.Equal(StatusCodes.Status403Forbidden, result.StatusCode);
+    }
+
+    [Fact]
+    public void CitizenRole_IsNotBlockedByChatRoleFilter()
+    {
+        var context = new Microsoft.AspNetCore.Mvc.Filters.ActionExecutingContext(
+            new ActionContext(_controller.HttpContext, new Microsoft.AspNetCore.Routing.RouteData(),
+                new Microsoft.AspNetCore.Mvc.Abstractions.ActionDescriptor()),
+            new List<Microsoft.AspNetCore.Mvc.Filters.IFilterMetadata>(),
+            new Dictionary<string, object?>(), _controller);
+
+        _controller.OnActionExecuting(context);
+
+        Assert.Null(context.Result);
+    }
+}

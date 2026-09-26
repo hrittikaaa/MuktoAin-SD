@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using MuktoAin.Application.DTOs;
 using MuktoAin.Domain.Common;
@@ -68,22 +69,27 @@ public class LawyerReviewService
     public async Task<QueuePageDto> GetQueueAsync(
         int? lawyerProfileId = null, string? filter = "All", int page = 1, int pageSize = 20)
     {
-        var docs = (await _docRepo.GetAllAsync())
-            .Where(d => d.Status == DocumentStatus.UnderReview)
-            .AsEnumerable();
+        // The pool (and the claim filters) are selected in the database, not by
+        // loading every document ever generated.
+        Expression<Func<GeneratedDocument, bool>> pool = filter switch
+        {
+            "Unclaimed" => d => d.Status == DocumentStatus.UnderReview && d.AssignedLawyerProfileId == null,
+            "Mine" when lawyerProfileId.HasValue =>
+                d => d.Status == DocumentStatus.UnderReview && d.AssignedLawyerProfileId == lawyerProfileId,
+            _ => d => d.Status == DocumentStatus.UnderReview
+        };
+        IEnumerable<GeneratedDocument> docs = await _docRepo.FindAsync(pool);
         var fieldFallback = false;
 
-        if (filter == "Unclaimed")
-            docs = docs.Where(d => !d.AssignedLawyerProfileId.HasValue);
-        else if (filter == "Mine" && lawyerProfileId.HasValue)
-            docs = docs.Where(d => d.AssignedLawyerProfileId == lawyerProfileId.Value);
-        else if (filter == "MyField" && lawyerProfileId.HasValue)
+        if (filter == "MyField" && lawyerProfileId.HasValue)
         {
             var profile = await _profileRepo.GetByIdAsync(lawyerProfileId.Value);
             var specialization = profile?.Specialization;
             if (LawyerQueueNotifier.MatchesAnyCategory(specialization))
             {
-                var categoryByCase = (await _caseRepo.GetAllAsync())
+                // Only the cases behind the pooled documents, not every case.
+                var caseIds = docs.Select(d => d.CaseId).Distinct().ToList();
+                var categoryByCase = (await _caseRepo.FindAsync(c => caseIds.Contains(c.CaseId)))
                     .ToDictionary(c => c.CaseId, c => c.CategoryId);
                 docs = docs.Where(d =>
                     (!d.AssignedLawyerProfileId.HasValue || d.AssignedLawyerProfileId == lawyerProfileId.Value)
@@ -98,6 +104,11 @@ public class LawyerReviewService
 
         var ordered = docs.OrderBy(d => d.CreatedAt).ToList();
         var totalCount = ordered.Count;
+        // Clamp before slicing, so a page past the end shows the last page's
+        // items rather than an empty table labelled as the last page (#14).
+        var totalPages = Math.Max((int)Math.Ceiling(totalCount / (double)pageSize), 1);
+        page = Math.Clamp(page, 1, totalPages);
+        var poolCount = await _docRepo.CountAsync(d => d.Status == DocumentStatus.UnderReview);
 
         var result = new List<QueueItemDto>();
         foreach (var d in ordered.Skip((page - 1) * pageSize).Take(pageSize))
@@ -125,9 +136,11 @@ public class LawyerReviewService
                 d.CreatedAt,
                 d.ClaimedAt,
                 CanOpen: !d.AssignedLawyerProfileId.HasValue
-                      || d.AssignedLawyerProfileId == lawyerProfileId));
+                      || d.AssignedLawyerProfileId == lawyerProfileId,
+                IsClaimed: d.AssignedLawyerProfileId.HasValue,
+                IsMine: lawyerProfileId.HasValue && d.AssignedLawyerProfileId == lawyerProfileId));
         }
-        return new QueuePageDto(totalCount, result, fieldFallback);
+        return new QueuePageDto(totalCount, result, fieldFallback, page, poolCount);
     }
 
     // Claim = optimistic lock. Returns false if another lawyer already holds it.
@@ -151,10 +164,13 @@ public class LawyerReviewService
         }
     }
 
-    public async Task<ReviewWorkspaceDto?> GetForReviewAsync(int documentId)
+    // The workspace carries the decrypted citizen narrative, so it opens only
+    // for a document under review that this lawyer has claimed (Claim first).
+    public async Task<ReviewWorkspaceDto?> GetForReviewAsync(int documentId, int lawyerProfileId)
     {
         var d = await _docRepo.GetByIdAsync(documentId);
-        if (d == null) return null;
+        if (d == null || d.Status != DocumentStatus.UnderReview
+            || d.AssignedLawyerProfileId != lawyerProfileId) return null;
         var c = await _caseRepo.GetWithDocumentsAsync(d.CaseId);
         if (c == null) return null;
 
@@ -200,10 +216,8 @@ public class LawyerReviewService
 
         var d = await _docRepo.GetByIdAsync(dto.DocumentId);
         if (d == null || d.Status != DocumentStatus.UnderReview) return false;
-        if (d.AssignedLawyerProfileId.HasValue
-            && d.AssignedLawyerProfileId != dto.LawyerProfileId) return false;
-        // Auto-claim if somehow unclaimed (defensive)
-        d.AssignedLawyerProfileId = dto.LawyerProfileId;
+        // A decision needs this lawyer's own claim -- no implicit claim here.
+        if (d.AssignedLawyerProfileId != dto.LawyerProfileId) return false;
 
         var review = new LawyerReview
         {
@@ -273,20 +287,56 @@ public class LawyerReviewService
     public async Task<IReadOnlyList<ReviewHistoryItemDto>> GetHistoryAsync(
         int lawyerProfileId, string? decisionFilter = null, DateTime? from = null, DateTime? to = null)
     {
-        var reviews = (await _reviewRepo.GetAllAsync())
-            .Where(r => r.LawyerProfileId == lawyerProfileId);
+        var reviews = await FindReviewsAsync(lawyerProfileId, decisionFilter, from, to);
+        return await EnrichHistoryAsync(reviews.OrderByDescending(r => r.ReviewedAt));
+    }
 
-        if (!string.IsNullOrWhiteSpace(decisionFilter) && decisionFilter != "All"
-            && Enum.TryParse<ReviewDecision>(decisionFilter, out var decision))
-            reviews = reviews.Where(r => r.Decision == decision);
+    // One page of history. sort: "date_desc" (default) | "date_asc" | "case_asc".
+    // Date sorts slice the page BEFORE the per-review enrichment (as the queue
+    // does, AUD-8). Case titles are encrypted, so "case_asc" has to decrypt
+    // every matching row to order them.
+    public async Task<HistoryPageDto> GetHistoryPageAsync(
+        int lawyerProfileId, string? decisionFilter, DateTime? from, DateTime? to,
+        string? sort, int page, int pageSize)
+    {
+        var reviews = await FindReviewsAsync(lawyerProfileId, decisionFilter, from, to);
+        var totalPages = Math.Max((int)Math.Ceiling(reviews.Count / (double)pageSize), 1);
+        page = Math.Clamp(page, 1, totalPages);
+        var skip = (page - 1) * pageSize;
 
-        if (from.HasValue)
-            reviews = reviews.Where(r => r.ReviewedAt >= from.Value);
-        if (to.HasValue)
-            reviews = reviews.Where(r => r.ReviewedAt <= to.Value);
+        IReadOnlyList<ReviewHistoryItemDto> items;
+        if (sort == "case_asc")
+        {
+            var all = await EnrichHistoryAsync(reviews.OrderByDescending(r => r.ReviewedAt));
+            items = all.OrderBy(h => h.CaseTitle, StringComparer.OrdinalIgnoreCase)
+                .Skip(skip).Take(pageSize).ToList();
+        }
+        else
+        {
+            var ordered = sort == "date_asc"
+                ? reviews.OrderBy(r => r.ReviewedAt)
+                : reviews.OrderByDescending(r => r.ReviewedAt);
+            items = await EnrichHistoryAsync(ordered.Skip(skip).Take(pageSize));
+        }
+        return new HistoryPageDto(reviews.Count, page, items);
+    }
 
+    private async Task<IReadOnlyList<LawyerReview>> FindReviewsAsync(
+        int lawyerProfileId, string? decisionFilter, DateTime? from, DateTime? to)
+    {
+        ReviewDecision? decision = !string.IsNullOrWhiteSpace(decisionFilter) && decisionFilter != "All"
+            && Enum.TryParse<ReviewDecision>(decisionFilter, out var parsed) ? parsed : null;
+
+        return await _reviewRepo.FindAsync(r => r.LawyerProfileId == lawyerProfileId
+            && (decision == null || r.Decision == decision)
+            && (from == null || r.ReviewedAt >= from)
+            && (to == null || r.ReviewedAt <= to));
+    }
+
+    private async Task<IReadOnlyList<ReviewHistoryItemDto>> EnrichHistoryAsync(IEnumerable<LawyerReview> reviews)
+    {
         var result = new List<ReviewHistoryItemDto>();
-        foreach (var r in reviews.OrderByDescending(r => r.ReviewedAt))
+        foreach (var r in reviews)
         {
             var d = await _docRepo.GetByIdAsync(r.DocumentId);
             if (d == null) continue;
@@ -305,14 +355,15 @@ public class LawyerReviewService
 
     private static void ApplyDocumentDecision(GeneratedDocument d, DocumentStatus status, string? edited)
     {
-        // Mirrors DocumentService.UpdateStatusAsync semantics (verified):
-        // EditedApproved -> ContentFinal = edited; Approved -> final = draft.
+        // EditedApproved -> ContentFinal = the lawyer's edit. Approved -> the
+        // version under review is published unchanged: the citizen's edit when
+        // there is one (same rule as GetForReviewAsync), else the AI draft.
         // Saved by the caller together with the review (see SubmitReviewAsync).
         d.Status = status;
         if (edited != null)
             d.ContentFinal = edited;
         else if (status == DocumentStatus.Approved)
-            d.ContentFinal = d.ContentDraft;
+            d.ContentFinal = d.CitizenEdited && d.ContentFinal != null ? d.ContentFinal : d.ContentDraft;
     }
 
     // Case.Title/Description are field-level-encrypted PII (S-1.7). Decrypt

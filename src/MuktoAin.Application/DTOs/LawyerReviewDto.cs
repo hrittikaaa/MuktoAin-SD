@@ -11,20 +11,26 @@ public record QueueItemDto(
     DocumentStatus Status,
     bool CitizenEdited,
     int VersionNo,
-    string? ClaimedBy,       // lawyer display name when claimed by someone
+    string? ClaimedBy,       // claiming lawyer's bar number (admin-facing; not shown to other lawyers)
     DateTime CreatedAt,
     DateTime? ClaimedAt,
-    bool CanOpen             // false when claimed by another lawyer
+    bool CanOpen,            // false when claimed by another lawyer
+    bool IsClaimed = false,  // any lawyer holds it
+    bool IsMine = false      // the requesting lawyer holds it
 );
 
 // AUD-8: queue paging envelope — TotalCount is the FULL filtered pool size
 // (for the pager), Items is the current page slice only.
 // FieldFallback: "MyField" was asked for but the lawyer's Specialization is
 // blank or matches no category, so the full pool was returned instead.
+// Page: the requested page clamped to the range. PoolCount: every document
+// awaiting review, whatever the filter (the "Pending" KPI).
 public record QueuePageDto(
     int TotalCount,
     IReadOnlyList<QueueItemDto> Items,
-    bool FieldFallback = false
+    bool FieldFallback = false,
+    int Page = 1,
+    int PoolCount = 0
 );
 
 public record ReviewWorkspaceDto(
@@ -62,4 +68,12 @@ public record ReviewHistoryItemDto(
     DateTime ReviewedAt,
     int VersionNo,
     string DocumentText // ContentFinal if approved, else ContentDraft (what was rejected)
+);
+
+// One page of a lawyer's review history. TotalCount is the full filtered
+// count (for the pager); Page is the requested page clamped to the range.
+public record HistoryPageDto(
+    int TotalCount,
+    int Page,
+    IReadOnlyList<ReviewHistoryItemDto> Items
 );

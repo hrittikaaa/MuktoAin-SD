@@ -25,23 +25,21 @@
     <div class="page-head">
         <span class="kicker"><i data-lucide="file-check-2"></i> FR-13 · FR-23</span>
         <h1 class="page-title" data-bn="পর্যালোচনা কিউ" data-en="Review Queue">পর্যালোচনা কিউ</h1>
-        <p class="page-sub">
-            @Model.LawyerName · Bar #@Model.BarRegistrationNumber · @Model.Specialization
-        </p>
+        <p class="page-sub">@Model.LawyerName</p>
     </div>
 
     <!-- KPI strip -->
     <div class="grid grid-3" style="margin-bottom: 20px">
         <div class="card">
-            <span class="kicker"><i data-lucide="inbox"></i> Pending</span>
+            <span class="kicker"><i data-lucide="inbox"></i> <span data-bn="অপেক্ষমাণ" data-en="Pending">অপেক্ষমাণ</span></span>
             <div style="font-size: 32px; font-weight: 700">@Model.PendingCount</div>
         </div>
         <div class="card">
-            <span class="kicker"><i data-lucide="badge-check"></i> Bar Verified</span>
+            <span class="kicker"><i data-lucide="badge-check"></i> <span data-bn="বার যাচাইকৃত" data-en="Bar Verified">বার যাচাইকৃত</span></span>
             <div style="font-size: 18px; font-weight: 700; margin-top: 8px">@Model.BarRegistrationNumber</div>
         </div>
         <div class="card">
-            <span class="kicker"><i data-lucide="layers"></i> Specialization</span>
+            <span class="kicker"><i data-lucide="layers"></i> <span data-bn="বিশেষজ্ঞতা" data-en="Specialization">বিশেষজ্ঞতা</span></span>
             <div style="font-size: 18px; font-weight: 700; margin-top: 8px">@Model.Specialization</div>
         </div>
     </div>
@@ -69,6 +67,7 @@
             <span data-bn="আপনার বিশেষজ্ঞতার ক্ষেত্র কোনো মামলার বিভাগের সাথে মেলেনি, তাই সব নথি দেখানো হচ্ছে।"
                   data-en="Your specialization doesn't match any case category, so all documents are shown.">আপনার বিশেষজ্ঞতার ক্ষেত্র কোনো মামলার বিভাগের সাথে মেলেনি, তাই সব নথি দেখানো হচ্ছে।</span>
             <a asp-controller="Account" asp-action="Profile" data-bn="প্রোফাইলে যোগ করুন" data-en="Update it in your profile">প্রোফাইলে যোগ করুন</a>
+            <partial name="_SpecializationHint" />
         </div>
     }
 
@@ -86,13 +85,13 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Doc</th>
-                        <th>Category</th>
-                        <th>District</th>
-                        <th>Waiting (SLA)</th>
-                        <th>Version</th>
-                        <th>Status</th>
-                        <th>Action</th>
+                        <th data-bn="নথি" data-en="Doc">নথি</th>
+                        <th data-bn="বিভাগ" data-en="Category">বিভাগ</th>
+                        <th data-bn="জেলা" data-en="District">জেলা</th>
+                        <th data-bn="অপেক্ষা (SLA)" data-en="Waiting (SLA)">অপেক্ষা (SLA)</th>
+                        <th data-bn="সংস্করণ" data-en="Version">সংস্করণ</th>
+                        <th data-bn="অবস্থা" data-en="Status">অবস্থা</th>
+                        <th data-bn="পদক্ষেপ" data-en="Action">পদক্ষেপ</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -105,19 +104,25 @@
                             <td>
                                 <span class="badge badge-@(q.WaitingHours >= 24 ? "rejected" : "neutral")">@q.WaitingHours h</span>
                             </td>
-                            <td>v@(q.VersionNo) @(q.CitizenEdited ? "· edited" : "")</td>
+                            <td>
+                                v@(q.VersionNo)
+                                @if (q.CitizenEdited)
+                                {
+                                    <span class="tiny muted" data-bn="· সম্পাদিত" data-en="· edited">· সম্পাদিত</span>
+                                }
+                            </td>
                             <td>
                                 @if (q.IsMine)
                                 {
-                                    <span class="badge badge-final" title="Claimed by you">আমার নেওয়া / Mine</span>
+                                    <span class="badge badge-final" data-bn="আমার নেওয়া" data-en="Mine">আমার নেওয়া</span>
                                 }
-                                else if (q.ClaimedBy != null)
+                                else if (q.IsClaimed)
                                 {
-                                    <span class="badge badge-review" title="Claimed">Claimed · @q.ClaimedBy</span>
+                                    <span class="badge badge-review" data-bn="অন্য আইনজীবীর নেওয়া" data-en="Claimed by another lawyer">অন্য আইনজীবীর নেওয়া</span>
                                 }
                                 else
                                 {
-                                    <span class="badge badge-draft">Unclaimed</span>
+                                    <span class="badge badge-draft" data-bn="অনাবৃত" data-en="Unclaimed">অনাবৃত</span>
                                 }
                             </td>
                             <td>
@@ -126,15 +131,23 @@
                                     <form asp-action="Claim" asp-route-documentId="@q.DocumentId" method="post" style="display:inline">
                                         @Html.AntiForgeryToken()
                                         <button class="btn @(q.IsMine ? "btn-outline" : "btn-primary") btn-sm" type="submit">
-                                            <i data-lucide="eye"></i> @(q.IsMine ? "Continue" : "Review")
+                                            <i data-lucide="eye"></i>
+                                            @if (q.IsMine)
+                                            {
+                                                <span data-bn="চালিয়ে যান" data-en="Continue">চালিয়ে যান</span>
+                                            }
+                                            else
+                                            {
+                                                <span data-bn="পর্যালোচনা" data-en="Review">পর্যালোচনা</span>
+                                            }
                                         </button>
                                     </form>
                                 }
                                 else
                                 {
                                     <button class="btn btn-outline btn-sm" type="button" disabled
-                                            title="Claimed by another lawyer / অন্য আইনজীবীর নিয়ন্ত্রণে">
-                                        Locked
+                                            title="অন্য আইনজীবীর নিয়ন্ত্রণে / Claimed by another lawyer">
+                                        <i data-lucide="lock"></i> <span data-bn="লক করা" data-en="Locked">লক করা</span>
                                     </button>
                                 }
                             </td>
@@ -150,15 +163,19 @@
                     {
                         <a asp-action="Queue" asp-route-filter="@Model.ActiveFilter" asp-route-page="@(Model.Page - 1)"><i data-lucide="chevron-left"></i></a>
                     }
-                    @for (var p = 1; p <= totalPages; p++)
+                    @foreach (var p in Pager.Window(Model.Page, totalPages))
                     {
-                        @if (p == Model.Page)
+                        @if (p is null)
                         {
-                            <button type="button" class="active" data-page="@p">@ToBn(p)</button>
+                            <span class="muted" aria-hidden="true">…</span>
+                        }
+                        else if (p == Model.Page)
+                        {
+                            <button type="button" class="active" data-page="@p">@ToBn(p.Value)</button>
                         }
                         else
                         {
-                            <a asp-action="Queue" asp-route-filter="@Model.ActiveFilter" asp-route-page="@p">@ToBn(p)</a>
+                            <a asp-action="Queue" asp-route-filter="@Model.ActiveFilter" asp-route-page="@p">@ToBn(p.Value)</a>
                         }
                     }
                     @if (Model.Page < totalPages)

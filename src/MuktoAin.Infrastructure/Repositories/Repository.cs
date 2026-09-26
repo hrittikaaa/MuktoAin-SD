@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using MuktoAin.Domain.Common;
 using MuktoAin.Domain.Interfaces.Repositories;
@@ -26,6 +27,9 @@ public class Repository<T> : IRepository<T> where T : class
 
     public virtual async Task<T?> GetByIdAsync(object id) => await _dbSet.FindAsync(id);
     public virtual async Task<IEnumerable<T>> GetAllAsync() => await _dbSet.ToListAsync();
+    public virtual async Task<IReadOnlyList<T>> FindAsync(Expression<Func<T, bool>> predicate) =>
+        await _dbSet.Where(predicate).ToListAsync();
+    public virtual Task<int> CountAsync(Expression<Func<T, bool>> predicate) => _dbSet.CountAsync(predicate);
     public virtual async Task AddAsync(T entity) => await _dbSet.AddAsync(entity);
     public virtual Task UpdateAsync(T entity) { _dbSet.Update(entity); return Task.CompletedTask; }
     public virtual Task DeleteAsync(T entity) { _dbSet.Remove(entity); return Task.CompletedTask; }

@@ -18,6 +18,7 @@ public class AccountController : Controller
     private readonly SignInManager<User> _signInManager;
     private readonly UserManager<User> _userManager;
     private readonly IRepository<LawyerProfile> _lawyerProfileRepo;
+    private readonly IRepository<LawyerReview> _lawyerReviewRepo;
     private readonly IChatHistoryRepository _chatHistory;
     private readonly ILogger<AccountController> _logger;
     private readonly IStringLocalizer<SharedResource> _localizer;
@@ -27,6 +28,7 @@ public class AccountController : Controller
         SignInManager<User> signInManager,
         UserManager<User> userManager,
         IRepository<LawyerProfile> lawyerProfileRepo,
+        IRepository<LawyerReview> lawyerReviewRepo,
         ILogger<AccountController> logger,
         IStringLocalizer<SharedResource> localizer,
         IChatHistoryRepository chatHistory,
@@ -35,6 +37,7 @@ public class AccountController : Controller
         _signInManager = signInManager;
         _userManager = userManager;
         _lawyerProfileRepo = lawyerProfileRepo;
+        _lawyerReviewRepo = lawyerReviewRepo;
         _logger = logger;
         _localizer = localizer;
         _chatHistory = chatHistory;
@@ -128,6 +131,16 @@ public class AccountController : Controller
             return View(model);
         }
 
+        // #5: LAWYER_PROFILE.BarRegistrationNumber is UNIQUE. Check before the
+        // Identity user exists, so a taken number is a form error, not a 500
+        // that leaves a lawyer account with no profile.
+        var barNumber = model.BarRegistrationNumber?.Trim();
+        if (isLawyer && (await _lawyerProfileRepo.FindAsync(p => p.BarRegistrationNumber == barNumber)).Count > 0)
+        {
+            ModelState.AddModelError("BarRegistrationNumber", _localizer["Account_BarRegistrationTaken"].Value);
+            return View(model);
+        }
+
         var user = new User
         {
             FullName = model.FullName,
@@ -156,13 +169,25 @@ public class AccountController : Controller
             var profile = new LawyerProfile
             {
                 UserId = user.Id,
-                BarRegistrationNumber = model.BarRegistrationNumber!.Trim(),
+                BarRegistrationNumber = barNumber!,
                 Specialization = model.Specialization,
                 VerificationStatus = VerificationStatus.Pending
             };
 
-            await _lawyerProfileRepo.AddAsync(profile);
-            await _lawyerProfileRepo.SaveChangesAsync();
+            try
+            {
+                await _lawyerProfileRepo.AddAsync(profile);
+                await _lawyerProfileRepo.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // e.g. the same bar number registered concurrently. Remove the
+                // just-created user so no profile-less lawyer account is left.
+                _logger.LogWarning(ex, "Lawyer profile save failed during registration; removing user {UserId}", user.Id);
+                await _userManager.DeleteAsync(user);
+                ModelState.AddModelError(string.Empty, _localizer["Account_LawyerRegistrationFailed"].Value);
+                return View(model);
+            }
 
             await _notificationService.NotifyAllAdminsAsync(NotificationType.NewLawyerApplication,
                 lawyerProfileId: profile.LawyerProfileId);
@@ -198,15 +223,16 @@ public class AccountController : Controller
 
         if (user.Role == UserRole.Lawyer)
         {
-            var profiles = await _lawyerProfileRepo.GetAllAsync();
-            var lawyerProfile = profiles.FirstOrDefault(p => p.UserId == user.Id);
+            var lawyerProfile = (await _lawyerProfileRepo.FindAsync(p => p.UserId == user.Id)).FirstOrDefault();
             if (lawyerProfile != null)
             {
                 vm.BarRegistrationNumber = lawyerProfile.BarRegistrationNumber;
                 vm.Specialization = lawyerProfile.Specialization;
                 vm.VerificationStatus = lawyerProfile.VerificationStatus.ToString();
                 vm.VerifiedAt = lawyerProfile.VerifiedAt;
-                vm.TotalReviewsCompleted = lawyerProfile.Reviews?.Count ?? 0;
+                // Counted in LAWYER_REVIEW: the Reviews navigation is never loaded (#18).
+                var lawyerProfileId = lawyerProfile.LawyerProfileId;
+                vm.TotalReviewsCompleted = await _lawyerReviewRepo.CountAsync(r => r.LawyerProfileId == lawyerProfileId);
             }
         }
 
@@ -251,8 +277,7 @@ public class AccountController : Controller
 
         if (user.Role == UserRole.Lawyer)
         {
-            var profiles = await _lawyerProfileRepo.GetAllAsync();
-            var lawyerProfile = profiles.FirstOrDefault(p => p.UserId == user.Id);
+            var lawyerProfile = (await _lawyerProfileRepo.FindAsync(p => p.UserId == user.Id)).FirstOrDefault();
             if (lawyerProfile != null)
             {
                 lawyerProfile.Specialization = model.Specialization?.Trim();

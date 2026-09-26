@@ -275,7 +275,9 @@ public class CaseServiceTests
     }
 
     [Fact]
-    public async Task GetCaseDetailAsync_LawyerCanReadAnyCase()
+    // Lawyers see case data only through their claimed review workspace
+    // (LawyerController.Review), never through the citizen case pages.
+    public async Task GetCaseDetailAsync_LawyerCannotReadCases_AdminCan()
     {
         var anonymous = new Case
         {
@@ -293,7 +295,10 @@ public class CaseServiceTests
         var lawyerView = await _service.GetCaseDetailAsync(12, null, UserRole.Lawyer);
         var adminView = await _service.GetCaseDetailAsync(12, null, UserRole.Admin);
 
-        Assert.NotNull(lawyerView);
+        var lawyerWithCode = await _service.GetCaseDetailAsync(12, null, UserRole.Lawyer, "secret");
+
+        Assert.Null(lawyerView);
+        Assert.Null(lawyerWithCode);
         Assert.NotNull(adminView);
     }
 

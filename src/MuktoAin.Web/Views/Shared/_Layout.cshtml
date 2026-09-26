@@ -17,11 +17,11 @@
         {
             var lawyerRepo = Context.RequestServices
                 .GetRequiredService<MuktoAin.Domain.Interfaces.Repositories.IRepository<MuktoAin.Domain.Entities.LawyerProfile>>();
-            var profiles = await lawyerRepo.GetAllAsync();
             var uidStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (int.TryParse(uidStr, out var uid))
             {
-                var p = profiles.FirstOrDefault(x => x.UserId == uid);
+                // Only this lawyer's profile row, not the whole table, on every page render.
+                var p = (await lawyerRepo.FindAsync(x => x.UserId == uid)).FirstOrDefault();
                 isVerifiedLawyer = p?.VerificationStatus == MuktoAin.Domain.Enums.VerificationStatus.Approved;
             }
         }
@@ -278,10 +278,16 @@
             <div>
                 <h4>মেনু / Navigate</h4>
                 <ul>
-                    <li><a asp-controller="Home" asp-action="Index">আইনি সেবা ও চ্যাট</a></li>
+                    @if (!isLawyer)
+                    {
+                        <li><a asp-controller="Home" asp-action="Index">আইনি সেবা ও চ্যাট</a></li>
+                    }
                     <li><a asp-controller="Category" asp-action="Index">আইনি বিষয়সমূহ</a></li>
                     <li><a asp-controller="Search" asp-action="Index">আইন অনুসন্ধান</a></li>
-                    <li><a asp-controller="Case" asp-action="Track">মামলা ট্র্যাকিং</a></li>
+                    @if (!isLawyer)
+                    {
+                        <li><a asp-controller="Case" asp-action="Track">মামলা ট্র্যাকিং</a></li>
+                    }
                     <li><a asp-controller="Home" asp-action="About">আমাদের সম্পর্কে</a></li>
                 </ul>
             </div>
