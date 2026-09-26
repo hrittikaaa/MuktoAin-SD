@@ -10,7 +10,7 @@ public class CaseRepository : Repository<Case>, ICaseRepository
     public CaseRepository(AppDbContext context) : base(context) { }
 
     public async Task<IEnumerable<Case>> GetByUserIdAsync(int userId)
-        => await _dbSet.Where(c => c.UserId == userId).ToListAsync();
+        => await _dbSet.Where(c => c.UserId == userId).OrderByDescending(c => c.CreatedAt).ToListAsync();
 
     public async Task<Case?> GetWithDocumentsAsync(int caseId)
         => await _dbSet.Include(c => c.Documents).FirstOrDefaultAsync(c => c.CaseId == caseId);
