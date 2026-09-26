@@ -11,6 +11,7 @@ using MuktoAin.Domain.Entities;
 using MuktoAin.Domain.Enums;
 using MuktoAin.Domain.Interfaces.Repositories;
 using MuktoAin.UnitTests.Localization;
+using MuktoAin.UnitTests.TestSupport;
 using MuktoAin.Web.Controllers;
 using MuktoAin.Web.ViewModels;
 
@@ -35,6 +36,7 @@ public class AccountControllerTests
 
         _lawyerProfileRepo = new Mock<IRepository<LawyerProfile>>();
         _lawyerProfileRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+        _lawyerProfileRepo.SetupRows(new List<LawyerProfile>());
 
         _userManager = NewUserManager();
         _signInManager = NewSignInManager(_userManager.Object);
@@ -202,6 +204,54 @@ public class AccountControllerTests
         Assert.Equal(VerificationStatus.Pending, addedProfile.VerificationStatus);
         Assert.Equal("Family Law", addedProfile.Specialization);
         _lawyerProfileRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+    }
+
+    // #5: BarRegistrationNumber is UNIQUE in LAWYER_PROFILE. A taken number
+    // must be a form error before any account exists -- not a 500 after the
+    // Identity user was already created (which left a stuck, profile-less lawyer).
+    [Fact]
+    public async Task Register_LawyerWithTakenBarNumber_AddsFieldErrorAndDoesNotCreateUser()
+    {
+        _lawyerProfileRepo.SetupRows(new List<LawyerProfile>
+        {
+            new() { LawyerProfileId = 1, UserId = 9, BarRegistrationNumber = "BAR-2026-9999" }
+        });
+        var model = new RegisterViewModel
+        {
+            FullName = "Second Lawyer", Email = "second@muktoain.bd",
+            Password = "Lawyer@123", ConfirmPassword = "Lawyer@123",
+            Role = "Lawyer", BarRegistrationNumber = "  BAR-2026-9999 "
+        };
+
+        var result = await _controller.Register(model);
+
+        Assert.IsType<ViewResult>(result);
+        var error = Assert.Single(_controller.ModelState["BarRegistrationNumber"]!.Errors);
+        Assert.Contains("already registered", error.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+        _userManager.Verify(m => m.CreateAsync(It.IsAny<User>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Register_LawyerProfileSaveFails_RemovesTheNewUserAndShowsError()
+    {
+        _userManager.Setup(m => m.CreateAsync(It.IsAny<User>(), It.IsAny<string>()))
+            .Callback<User, string>((u, _) => u.Id = 42)
+            .ReturnsAsync(IdentityResult.Success);
+        _userManager.Setup(m => m.DeleteAsync(It.IsAny<User>())).ReturnsAsync(IdentityResult.Success);
+        _lawyerProfileRepo.Setup(r => r.SaveChangesAsync())
+            .ThrowsAsync(new InvalidOperationException("unique constraint (race)"));
+        var model = new RegisterViewModel
+        {
+            FullName = "Racing Lawyer", Email = "race@muktoain.bd",
+            Password = "Lawyer@123", ConfirmPassword = "Lawyer@123",
+            Role = "Lawyer", BarRegistrationNumber = "BAR-RACE-1"
+        };
+
+        var result = await _controller.Register(model);
+
+        Assert.IsType<ViewResult>(result);
+        Assert.False(_controller.ModelState.IsValid);
+        _userManager.Verify(m => m.DeleteAsync(It.Is<User>(u => u.Id == 42)), Times.Once);
     }
 
     [Fact]

@@ -80,9 +80,27 @@ public class LawyerController : Controller
             return RedirectToAction(nameof(Status));
         }
 
-        profile.BarRegistrationNumber = vm.BarRegistrationNumber;
+        // #5: BarRegistrationNumber is UNIQUE (and NVARCHAR(100)) -- refuse a
+        // number another lawyer holds or one that won't fit, instead of a 500.
+        var barNumber = vm.BarRegistrationNumber.Trim();
+        if (barNumber.Length > MaxBarNumberLength)
+        {
+            TempData["Error"] = $"বার নম্বর সর্বোচ্চ {MaxBarNumberLength} অক্ষরের হতে পারে।";
+            TempData["ErrorEn"] = $"Bar number can be at most {MaxBarNumberLength} characters.";
+            return RedirectToAction(nameof(Status));
+        }
+        var takenByOther = (await _profileRepo.FindAsync(p =>
+            p.BarRegistrationNumber == barNumber && p.LawyerProfileId != profile.LawyerProfileId)).Count > 0;
+        if (takenByOther)
+        {
+            TempData["Error"] = "এই বার রেজিস্ট্রেশন নম্বরটি ইতিমধ্যে নিবন্ধিত।";
+            TempData["ErrorEn"] = "This bar registration number is already registered.";
+            return RedirectToAction(nameof(Status));
+        }
+
+        profile.BarRegistrationNumber = barNumber;
         if (!string.IsNullOrWhiteSpace(vm.Specialization))
-            profile.Specialization = vm.Specialization;
+            profile.Specialization = vm.Specialization.Trim();
         profile.VerificationStatus = VerificationStatus.Pending;
         await _profileRepo.SaveChangesAsync();
 
@@ -90,6 +108,8 @@ public class LawyerController : Controller
         TempData["SuccessEn"] = "Application resubmitted — verification typically takes 24–48h.";
         return RedirectToAction(nameof(Status));
     }
+
+    private const int MaxBarNumberLength = 100; // LAWYER_PROFILE.BarRegistrationNumber NVARCHAR(100)
 
     private const int QueuePageSize = 20;
 

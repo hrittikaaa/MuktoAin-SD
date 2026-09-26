@@ -69,6 +69,12 @@
   <data name="Account_BarRegistrationRequired" xml:space="preserve">
     <value>আইনজীবীদের জন্য বার রেজিস্ট্রেশন সনদ নম্বর আবশ্যক।</value>
   </data>
+  <data name="Account_BarRegistrationTaken" xml:space="preserve">
+    <value>এই বার রেজিস্ট্রেশন নম্বরটি ইতিমধ্যে নিবন্ধিত।</value>
+  </data>
+  <data name="Account_LawyerRegistrationFailed" xml:space="preserve">
+    <value>আইনজীবী নিবন্ধন সম্পন্ন করা যায়নি। বার রেজিস্ট্রেশন নম্বরটি যাচাই করে আবার চেষ্টা করুন।</value>
+  </data>
   <data name="Register_FullName_Required" xml:space="preserve">
     <value>পূর্ণ নাম প্রয়োজন</value>
   </data>

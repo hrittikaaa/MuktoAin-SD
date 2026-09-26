@@ -128,6 +128,16 @@ public class AccountController : Controller
             return View(model);
         }
 
+        // #5: LAWYER_PROFILE.BarRegistrationNumber is UNIQUE. Check before the
+        // Identity user exists, so a taken number is a form error, not a 500
+        // that leaves a lawyer account with no profile.
+        var barNumber = model.BarRegistrationNumber?.Trim();
+        if (isLawyer && (await _lawyerProfileRepo.FindAsync(p => p.BarRegistrationNumber == barNumber)).Count > 0)
+        {
+            ModelState.AddModelError("BarRegistrationNumber", _localizer["Account_BarRegistrationTaken"].Value);
+            return View(model);
+        }
+
         var user = new User
         {
             FullName = model.FullName,
@@ -156,13 +166,25 @@ public class AccountController : Controller
             var profile = new LawyerProfile
             {
                 UserId = user.Id,
-                BarRegistrationNumber = model.BarRegistrationNumber!.Trim(),
+                BarRegistrationNumber = barNumber!,
                 Specialization = model.Specialization,
                 VerificationStatus = VerificationStatus.Pending
             };
 
-            await _lawyerProfileRepo.AddAsync(profile);
-            await _lawyerProfileRepo.SaveChangesAsync();
+            try
+            {
+                await _lawyerProfileRepo.AddAsync(profile);
+                await _lawyerProfileRepo.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // e.g. the same bar number registered concurrently. Remove the
+                // just-created user so no profile-less lawyer account is left.
+                _logger.LogWarning(ex, "Lawyer profile save failed during registration; removing user {UserId}", user.Id);
+                await _userManager.DeleteAsync(user);
+                ModelState.AddModelError(string.Empty, _localizer["Account_LawyerRegistrationFailed"].Value);
+                return View(model);
+            }
 
             await _notificationService.NotifyAllAdminsAsync(NotificationType.NewLawyerApplication,
                 lawyerProfileId: profile.LawyerProfileId);
