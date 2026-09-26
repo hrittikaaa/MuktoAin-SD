@@ -28,6 +28,13 @@
             </div>
             <div style="font-size: 32px; font-weight: 700">@Bdt(Model.Balance)</div>
         </div>
+        @if (Model.PendingPayout > 0)
+        {
+            <p class="tiny muted" style="margin: 8px 0 0">
+                <span data-bn="অপেক্ষমাণ পরিশোধের অনুরোধ:" data-en="Payout requested, awaiting admin:">অপেক্ষমাণ পরিশোধের অনুরোধ:</span>
+                <b>@Bdt(Model.PendingPayout)</b>
+            </p>
+        }
 
         @if (Model.History.Any())
         {
@@ -62,7 +69,7 @@
 
         <form asp-action="RequestPayout" method="post" style="margin-top: 16px">
             @Html.AntiForgeryToken()
-            <button class="btn btn-outline btn-sm" type="submit" @(Model.Balance <= 0 ? "disabled" : "")>
+            <button class="btn btn-outline btn-sm" type="submit" @(Model.Balance <= 0 || Model.PendingPayout > 0 ? "disabled" : "")>
                 <i data-lucide="banknote"></i> <span data-bn="পরিশোধ চান" data-en="Request payout">পরিশোধ চান</span>
             </button>
         </form>

@@ -258,5 +258,6 @@ public class LawyerPaymentsViewModel
     public string LawyerName { get; set; } = string.Empty;
     public string BarRegistrationNumber { get; set; } = string.Empty;
     public decimal Balance { get; set; }
+    public decimal PendingPayout { get; set; } // requested, awaiting the admin
     public List<EarningRowViewModel> History { get; set; } = new();
 }

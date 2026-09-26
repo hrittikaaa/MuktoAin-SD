@@ -311,6 +311,7 @@ public class LawyerController : Controller
             LawyerName = await MyNameAsync(profile),
             BarRegistrationNumber = profile.BarRegistrationNumber,
             Balance = earnings.Balance,
+            PendingPayout = earnings.PendingPayout,
             History = earnings.History.Select(h => new EarningRowViewModel
             {
                 PaymentOrderId = h.PaymentOrderId,
@@ -331,16 +332,21 @@ public class LawyerController : Controller
         var profile = await MyProfileAsync();
         if (profile == null) return NotFound();
 
-        var earnings = await _paymentService.GetLawyerEarningsAsync(profile.LawyerProfileId);
-        if (earnings.Balance <= 0)
+        switch (await _paymentService.RequestPayoutAsync(profile.LawyerProfileId))
         {
-            TempData["Error"] = "পরিশোধযোগ্য ব্যালেন্স নেই।";
-            TempData["ErrorEn"] = "No payable balance.";
-            return RedirectToAction(nameof(Payments));
+            case PayoutRequestResult.AlreadyPending:
+                TempData["Error"] = "একটি পরিশোধের অনুরোধ ইতিমধ্যে অপেক্ষমাণ — অ্যাডমিন পরিশোধ করলে নতুন অনুরোধ করতে পারবেন।";
+                TempData["ErrorEn"] = "A payout request is already pending — you can request again once the admin has paid it.";
+                break;
+            case PayoutRequestResult.NothingToPay:
+                TempData["Error"] = "পরিশোধযোগ্য ব্যালেন্স নেই।";
+                TempData["ErrorEn"] = "No payable balance.";
+                break;
+            default:
+                TempData["Success"] = "পরিশোধের অনুরোধ জমা হয়েছে (স্যান্ডবক্স)।";
+                TempData["SuccessEn"] = "Payout request submitted (sandbox).";
+                break;
         }
-        await _paymentService.RequestPayoutAsync(profile.LawyerProfileId, earnings.Balance);
-        TempData["Success"] = "পরিশোধের অনুরোধ জমা হয়েছে (স্যান্ডবক্স)।";
-        TempData["SuccessEn"] = "Payout request submitted (sandbox).";
         return RedirectToAction(nameof(Payments));
     }
 }
