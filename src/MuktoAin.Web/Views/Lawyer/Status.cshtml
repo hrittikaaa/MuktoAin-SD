@@ -58,7 +58,8 @@
                 <label class="form-label" data-bn="বার রেজিস্ট্রেশন নম্বর" data-en="Bar registration number">বার রেজিস্ট্রেশন নম্বর</label>
                 <input class="input" asp-for="BarRegistrationNumber" placeholder="DHA-12345" />
                 <label class="form-label" style="margin-top: 10px" data-bn="বিশেষজ্ঞ এলাকা" data-en="Specialization">বিশেষজ্ঞ এলাকা</label>
-                <input class="input" asp-for="Specialization" placeholder="Labour / Criminal / Civil / Family / Consumer / Tax" />
+                <input class="input" asp-for="Specialization" placeholder="Labour / Criminal / RTI / Consumer / General practice" />
+                <partial name="_SpecializationHint" />
                 <button class="btn btn-primary btn-block" style="margin-top: 16px" type="submit">
                     <i data-lucide="send"></i> <span data-bn="পুনরায় আবেদন করুন" data-en="Resubmit application">পুনরায় আবেদন করুন</span>
                 </button>

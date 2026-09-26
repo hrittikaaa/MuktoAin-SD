@@ -117,7 +117,8 @@
                         </div>
                         <div class="field" style="margin-bottom: 8px;">
         <label asp-for="Specialization">বিশেষায়িত ক্ষেত্র / Specialization</label>
-        <input asp-for="Specialization" class="input" placeholder="e.g., Family Law, Criminal Law, Property Law" />
+        <input asp-for="Specialization" class="input" placeholder="e.g., Labour law, Criminal law, Consumer rights" />
+        <partial name="_SpecializationHint" />
         <span asp-validation-for="Specialization" class="err"></span>
     </div>
                         <p class="tiny muted" style="margin-bottom: 0;">

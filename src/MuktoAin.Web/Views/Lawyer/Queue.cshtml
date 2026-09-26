@@ -25,9 +25,7 @@
     <div class="page-head">
         <span class="kicker"><i data-lucide="file-check-2"></i> FR-13 · FR-23</span>
         <h1 class="page-title" data-bn="পর্যালোচনা কিউ" data-en="Review Queue">পর্যালোচনা কিউ</h1>
-        <p class="page-sub">
-            @Model.LawyerName · Bar #@Model.BarRegistrationNumber · @Model.Specialization
-        </p>
+        <p class="page-sub">@Model.LawyerName</p>
     </div>
 
     <!-- KPI strip -->
@@ -69,6 +67,7 @@
             <span data-bn="আপনার বিশেষজ্ঞতার ক্ষেত্র কোনো মামলার বিভাগের সাথে মেলেনি, তাই সব নথি দেখানো হচ্ছে।"
                   data-en="Your specialization doesn't match any case category, so all documents are shown.">আপনার বিশেষজ্ঞতার ক্ষেত্র কোনো মামলার বিভাগের সাথে মেলেনি, তাই সব নথি দেখানো হচ্ছে।</span>
             <a asp-controller="Account" asp-action="Profile" data-bn="প্রোফাইলে যোগ করুন" data-en="Update it in your profile">প্রোফাইলে যোগ করুন</a>
+            <partial name="_SpecializationHint" />
         </div>
     }
 
@@ -164,15 +163,19 @@
                     {
                         <a asp-action="Queue" asp-route-filter="@Model.ActiveFilter" asp-route-page="@(Model.Page - 1)"><i data-lucide="chevron-left"></i></a>
                     }
-                    @for (var p = 1; p <= totalPages; p++)
+                    @foreach (var p in Pager.Window(Model.Page, totalPages))
                     {
-                        @if (p == Model.Page)
+                        @if (p is null)
                         {
-                            <button type="button" class="active" data-page="@p">@ToBn(p)</button>
+                            <span class="muted" aria-hidden="true">…</span>
+                        }
+                        else if (p == Model.Page)
+                        {
+                            <button type="button" class="active" data-page="@p">@ToBn(p.Value)</button>
                         }
                         else
                         {
-                            <a asp-action="Queue" asp-route-filter="@Model.ActiveFilter" asp-route-page="@p">@ToBn(p)</a>
+                            <a asp-action="Queue" asp-route-filter="@Model.ActiveFilter" asp-route-page="@p">@ToBn(p.Value)</a>
                         }
                     }
                     @if (Model.Page < totalPages)

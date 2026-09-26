@@ -130,15 +130,19 @@
                     {
                         <a asp-action="History" asp-route-decision="@Model.ActiveFilter" asp-route-from="@Model.FromDate" asp-route-to="@Model.ToDate" asp-route-sort="@Model.Sort" asp-route-page="@(Model.Page - 1)"><i data-lucide="chevron-left"></i></a>
                     }
-                    @for (var p = 1; p <= totalPages; p++)
+                    @foreach (var p in Pager.Window(Model.Page, totalPages))
                     {
-                        @if (p == Model.Page)
+                        @if (p is null)
                         {
-                            <button type="button" class="active" data-page="@p">@ToBn(p)</button>
+                            <span class="muted" aria-hidden="true">…</span>
+                        }
+                        else if (p == Model.Page)
+                        {
+                            <button type="button" class="active" data-page="@p">@ToBn(p.Value)</button>
                         }
                         else
                         {
-                            <a asp-action="History" asp-route-decision="@Model.ActiveFilter" asp-route-from="@Model.FromDate" asp-route-to="@Model.ToDate" asp-route-sort="@Model.Sort" asp-route-page="@p">@ToBn(p)</a>
+                            <a asp-action="History" asp-route-decision="@Model.ActiveFilter" asp-route-from="@Model.FromDate" asp-route-to="@Model.ToDate" asp-route-sort="@Model.Sort" asp-route-page="@p">@ToBn(p.Value)</a>
                         }
                     }
                     @if (Model.Page < totalPages)
