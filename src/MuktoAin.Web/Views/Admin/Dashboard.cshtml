@@ -2,6 +2,11 @@
 @{
     ViewData["Title"] = "অ্যাডমিন মিশন কন্ট্রোল — Admin Operations Hub";
     ViewData["IsAdminPage"] = true;
+
+    static string ToBn(int n) => n.ToString("N0")
+        .Select(c => char.IsDigit(c) ? (char)(c - '0' + '০') : c)
+        .Aggregate(new System.Text.StringBuilder(), (sb, c) => sb.Append(c))
+        .ToString();
 }
 
 <main class="container" id="main">
@@ -123,22 +128,22 @@
     <div class="grid grid-4" style="margin-bottom: 24px;">
         <div class="card kpi">
             <span class="k-label" data-bn="সনদ যাচাই অপেক্ষমান" data-en="Verifications Waiting"><i data-lucide="user-check" aria-hidden="true"></i>সনদ যাচাই অপেক্ষমান</span>
-            <span class="k-num" style="color: var(--gold);" data-bn="২" data-en="2">২</span>
+            <span id="kpi-verifications-waiting" class="k-num" style="color: var(--gold);" data-bn="@ToBn(Model.VerificationsWaiting)" data-en="@Model.VerificationsWaiting.ToString("N0")">@ToBn(Model.VerificationsWaiting)</span>
             <span class="k-sub" data-bn="বাংলাদেশ বার কাউন্সিল আইনজীবী আবেদন" data-en="Bar Council Advocate Applications">বাংলাদেশ বার কাউন্সিল আইনজীবী আবেদন</span>
         </div>
         <div class="card kpi">
             <span class="k-label" data-bn="রিভিউ কিউ ব্যাকলগ" data-en="Review Queue Backlog"><i data-lucide="clock" aria-hidden="true"></i>রিভিউ কিউ ব্যাকলগ</span>
-            <span class="k-num" style="color: var(--primary);" data-bn="৫" data-en="5">৫</span>
+            <span id="kpi-pending-reviews" class="k-num" style="color: var(--primary);" data-bn="@ToBn(Model.PendingReviews)" data-en="@Model.PendingReviews.ToString("N0")">@ToBn(Model.PendingReviews)</span>
             <span class="k-sub" data-bn="আইনজীবী পর্যালোচনার অপেক্ষায়" data-en="Cases pending lawyer approval">আইনজীবী পর্যালোচনার অপেক্ষায়</span>
         </div>
         <div class="card kpi">
             <span class="k-label" data-bn="আইন ও স্ট্যাটিউট করপাস" data-en="Statutes & Act Corpus"><i data-lucide="book-marked" aria-hidden="true"></i>আইন ও স্ট্যাটিউট করপাস</span>
-            <span class="k-num" data-bn="১,৪৮৪" data-en="1,484">১,৪৮৪</span>
+            <span id="kpi-total-acts" class="k-num" data-bn="@ToBn(Model.TotalActsCount)" data-en="@Model.TotalActsCount.ToString("N0")">@ToBn(Model.TotalActsCount)</span>
             <span class="k-sub" data-bn="সম্পূর্ণ ডিজিটালাইজড আইন ভাণ্ডার" data-en="Fully digitalized statutory repository">সম্পূর্ণ ডিজিটালাইজড আইন ভাণ্ডার</span>
         </div>
         <div class="card kpi">
             <span class="k-label" data-bn="মোট প্ল্যাটফর্ম ব্যবহারকারী" data-en="Total Platform Users"><i data-lucide="users" aria-hidden="true"></i>মোট প্ল্যাটফর্ম ব্যবহারকারী</span>
-            <span class="k-num" data-bn="১২৮" data-en="128">১২৮</span>
+            <span id="kpi-total-users" class="k-num" data-bn="@ToBn(Model.TotalUsersCount)" data-en="@Model.TotalUsersCount.ToString("N0")">@ToBn(Model.TotalUsersCount)</span>
             <span class="k-sub" data-bn="নাগরিক ও আইনজীবী একাউন্ট" data-en="Citizen and advocate accounts">নাগরিক ও আইনজীবী একাউন্ট</span>
         </div>
     </div>
