@@ -1,12 +1,11 @@
 @model LawyerReviewViewModel
 @{
     ViewData["Title"] = "পর্যালোচনা — DOC-" + Model.DocumentId + " — মুক্ত আইন";
-    var citations = (IReadOnlyList<MuktoAin.Application.DTOs.CitedSectionDto>?)ViewData["Citations"]
-        ?? new List<MuktoAin.Application.DTOs.CitedSectionDto>();
-    var narrative = (string?)ViewData["CitizenNarrative"] ?? "";
-    var district = (string?)ViewData["DistrictName"] ?? "";
-    var versionNo = (int?)ViewData["VersionNo"] ?? 1;
-    var citizenEdited = (bool?)ViewData["CitizenEdited"] ?? false;
+    var citations = Model.Citations;
+    var narrative = Model.CitizenNarrative;
+    var district = Model.DistrictName;
+    var versionNo = Model.VersionNo;
+    var citizenEdited = Model.CitizenEdited;
 }
 
 <main class="container" id="main">
@@ -77,7 +76,7 @@
 
                 <div class="tab-panel" data-tab-panel="editable" hidden>
                     <label class="form-label" data-bn="চূড়ান্ত সংস্করণ (সম্পাদনা করুন)" data-en="Final version (edit)">চূড়ান্ত সংস্করণ (সম্পাদনা করুন)</label>
-                    <textarea class="input" id="EditedContentMobile" name="EditedContent" rows="16"
+                    <textarea class="input" id="EditedContentMobile" rows="16"
                               style="width: 100%; font-family: var(--font-doc)"
                               data-counter="#review-counter">@Model.EditedContent</textarea>
                     <small class="muted tiny" id="review-counter"></small>
@@ -133,9 +132,10 @@
         </div>
 
         <script>
-          // keep mobile tab and desktop pane in sync so whichever the lawyer edits
-          // posts the correct value (single name="EditedContent" posts last-wins;
-          // this sync makes both always identical).
+          // Only the desktop textarea carries name="EditedContent" (it is always
+          // in the form, CSS-hidden on mobile, so exactly one value posts and
+          // desktop edits post even without JS). Mirror the mobile tab copy
+          // into it, and back, so both panes always show the same text.
           document.addEventListener("DOMContentLoaded", function () {
             var a = document.getElementById("EditedContentMobile");
             var b = document.getElementById("EditedContentDesktop");

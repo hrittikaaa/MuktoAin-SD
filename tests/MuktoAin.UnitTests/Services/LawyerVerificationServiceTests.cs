@@ -1,4 +1,3 @@
-using MuktoAin.Application.DTOs;
 using MuktoAin.Application.Services;
 using MuktoAin.Domain.Entities;
 using MuktoAin.Domain.Enums;
@@ -17,39 +16,6 @@ public class LawyerVerificationServiceTests
     public LawyerVerificationServiceTests()
     {
         _service = new LawyerVerificationService(_profileRepo.Object, _auditMock.Object, _notificationRepo.Object);
-    }
-
-    [Fact]
-    public async Task ApplyAsync_CreatesPendingProfile_AndReturnsId()
-    {
-        _profileRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<LawyerProfile>());
-        var captured = new List<LawyerProfile>();
-        _profileRepo.Setup(r => r.AddAsync(It.IsAny<LawyerProfile>()))
-            .Callback<LawyerProfile>(p =>
-            {
-                p.LawyerProfileId = 7;
-                captured.Add(p);
-            })
-            .Returns(Task.CompletedTask);
-
-        var id = await _service.ApplyAsync(42, new LawyerApplicationDto("BAR-123", "Labour law"));
-
-        Assert.Equal(7, id);
-        var profile = Assert.Single(captured);
-        Assert.Equal(VerificationStatus.Pending, profile.VerificationStatus);
-        Assert.Equal("BAR-123", profile.BarRegistrationNumber);
-    }
-
-    [Fact]
-    public async Task ApplyAsync_DuplicateApplication_Throws()
-    {
-        _profileRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<LawyerProfile>
-        {
-            new() { LawyerProfileId = 1, UserId = 42 }
-        });
-
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _service.ApplyAsync(42, new LawyerApplicationDto("BAR-999", null)));
     }
 
     [Fact]

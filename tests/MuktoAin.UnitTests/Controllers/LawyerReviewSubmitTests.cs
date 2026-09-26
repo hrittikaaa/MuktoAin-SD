@@ -74,7 +74,6 @@ public class LawyerReviewSubmitTests
             _docRepo.Object, _reviewRepo.Object, _profileRepo.Object, _caseRepo.Object,
             _categoryRepo.Object, _districtRepo.Object, _refRepo.Object, Mock.Of<IRepository<ActSection>>(),
             Mock.Of<IRepository<Act>>(), encryption.Object, caseService, notifications);
-        var verificationService = new LawyerVerificationService(_profileRepo.Object, Mock.Of<IAdminAuditService>(), notifications);
         var paymentService = new PaymentService(
             Mock.Of<IRepository<PaymentOrder>>(), Mock.Of<IRepository<PayoutRequest>>(), _profileRepo.Object, _caseRepo.Object,
             userManager.Object, Mock.Of<IAdminAuditService>(), notifications,
@@ -87,7 +86,7 @@ public class LawyerReviewSubmitTests
                 new Claim(ClaimTypes.NameIdentifier, UserId.ToString()), new Claim(ClaimTypes.Role, "Lawyer")
             }, "test"))
         };
-        _controller = new LawyerController(reviewService, verificationService, paymentService, _profileRepo.Object, userManager.Object)
+        _controller = new LawyerController(reviewService, paymentService, _profileRepo.Object, userManager.Object)
         {
             ControllerContext = new ControllerContext { HttpContext = http },
             TempData = new TempDataDictionary(http, Mock.Of<ITempDataProvider>())

@@ -17,20 +17,17 @@ namespace MuktoAin.Web.Controllers;
 public class LawyerController : Controller
 {
     private readonly LawyerReviewService _reviewService;
-    private readonly LawyerVerificationService _verificationService;
     private readonly PaymentService _paymentService;
     private readonly IRepository<LawyerProfile> _profileRepo;
     private readonly UserManager<User> _userManager;
 
     public LawyerController(
         LawyerReviewService reviewService,
-        LawyerVerificationService verificationService,
         PaymentService paymentService,
         IRepository<LawyerProfile> profileRepo,
         UserManager<User> userManager)
     {
         _reviewService = reviewService;
-        _verificationService = verificationService;
         _paymentService = paymentService;
         _profileRepo = profileRepo;
         _userManager = userManager;
@@ -58,8 +55,7 @@ public class LawyerController : Controller
             BarRegistrationNumber = profile.BarRegistrationNumber,
             Specialization = profile.Specialization ?? "",
             Status = profile.VerificationStatus.ToString(),
-            RejectionReason = profile.RejectionReason,
-            SubmittedAt = profile.VerifiedAt ?? DateTime.UtcNow // display only
+            RejectionReason = profile.RejectionReason
         };
         return View(vm);
     }
@@ -232,14 +228,13 @@ public class LawyerController : Controller
             ContentDraft = ws.OriginalDraft,
             EditedContent = posted != null ? posted.EditedContent : ws.CitizenEditedDraft ?? ws.OriginalDraft,
             Decision = posted?.Decision ?? nameof(ReviewDecision.EditedApproved),
-            Comments = posted?.Comments ?? string.Empty
+            Comments = posted?.Comments ?? string.Empty,
+            DistrictName = ws.DistrictName,
+            CitizenNarrative = ws.CitizenNarrative,
+            Citations = ws.Citations,
+            VersionNo = ws.VersionNo,
+            CitizenEdited = ws.CitizenEdited
         };
-        // Context extras for the view
-        ViewData["DistrictName"] = ws.DistrictName;
-        ViewData["CitizenNarrative"] = ws.CitizenNarrative;
-        ViewData["Citations"] = ws.Citations;
-        ViewData["VersionNo"] = ws.VersionNo;
-        ViewData["CitizenEdited"] = ws.CitizenEdited;
         return View(nameof(Review), vm);
     }
 

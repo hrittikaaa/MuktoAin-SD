@@ -75,6 +75,14 @@ public class LawyerReviewViewModel
     public string CategoryName { get; set; } = string.Empty;
     public string ContentDraft { get; set; } = string.Empty;
     public string? EditedContent { get; set; }
+
+    // Read-only workspace context (rebuilt from the claim on every render; never posted).
+    public string DistrictName { get; set; } = string.Empty;
+    public string CitizenNarrative { get; set; } = string.Empty;
+    public IReadOnlyList<MuktoAin.Application.DTOs.CitedSectionDto> Citations { get; set; } = Array.Empty<MuktoAin.Application.DTOs.CitedSectionDto>();
+    public int VersionNo { get; set; } = 1;
+    public bool CitizenEdited { get; set; }
+
     [RegularExpression("^(Approved|EditedApproved|Rejected)$",
         ErrorMessage = "সিদ্ধান্ত অবশ্যই Approved, EditedApproved অথবা Rejected হতে হবে / Decision must be Approved, EditedApproved or Rejected")]
     public string Decision { get; set; } = "Approved"; // Approved, EditedApproved, Rejected
@@ -181,7 +189,6 @@ public class LawyerStatusViewModel
     public string Specialization { get; set; } = string.Empty;
     public string Status { get; set; } = "Pending"; // Pending / Approved / Rejected
     public string? RejectionReason { get; set; }
-    public DateTime SubmittedAt { get; set; }
 }
 
 public class LawyerQueueViewModel

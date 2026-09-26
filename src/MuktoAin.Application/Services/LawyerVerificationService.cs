@@ -1,4 +1,3 @@
-using MuktoAin.Application.DTOs;
 using MuktoAin.Domain.Entities;
 using MuktoAin.Domain.Enums;
 using MuktoAin.Domain.Interfaces.Repositories;
@@ -18,25 +17,6 @@ public class LawyerVerificationService
         _profileRepo = profileRepo;
         _audit = audit;
         _notificationRepo = notificationRepo;
-    }
-
-    public async Task<int> ApplyAsync(int userId, LawyerApplicationDto dto)
-    {
-        var existing = await _profileRepo.GetAllAsync();
-        if (existing.Any(p => p.UserId == userId))
-            throw new InvalidOperationException("Verification already submitted");
-
-        var profile = new LawyerProfile
-        {
-            UserId = userId,
-            BarRegistrationNumber = dto.BarRegistrationNumber,
-            Specialization = dto.Specialization,
-            VerificationStatus = VerificationStatus.Pending
-        };
-
-        await _profileRepo.AddAsync(profile);
-        await _profileRepo.SaveChangesAsync();
-        return profile.LawyerProfileId;
     }
 
     // LAWYER_PROFILE.RejectionReason column length (LawyerProfileConfiguration).
