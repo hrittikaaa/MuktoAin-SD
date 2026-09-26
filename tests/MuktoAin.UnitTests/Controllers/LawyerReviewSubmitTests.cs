@@ -87,7 +87,8 @@ public class LawyerReviewSubmitTests
                 new Claim(ClaimTypes.NameIdentifier, UserId.ToString()), new Claim(ClaimTypes.Role, "Lawyer")
             }, "test"))
         };
-        _controller = new LawyerController(reviewService, paymentService, _profileRepo.Object, userManager.Object)
+        _controller = new LawyerController(reviewService, paymentService, _profileRepo.Object, userManager.Object,
+            new NotificationService(notifications, userManager.Object, Mock.Of<ILogger<NotificationService>>()))
         {
             ControllerContext = new ControllerContext { HttpContext = http },
             TempData = new TempDataDictionary(http, Mock.Of<ITempDataProvider>())

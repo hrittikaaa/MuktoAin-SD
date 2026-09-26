@@ -20,17 +20,20 @@ public class LawyerController : Controller
     private readonly PaymentService _paymentService;
     private readonly IRepository<LawyerProfile> _profileRepo;
     private readonly UserManager<User> _userManager;
+    private readonly NotificationService _notificationService;
 
     public LawyerController(
         LawyerReviewService reviewService,
         PaymentService paymentService,
         IRepository<LawyerProfile> profileRepo,
-        UserManager<User> userManager)
+        UserManager<User> userManager,
+        NotificationService notificationService)
     {
         _reviewService = reviewService;
         _paymentService = paymentService;
         _profileRepo = profileRepo;
         _userManager = userManager;
+        _notificationService = notificationService;
     }
 
     private async Task<LawyerProfile?> MyProfileAsync()
@@ -98,11 +101,27 @@ public class LawyerController : Controller
             return RedirectToAction(nameof(Status));
         }
 
+        var specialization = vm.Specialization?.Trim();
+        if (specialization?.Length > MaxSpecializationLength)
+        {
+            TempData["Error"] = $"বিশেষজ্ঞ এলাকা সর্বোচ্চ {MaxSpecializationLength} অক্ষরের হতে পারে।";
+            TempData["ErrorEn"] = $"Specialization can be at most {MaxSpecializationLength} characters.";
+            return RedirectToAction(nameof(Status));
+        }
+
         profile.BarRegistrationNumber = barNumber;
-        if (!string.IsNullOrWhiteSpace(vm.Specialization))
-            profile.Specialization = vm.Specialization.Trim();
+        if (!string.IsNullOrEmpty(specialization))
+            profile.Specialization = specialization;
         profile.VerificationStatus = VerificationStatus.Pending;
+        // A fresh application: drop the previous decision (#13).
+        profile.RejectionReason = null;
+        profile.VerifiedAt = null;
+        profile.VerifiedByAdminId = null;
         await _profileRepo.SaveChangesAsync();
+
+        // Admins are told about a resubmission just as about a new registration.
+        await _notificationService.NotifyAllAdminsAsync(NotificationType.NewLawyerApplication,
+            lawyerProfileId: profile.LawyerProfileId);
 
         TempData["Success"] = "আবেদন পুনরায় জমা হয়েছে — ২৪–৪৮ ঘণ্টার মধ্যে যাচাই হবে।";
         TempData["SuccessEn"] = "Application resubmitted — verification typically takes 24–48h.";
@@ -110,6 +129,7 @@ public class LawyerController : Controller
     }
 
     private const int MaxBarNumberLength = 100; // LAWYER_PROFILE.BarRegistrationNumber NVARCHAR(100)
+    private const int MaxSpecializationLength = 200; // LAWYER_PROFILE.Specialization NVARCHAR(200)
 
     private const int QueuePageSize = 20;
 
@@ -131,6 +151,7 @@ public class LawyerController : Controller
             BarRegistrationNumber = profile.BarRegistrationNumber,
             Specialization = profile.Specialization ?? "",
             PendingCount = queue.PoolCount, // whole backlog, whatever filter is active
+            ActiveReviewDocumentId = await _reviewService.GetOtherActiveClaimAsync(profile.LawyerProfileId, exceptDocumentId: 0),
             ActiveFilter = filter ?? "All",
             FieldFallback = queue.FieldFallback,
             Page = queue.Page,
@@ -148,14 +169,15 @@ public class LawyerController : Controller
                 ClaimedBy = q.ClaimedBy,
                 IsClaimed = q.IsClaimed,
                 IsMine = q.IsMine,
-                WaitingHours = (int)Math.Max(0, (DateTime.UtcNow - q.CreatedAt).TotalHours),
+                WaitingHours = (int)Math.Max(0, (DateTime.UtcNow - q.WaitingSince).TotalHours),
                 CanOpen = q.CanOpen
             }).ToList()
         };
         return View(vm);
     }
 
-    // Claim-on-open (optimistic lock) then straight into the workspace.
+    // Claim (optimistic lock), confirmed from the preview on the Review page,
+    // then straight into the editable workspace.
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Claim(int documentId)
@@ -167,11 +189,41 @@ public class LawyerController : Controller
         var ok = await _reviewService.ClaimAsync(documentId, profile.LawyerProfileId);
         if (!ok)
         {
+            // One active review at a time (#10): send the lawyer to the one they hold.
+            var held = await _reviewService.GetOtherActiveClaimAsync(profile.LawyerProfileId, documentId);
+            if (held.HasValue)
+            {
+                TempData["Error"] = "আপনার হাতে ইতিমধ্যে একটি পর্যালোচনা আছে — সেটি শেষ করুন বা ছেড়ে দিন, তারপর নতুন নথি নিন।";
+                TempData["ErrorEn"] = "You already have a review in progress — finish or release it before taking another document.";
+                return RedirectToAction(nameof(Review), new { id = held.Value });
+            }
             TempData["Error"] = "অন্য আইনজীবী এটি নিয়েছেন — সারিতে ফিরে যান।";
             TempData["ErrorEn"] = "Another lawyer claimed this — back to the queue.";
             return RedirectToAction(nameof(Queue));
         }
         return RedirectToAction(nameof(Review), new { id = documentId });
+    }
+
+    // Gives a claimed document back to the pool without a decision (#9).
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Release(int documentId)
+    {
+        var profile = await MyProfileAsync();
+        if (profile == null || profile.VerificationStatus != VerificationStatus.Approved)
+            return RedirectToAction(nameof(Status));
+
+        if (await _reviewService.ReleaseAsync(documentId, profile.LawyerProfileId))
+        {
+            TempData["Success"] = "নথিটি সারিতে ফেরত দেওয়া হয়েছে।";
+            TempData["SuccessEn"] = "Document released back to the queue.";
+        }
+        else
+        {
+            TempData["Error"] = "নথিটি ছাড়া যায়নি — এটি আর আপনার নামে পর্যালোচনাধীন নেই।";
+            TempData["ErrorEn"] = "Couldn't release the document — it is no longer under review in your name.";
+        }
+        return RedirectToAction(nameof(Queue));
     }
 
     [HttpGet]
@@ -229,16 +281,20 @@ public class LawyerController : Controller
         return RedirectToAction(nameof(Queue));
     }
 
-    // Builds the review page from the lawyer's own active claim. `posted`
-    // (an invalid submission) keeps the lawyer's decision, edited text and
-    // comment on top of the freshly loaded workspace context.
+    // Builds the review page: the editable workspace for the lawyer's own
+    // claim, else a read-only preview of an unclaimed document (the lawyer
+    // claims it from there). `posted` (an invalid submission) keeps the
+    // lawyer's decision, edited text and comment on top of the freshly loaded
+    // workspace context; it only ever applies to their own claim.
     private async Task<IActionResult> ReviewWorkspaceAsync(int documentId, int lawyerProfileId, LawyerReviewViewModel? posted)
     {
         var ws = await _reviewService.GetForReviewAsync(documentId, lawyerProfileId);
+        if (ws == null && posted == null)
+            ws = await _reviewService.GetPreviewAsync(documentId, lawyerProfileId);
         if (ws == null)
         {
-            TempData["Error"] = "এই নথিটি আপনার নেওয়া পর্যালোচনাধীন নথি নয় — সারি থেকে খুলুন।";
-            TempData["ErrorEn"] = "This document isn't under review in your name — open it from the queue.";
+            TempData["Error"] = "নথিটি খোলা যাচ্ছে না — অন্য আইনজীবী এটি পর্যালোচনা করছেন অথবা এটি আর পর্যালোচনাধীন নেই।";
+            TempData["ErrorEn"] = "This document can't be opened — another lawyer is reviewing it or it is no longer under review.";
             return RedirectToAction(nameof(Queue));
         }
 
@@ -256,7 +312,11 @@ public class LawyerController : Controller
             CitizenNarrative = ws.CitizenNarrative,
             Citations = ws.Citations,
             VersionNo = ws.VersionNo,
-            CitizenEdited = ws.CitizenEdited
+            CitizenEdited = ws.CitizenEdited,
+            IsClaimedByMe = ws.IsClaimedByMe,
+            HeldDocumentId = ws.IsClaimedByMe
+                ? null
+                : await _reviewService.GetOtherActiveClaimAsync(lawyerProfileId, documentId)
         };
         return View(nameof(Review), vm);
     }

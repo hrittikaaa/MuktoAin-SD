@@ -1502,6 +1502,11 @@ body:has(.chat-shell) .site-footer { display: none; }
    unspaced tokens) would otherwise overflow the fixed-width paper sheet
    instead of wrapping like the rest of the pre-wrapped text. */
 .paper-sheet pre { overflow-wrap: anywhere; }
+/* Generated document rendered by DocumentText: line breaks kept, divider
+   lines drawn as full-width rules instead of overflowing text. */
+.doc-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.doc-rule { border: 0; border-top: 1.5px solid currentColor; opacity: .55; margin: 10px 0; }
+.doc-rule.double { border-top-style: double; border-top-width: 4px; }
 .compare-grid-desktop { display: none; }
 @media (min-width: 900px) {
   .compare-grid-desktop { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }

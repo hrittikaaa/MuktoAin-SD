@@ -67,7 +67,8 @@ public class UnverifiedLawyerTests
                 new Claim(ClaimTypes.NameIdentifier, "42"), new Claim(ClaimTypes.Role, "Lawyer")
             }, "test"))
         };
-        _controller = new LawyerController(reviewService, paymentService, _profileRepo.Object, userManager.Object)
+        _controller = new LawyerController(reviewService, paymentService, _profileRepo.Object, userManager.Object,
+            new NotificationService(notifications, userManager.Object, Mock.Of<ILogger<NotificationService>>()))
         {
             ControllerContext = new ControllerContext { HttpContext = http },
             TempData = new TempDataDictionary(http, Mock.Of<ITempDataProvider>())
@@ -109,6 +110,33 @@ public class UnverifiedLawyerTests
         Assert.Equal("Labour law", _me.Specialization);
         Assert.Equal(VerificationStatus.Pending, _me.VerificationStatus);
         _profileRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+    }
+
+    // #13: a resubmission is a fresh application -- the old decision goes.
+    [Fact]
+    public async Task Resubmit_ClearsThePreviousDecision()
+    {
+        _me.VerifiedAt = new DateTime(2026, 9, 1);
+        _me.VerifiedByAdminId = 1;
+
+        await _controller.Resubmit(new LawyerStatusViewModel { BarRegistrationNumber = "BAR-NEW" });
+
+        Assert.Equal(VerificationStatus.Pending, _me.VerificationStatus);
+        Assert.Null(_me.RejectionReason);
+        Assert.Null(_me.VerifiedAt);
+        Assert.Null(_me.VerifiedByAdminId);
+    }
+
+    [Fact]
+    public async Task SpecializationLongerThanTheColumn_IsRefused()
+    {
+        await _controller.Resubmit(new LawyerStatusViewModel
+        {
+            BarRegistrationNumber = "BAR-NEW", Specialization = new string('x', 201)
+        });
+
+        Assert.NotNull(_controller.TempData["ErrorEn"]);
+        AssertUnchanged();
     }
 
     private static void AssertSentToStatus(IActionResult result) =>

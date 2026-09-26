@@ -82,6 +82,12 @@ public class LawyerReviewViewModel
     public IReadOnlyList<MuktoAin.Application.DTOs.CitedSectionDto> Citations { get; set; } = Array.Empty<MuktoAin.Application.DTOs.CitedSectionDto>();
     public int VersionNo { get; set; } = 1;
     public bool CitizenEdited { get; set; }
+    // False while the lawyer is only previewing: the page is read-only until
+    // they confirm "Start reviewing", which claims the document.
+    public bool IsClaimedByMe { get; set; }
+    // Preview only: another document this lawyer is already reviewing. They
+    // must finish or release it before they can start this one (#10).
+    public int? HeldDocumentId { get; set; }
 
     [RegularExpression("^(Approved|EditedApproved|Rejected)$",
         ErrorMessage = "সিদ্ধান্ত অবশ্যই Approved, EditedApproved অথবা Rejected হতে হবে / Decision must be Approved, EditedApproved or Rejected")]
@@ -199,6 +205,8 @@ public class LawyerQueueViewModel
     public int PendingCount { get; set; }
     public string ActiveFilter { get; set; } = "All";
     public bool FieldFallback { get; set; } // "My field" had no usable specialization
+    // The document this lawyer is reviewing right now (active claim), if any.
+    public int? ActiveReviewDocumentId { get; set; }
 
     // AUD-8: pagination (mirrors LawyerHistoryViewModel)
     public int Page { get; set; } = 1;

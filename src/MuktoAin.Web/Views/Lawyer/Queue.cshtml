@@ -29,7 +29,23 @@
     </div>
 
     <!-- KPI strip -->
-    <div class="grid grid-3" style="margin-bottom: 20px">
+    <div class="grid grid-4" style="margin-bottom: 20px">
+        <!-- One review at a time: what this lawyer holds right now -->
+        <div class="card">
+            <span class="kicker"><i data-lucide="file-pen"></i> <span data-bn="চলমান পর্যালোচনা" data-en="Active review">চলমান পর্যালোচনা</span></span>
+            @if (Model.ActiveReviewDocumentId is int active)
+            {
+                <div style="font-size: 18px; font-weight: 700; margin-top: 8px">DOC-@active</div>
+                <a class="btn btn-outline btn-sm" style="margin-top: 8px" asp-action="Review" asp-route-id="@active">
+                    <i data-lucide="arrow-right"></i> <span data-bn="চালিয়ে যান" data-en="Continue">চালিয়ে যান</span>
+                </a>
+            }
+            else
+            {
+                <div style="font-size: 18px; font-weight: 700; margin-top: 8px" data-bn="কোনোটি নেই" data-en="None">কোনোটি নেই</div>
+                <p class="muted tiny" style="margin: 6px 0 0" data-bn="সারি থেকে একটি নথি নিতে পারেন।" data-en="You can take a document from the queue.">সারি থেকে একটি নথি নিতে পারেন।</p>
+            }
+        </div>
         <div class="card">
             <span class="kicker"><i data-lucide="inbox"></i> <span data-bn="অপেক্ষমাণ" data-en="Pending">অপেক্ষমাণ</span></span>
             <div style="font-size: 32px; font-weight: 700">@Model.PendingCount</div>
@@ -128,20 +144,18 @@
                             <td>
                                 @if (q.CanOpen)
                                 {
-                                    <form asp-action="Claim" asp-route-documentId="@q.DocumentId" method="post" style="display:inline">
-                                        @Html.AntiForgeryToken()
-                                        <button class="btn @(q.IsMine ? "btn-outline" : "btn-primary") btn-sm" type="submit">
-                                            <i data-lucide="eye"></i>
-                                            @if (q.IsMine)
-                                            {
-                                                <span data-bn="চালিয়ে যান" data-en="Continue">চালিয়ে যান</span>
-                                            }
-                                            else
-                                            {
-                                                <span data-bn="পর্যালোচনা" data-en="Review">পর্যালোচনা</span>
-                                            }
-                                        </button>
-                                    </form>
+                                    <!-- Opens a read-only preview; claiming is confirmed on the review page -->
+                                    <a class="btn @(q.IsMine ? "btn-outline" : "btn-primary") btn-sm" asp-action="Review" asp-route-id="@q.DocumentId">
+                                        <i data-lucide="eye"></i>
+                                        @if (q.IsMine)
+                                        {
+                                            <span data-bn="চালিয়ে যান" data-en="Continue">চালিয়ে যান</span>
+                                        }
+                                        else
+                                        {
+                                            <span data-bn="দেখুন" data-en="View">দেখুন</span>
+                                        }
+                                    </a>
                                 }
                                 else
                                 {
@@ -155,7 +169,7 @@
                     }
                 </tbody>
             </table>
-            <p class="muted tiny" style="margin: 12px 0 0" data-bn="নথি খুললেই সেটি আপনার নামে লক হয় (একসময়ে একটি পর্যালোচনা)।" data-en="Opening a document claims it for you (one active review at a time).">নথি খুললেই সেটি আপনার নামে লক হয় (একসময়ে একটি পর্যালোচনা)।</p>
+            <p class="muted tiny" style="margin: 12px 0 0" data-bn="নথি খুলে খসড়াটি আগে পড়ে নিন; &quot;পর্যালোচনা শুরু করুন&quot; নিশ্চিত করলে তবেই সেটি ২৪ ঘণ্টার জন্য আপনার নামে লক হয় (একসময়ে একটি পর্যালোচনা)। শেষ না করলে ছেড়ে দিন; সময় পেরোলে অন্য আইনজীবী নিতে পারেন।" data-en="View a document to read the draft first; it is locked to you for 24 hours only once you confirm &quot;Start reviewing&quot; (one active review at a time). If you won't finish it, release it; after 24 hours another lawyer can take it.">নথি খুলে খসড়াটি আগে পড়ে নিন; "পর্যালোচনা শুরু করুন" নিশ্চিত করলে তবেই সেটি ২৪ ঘণ্টার জন্য আপনার নামে লক হয় (একসময়ে একটি পর্যালোচনা)। শেষ না করলে ছেড়ে দিন; সময় পেরোলে অন্য আইনজীবী নিতে পারেন।</p>
             @if (totalPages > 1)
             {
                 <div class="pagination" style="margin-top: 12px">

@@ -326,6 +326,13 @@ public class CaseController : Controller
             return Forbid();
 
         doc.Status = DocumentStatus.UnderReview;
+        // The SLA wait counts from here, not from when the draft was generated (#16).
+        doc.SubmittedForReviewAt = DateTime.UtcNow;
+        // A resubmission goes back to the lawyer who rejected it (see
+        // LawyerQueueNotifier) with a fresh claim window; if they don't pick
+        // it up in time it returns to the pool (LawyerReviewService.ClaimTtl).
+        if (doc.AssignedLawyerProfileId.HasValue)
+            doc.ClaimedAt = DateTime.UtcNow;
         await _docRepo.SaveChangesAsync();
         await _caseService.TransitionStatusAsync(id, CaseStatus.UnderReview);
         await _lawyerQueueNotifier.NotifyDocumentQueuedAsync(

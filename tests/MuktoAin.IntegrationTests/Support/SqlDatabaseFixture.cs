@@ -38,6 +38,7 @@ public class SqlDatabaseFixture : IAsyncLifetime
         "18_payment_gateway.sql",
         "19_payment_gateway_routing.sql",
         "20_ai_chat_credits.sql",
+        "21_review_timing_and_snapshot.sql",
     };
     private const string FullTextScript = "03_fulltext.sql";
 

@@ -174,7 +174,7 @@
             <p class="tiny" style="margin: 0 0 10px"><b>মন্তব্য / Comments:</b> @h.Comments</p>
             <label class="form-label tiny">পর্যালোচিত দলিল / Reviewed document text</label>
             <div class="serif md-content" style="max-height: 50vh; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-btn); padding: 14px 16px; background: var(--surface-2); font-size: 15px;">
-                @MarkdownText.ToHtml(h.DocumentText)
+                @DocumentText.ToHtml(h.DocumentText)
             </div>
         </div>
     </div>
