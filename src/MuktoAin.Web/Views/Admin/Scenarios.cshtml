@@ -4,42 +4,109 @@
     ViewData["IsAdminPage"] = true;
 }
 
+@functions {
+    private static string ToBn(int number)
+    {
+        var bnDigits = new[] { '০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯' };
+        var s = number.ToString();
+        var chars = s.Select(c => (c >= '0' && c <= '9') ? bnDigits[c - '0'] : c).ToArray();
+        return new string(chars);
+    }
+}
+
 <main class="container" id="main">
     <nav class="breadcrumbs" aria-label="Breadcrumb">
-        <a asp-controller="Admin" asp-action="Dashboard">Dashboard</a>
+        <a asp-controller="Admin" asp-action="Dashboard" data-bn="ড্যাশবোর্ড" data-en="Dashboard">Dashboard</a>
         <span class="sep">/</span>
-        <span>Scenario Mappings</span>
+        <span data-bn="সিনারিও ম্যাপিং" data-en="Scenario Mappings">Scenario Mappings</span>
     </nav>
 
     <div class="page-head">
         <span class="kicker"><i data-lucide="git-merge"></i> FR-18</span>
-        <h1 class="page-title">Scenario Mappings</h1>
-        <p class="page-sub">Citizen keywords → statute sections the retrieval pipeline prioritizes. @Model.Mappings.Count mappings.</p>
+        <h1 class="page-title" data-bn="সিনারিও কি-ওয়ার্ড বুস্ট ম্যাপিং" data-en="Scenario Mappings">Scenario Mappings</h1>
+        <p class="page-sub">
+            <span data-bn="নাগরিকদের ব্যবহৃত কি-ওয়ার্ড → সংবিধিবদ্ধ ধারা যা রিট্রিভাল পাইপলাইনে অগ্রাধিকার পায়। মোট @ToBn(Model.TotalFilteredCount) টি ম্যাপিং।"
+                  data-en="Citizen keywords → statute sections the retrieval pipeline prioritizes. @Model.TotalFilteredCount mappings.">
+                Citizen keywords → statute sections the retrieval pipeline prioritizes. @Model.TotalFilteredCount mappings.
+            </span>
+        </p>
     </div>
 
+    <!-- Search Toolbar -->
+    <form method="get" asp-action="Scenarios" class="search-form" style="display: flex; gap: 8px; margin-bottom: 16px; align-items: center; flex-wrap: wrap;">
+        <input type="text" name="q" value="@Model.SearchQuery" class="input" style="max-width: 320px;" 
+               placeholder="Search keyword, act title, section..." 
+               data-bn-placeholder="কি-ওয়ার্ড, আইনের নাম বা ধারা দিয়ে খুঁজুন..." 
+               data-en-placeholder="Search keyword, act title, section..." />
+        <button type="submit" class="btn btn-outline btn-sm">
+            <i data-lucide="search"></i>
+            <span data-bn="অনুসন্ধান" data-en="Search">Search</span>
+        </button>
+        @if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
+        {
+            <a asp-action="Scenarios" class="btn btn-ghost btn-sm" style="text-decoration:none">
+                <span data-bn="রিসেট" data-en="Clear">Clear</span>
+            </a>
+        }
+    </form>
+
+    <!-- Add Mapping Form Card -->
     <div class="card" style="margin-bottom: 16px">
-        <form asp-action="AddScenario" method="post" class="row wrap" style="gap: 10px; align-items: flex-end">
+        <h3 style="font-size: 1rem; margin-bottom: 12px;">
+            <i data-lucide="plus-circle" style="width: 16px; height: 16px; vertical-align: text-bottom; display: inline;"></i>
+            <span data-bn="নতুন ম্যাপিং যুক্ত করুন" data-en="Add New Mapping">Add New Mapping</span>
+        </h3>
+        <form asp-action="AddScenario" method="post" class="row wrap" style="gap: 12px; align-items: flex-end">
             @Html.AntiForgeryToken()
             <div>
-                <label class="form-label">Keyword</label>
-                <input class="input" name="keyword" placeholder="বেতন বাকি" required />
+                <label class="form-label" data-bn="কি-ওয়ার্ড (Keyword)" data-en="Keyword">Keyword</label>
+                <input class="input" name="keyword" placeholder="বেতন বাকি" required 
+                       data-bn-placeholder="বেতন বাকি" data-en-placeholder="e.g. unpaid wages" />
             </div>
+
             <div>
-                <label class="form-label">Section ID</label>
-                <input class="input" name="sectionId" type="number" min="1" placeholder="12345" required />
+                <label class="form-label" data-bn="আইন ও ধারা (Act & Section)" data-en="Act & Section">Act & Section</label>
+                @if (Model.AvailableSections.Any())
+                {
+                    <select class="input" name="sectionId" required style="min-width: 280px; max-width: 460px;">
+                        <option value="" data-bn="-- ধারা নির্বাচন করুন --" data-en="-- Select Section --">-- Select Section --</option>
+                        @foreach (var sec in Model.AvailableSections)
+                        {
+                            <option value="@sec.SectionId">@sec.DisplayText</option>
+                        }
+                    </select>
+                }
+                else
+                {
+                    <input class="input" name="sectionId" type="number" min="1" placeholder="1" required 
+                           data-bn-placeholder="ধারা আইডি (উদাঃ ১)" data-en-placeholder="Section ID (e.g. 1)" />
+                }
             </div>
+
             <div>
-                <label class="form-label">Notes (optional)</label>
-                <input class="input" name="notes" placeholder="unpaid wages" />
+                <label class="form-label" data-bn="মন্তব্য (ঐচ্ছিক)" data-en="Notes (optional)">Notes (optional)</label>
+                <input class="input" name="notes" placeholder="unpaid wages" 
+                       data-bn-placeholder="যেমন: unpaid wages" data-en-placeholder="e.g. unpaid wages" />
             </div>
-            <button class="btn btn-primary btn-sm" type="submit"><i data-lucide="plus"></i> Add mapping</button>
+
+            <button class="btn btn-primary btn-sm" type="submit">
+                <i data-lucide="plus"></i>
+                <span data-bn="ম্যাপিং যুক্ত করুন" data-en="Add mapping">Add mapping</span>
+            </button>
         </form>
     </div>
 
+    <!-- Mappings Table -->
     <div class="card">
         <table>
             <thead>
-                <tr><th>Keyword</th><th>Act</th><th>Section</th><th>Notes</th><th></th></tr>
+                <tr>
+                    <th data-bn="কি-ওয়ার্ড" data-en="Keyword">Keyword</th>
+                    <th data-bn="আইন" data-en="Act">Act</th>
+                    <th data-bn="ধারা" data-en="Section">Section</th>
+                    <th data-bn="মন্তব্য" data-en="Notes">Notes</th>
+                    <th data-bn="পদক্ষেপ" data-en="Actions">Actions</th>
+                </tr>
             </thead>
             <tbody>
                 @foreach (var m in Model.Mappings)
@@ -47,7 +114,16 @@
                     <tr>
                         <td><b>@m.Keyword</b></td>
                         <td>@m.ActTitle</td>
-                        <td class="mono">@(string.IsNullOrEmpty(m.SectionNumber) ? "#" : "ধারা " + m.SectionNumber)</td>
+                        <td class="mono">
+                            @if (string.IsNullOrEmpty(m.SectionNumber))
+                            {
+                                <span>#</span>
+                            }
+                            else
+                            {
+                                <span data-bn="ধারা @m.SectionNumber" data-en="Section @m.SectionNumber">Section @m.SectionNumber</span>
+                            }
+                        </td>
                         <td class="muted">@m.Notes</td>
                         <td>
                             <form asp-action="DeleteScenario" method="post" style="display:inline"
@@ -62,7 +138,39 @@
                         </td>
                     </tr>
                 }
+                @if (!Model.Mappings.Any())
+                {
+                    <tr>
+                        <td colspan="5" class="muted" style="text-align:center" 
+                            data-bn="কোনো সিনারিও ম্যাপিং পাওয়া যায়নি।" data-en="No scenario mappings found.">
+                            No scenario mappings found.
+                        </td>
+                    </tr>
+                }
             </tbody>
         </table>
     </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <div class="pagination" style="display: flex; justify-content: center; gap: 8px; margin-top: 16px;">
+            @if (Model.Page > 1)
+            {
+                <a asp-action="Scenarios" asp-route-q="@Model.SearchQuery" asp-route-page="@(Model.Page - 1)" 
+                   class="btn btn-outline btn-sm" data-bn="পূর্ববর্তী" data-en="Previous">Previous</a>
+            }
+            <span class="muted" style="align-self: center; font-size: 0.9rem;">
+                <span data-bn="পৃষ্ঠা @ToBn(Model.Page) / @ToBn(Model.TotalPages) (মোট @ToBn(Model.TotalFilteredCount))"
+                      data-en="Page @Model.Page of @Model.TotalPages (Total @Model.TotalFilteredCount)">
+                    Page @Model.Page of @Model.TotalPages (Total @Model.TotalFilteredCount)
+                </span>
+            </span>
+            @if (Model.Page < Model.TotalPages)
+            {
+                <a asp-action="Scenarios" asp-route-q="@Model.SearchQuery" asp-route-page="@(Model.Page + 1)" 
+                   class="btn btn-outline btn-sm" data-bn="পরবর্তী" data-en="Next">Next</a>
+            }
+        </div>
+    }
 </main>
+
