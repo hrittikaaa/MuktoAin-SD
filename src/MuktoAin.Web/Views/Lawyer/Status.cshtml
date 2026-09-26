@@ -66,9 +66,9 @@
             <form asp-action="Resubmit" method="post" style="text-align: left; margin-top: 16px">
                 @Html.AntiForgeryToken()
                 <label class="form-label" data-bn="বার রেজিস্ট্রেশন নম্বর" data-en="Bar registration number">বার রেজিস্ট্রেশন নম্বর</label>
-                <input class="input" asp-for="BarRegistrationNumber" placeholder="DHA-12345" />
+                <input class="input" asp-for="BarRegistrationNumber" placeholder="DHA-12345" maxlength="100" required />
                 <label class="form-label" style="margin-top: 10px" data-bn="বিশেষজ্ঞ এলাকা" data-en="Specialization">বিশেষজ্ঞ এলাকা</label>
-                <input class="input" asp-for="Specialization" placeholder="Labour / Criminal / RTI / Consumer / General practice" />
+                <input class="input" asp-for="Specialization" placeholder="Labour / Criminal / RTI / Consumer / General practice" maxlength="200" />
                 <partial name="_SpecializationHint" />
                 <button class="btn btn-primary btn-block" style="margin-top: 16px" type="submit">
                     <i data-lucide="send"></i> <span data-bn="পুনরায় আবেদন করুন" data-en="Resubmit application">পুনরায় আবেদন করুন</span>

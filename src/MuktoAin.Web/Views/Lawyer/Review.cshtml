@@ -27,8 +27,29 @@
                 <span class="badge badge-review" data-bn="নাগরিক সম্পাদিত" data-en="Citizen edited">নাগরিক সম্পাদিত</span>
             }
         </p>
+        @if (!Model.IsClaimedByMe)
+        {
+            <div class="alert alert-info tiny" style="margin-top: 8px">
+                <i data-lucide="eye"></i>
+                <span data-bn="শুধু দেখার মোড — সম্পাদনা ও সিদ্ধান্ত দিতে নিচে &quot;পর্যালোচনা শুরু করুন&quot; চাপুন। নাগরিকের বিবরণ তখন দেখা যাবে।" data-en="Preview only — press &quot;Start reviewing&quot; below to edit and decide. The citizen's narrative is shown then.">শুধু দেখার মোড — সম্পাদনা ও সিদ্ধান্ত দিতে নিচে "পর্যালোচনা শুরু করুন" চাপুন। নাগরিকের বিবরণ তখন দেখা যাবে।</span>
+            </div>
+        }
+        else
+        {
+        <!-- Hand the document back to the pool without a decision (#9) -->
+        <form asp-action="Release" asp-route-documentId="@Model.DocumentId" method="post" style="margin-top: 8px">
+            @Html.AntiForgeryToken()
+            <button class="btn btn-outline btn-sm" type="submit"
+                    data-confirm="নথিটি ছেড়ে দেবেন? এটি সারিতে ফিরে যাবে এবং অন্য আইনজীবী নিতে পারবেন। এই পাতায় লেখা মন্তব্য/সম্পাদনা সংরক্ষিত হবে না। / Release this document? It goes back to the queue for any lawyer to take. Comments and edits on this page are not saved.">
+                <i data-lucide="undo-2"></i> <span data-bn="ছেড়ে দিন" data-en="Release">ছেড়ে দিন</span>
+            </button>
+            <span class="muted tiny" data-bn="নথিটি ২৪ ঘণ্টা আপনার নামে থাকে; এরপর অন্য আইনজীবী নিতে পারেন।" data-en="The document is held for you for 24 hours; after that another lawyer can take it.">নথিটি ২৪ ঘণ্টা আপনার নামে থাকে; এরপর অন্য আইনজীবী নিতে পারেন।</span>
+        </form>
+        }
     </div>
 
+    @if (Model.IsClaimedByMe)
+    {
     <!-- Case context (PII session note) -->
     <details class="acc card" open>
         <summary><b data-bn="নাগরিকের বিবরণ (এই সেশনের জন্য ডিক্রিপ্টকৃত)" data-en="Citizen narrative (decrypted for this review session)">নাগরিকের বিবরণ (এই সেশনের জন্য ডিক্রিপ্টকৃত)</b></summary>
@@ -69,7 +90,7 @@
                     <div class="compare-pane compare-original">
                         <div class="paper-sheet" style="margin: 0">
                             <div class="paper-watermark"><span data-bn="খসড়া" data-en="DRAFT">খসড়া</span></div>
-                            <div class="serif md-content" style="font-family: var(--font-doc); font-size: 15px">@MarkdownText.ToHtml(Model.ContentDraft)</div>
+                            <div class="serif md-content" style="font-family: var(--font-doc); font-size: 15px">@DocumentText.ToHtml(Model.ContentDraft)</div>
                         </div>
                     </div>
                 </div>
@@ -89,7 +110,7 @@
                     <h3 class="section-h"><i data-lucide="file-lock"></i> Original</h3>
                     <div class="paper-sheet" style="margin: 0">
                         <div class="paper-watermark"><span data-bn="খসড়া" data-en="DRAFT">খসড়া</span></div>
-                        <div class="serif md-content" style="font-family: var(--font-doc); font-size: 14px">@MarkdownText.ToHtml(Model.ContentDraft)</div>
+                        <div class="serif md-content" style="font-family: var(--font-doc); font-size: 14px">@DocumentText.ToHtml(Model.ContentDraft)</div>
                     </div>
                 </div>
                 <div class="compare-pane compare-edit">
@@ -158,4 +179,74 @@
           });
         </script>
     </form>
+    }
+    else
+    {
+        if (citations.Any())
+        {
+            <div class="card">
+                <h3 class="section-h"><i data-lucide="book-open"></i> <span data-bn="উদ্ধৃত ধারা" data-en="Cited sections">উদ্ধৃত ধারা</span></h3>
+                <div class="chip-row">
+                    @foreach (var c in citations)
+                    {
+                        <span class="citation-chip">@c.ActTitle @(string.IsNullOrWhiteSpace(c.SectionNumber) ? "" : "· ধারা " + c.SectionNumber)</span>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Read-only preview: the version a decision would be made on -->
+        <div class="card" style="margin: 16px 0">
+            <h3 class="section-h">
+                <i data-lucide="file-lock"></i>
+                @if (citizenEdited)
+                {
+                    <span data-bn="পর্যালোচনাধীন সংস্করণ (নাগরিক সম্পাদিত, শুধু পড়ার জন্য)" data-en="Version under review (citizen edited, read-only)">পর্যালোচনাধীন সংস্করণ (নাগরিক সম্পাদিত, শুধু পড়ার জন্য)</span>
+                }
+                else
+                {
+                    <span data-bn="এআই খসড়া (শুধু পড়ার জন্য)" data-en="AI draft (read-only)">এআই খসড়া (শুধু পড়ার জন্য)</span>
+                }
+            </h3>
+            <div class="paper-sheet" style="margin: 0">
+                <div class="paper-watermark"><span data-bn="খসড়া" data-en="DRAFT">খসড়া</span></div>
+                <div class="serif md-content" style="font-family: var(--font-doc); font-size: 15px">@DocumentText.ToHtml(Model.EditedContent ?? Model.ContentDraft)</div>
+            </div>
+            @if (citizenEdited)
+            {
+                <details class="acc" style="margin-top: 12px">
+                    <summary data-bn="মূল এআই খসড়া" data-en="Original AI draft">মূল এআই খসড়া</summary>
+                    <div class="paper-sheet" style="margin: 0">
+                        <div class="serif md-content" style="font-family: var(--font-doc); font-size: 14px">@DocumentText.ToHtml(Model.ContentDraft)</div>
+                    </div>
+                </details>
+            }
+        </div>
+
+        <!-- Claiming happens here, after the lawyer has read the draft -->
+        <form asp-action="Claim" asp-route-documentId="@Model.DocumentId" method="post"
+              class="sticky-action-bar row wrap" style="gap: 10px; padding: 14px 18px; align-items: center">
+            @Html.AntiForgeryToken()
+            <a class="btn btn-outline btn-sm" asp-action="Queue">
+                <i data-lucide="arrow-left"></i> <span data-bn="সারিতে ফিরুন" data-en="Back to queue">সারিতে ফিরুন</span>
+            </a>
+            @if (Model.HeldDocumentId is int held)
+            {
+                <!-- One review at a time: say so here instead of a claim that would be refused -->
+                <span class="muted tiny" data-bn="আপনি ইতিমধ্যে DOC-@held পর্যালোচনা করছেন — এটি শুরু করতে আগে সেটি শেষ করুন বা ছেড়ে দিন।" data-en="You are already reviewing DOC-@held — finish or release it before starting this one.">আপনি ইতিমধ্যে DOC-@held পর্যালোচনা করছেন — এটি শুরু করতে আগে সেটি শেষ করুন বা ছেড়ে দিন।</span>
+                <a class="btn btn-primary btn-sm" asp-action="Review" asp-route-id="@held">
+                    <i data-lucide="file-pen"></i> <span data-bn="DOC-@held-এ যান" data-en="Go to DOC-@held">DOC-@held-এ যান</span>
+                </a>
+            }
+            else
+            {
+                <button class="btn btn-primary btn-sm" type="submit"
+                        data-confirm-title="পর্যালোচনা শুরু করবেন? / Start reviewing?"
+                        data-confirm-ok="হ্যাঁ, শুরু করুন / Yes, start"
+                        data-confirm="নথিটি ২৪ ঘণ্টার জন্য আপনার নামে লক হবে — এই সময়ে অন্য কোনো আইনজীবী এটি খুলতে পারবেন না। তখন আপনি খসড়া সম্পাদনা ও সিদ্ধান্ত দিতে পারবেন এবং নাগরিকের বিবরণ দেখতে পারবেন। শেষ করতে না চাইলে &quot;ছেড়ে দিন&quot; চাপুন। একসময়ে একটি পর্যালোচনাই নেওয়া যায়। / This document will be locked to you for 24 hours — no other lawyer can open it meanwhile. You can then edit the draft, decide, and see the citizen's narrative. If you won't finish it, press &quot;Release&quot;. You can hold one review at a time.">
+                    <i data-lucide="file-pen"></i> <span data-bn="পর্যালোচনা শুরু করুন" data-en="Start reviewing">পর্যালোচনা শুরু করুন</span>
+                </button>
+            }
+        </form>
+    }
 </main>
