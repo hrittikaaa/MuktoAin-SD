@@ -111,6 +111,21 @@ public class AdminDashboardViewModel
     public List<DistrictStatViewModel> DistrictStats { get; set; } = new();
     public List<LawyerApplicationViewModel> VerificationQueue { get; set; } = new();
     public List<SystemAuditLogItemViewModel> AuditLogs { get; set; } = new();
+
+    // Analytics & Operational KPIs (FR-16)
+    public int ResolvedCasesCount { get; set; }
+    public double AvgLawyerReviewTimeHours { get; set; }
+    public int AvgRagLatencyMs { get; set; }
+
+    // Citizen Service Funnel Metrics
+    public int FunnelIntakeCount { get; set; }
+    public double FunnelIntakePct { get; set; } = 100.0;
+    public int FunnelDraftCount { get; set; }
+    public double FunnelDraftPct { get; set; }
+    public int FunnelApprovedCount { get; set; }
+    public double FunnelApprovedPct { get; set; }
+    public int FunnelFinalizedCount { get; set; }
+    public double FunnelFinalizedPct { get; set; }
 }
 
 public class SystemAuditLogItemViewModel

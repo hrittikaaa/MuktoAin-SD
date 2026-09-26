@@ -2,6 +2,16 @@
 @{
     ViewData["Title"] = "সিস্টেম অ্যানালিটিক্স ও রিপোর্ট — Admin Analytics";
     ViewData["IsAdminPage"] = true;
+
+    static string ToBn(int n) => n.ToString("N0")
+        .Select(c => char.IsDigit(c) ? (char)(c - '0' + '০') : c)
+        .Aggregate(new System.Text.StringBuilder(), (sb, c) => sb.Append(c))
+        .ToString();
+
+    static string ToBnDouble(double d, string format = "0.0") => d.ToString(format)
+        .Select(c => char.IsDigit(c) ? (char)(c - '0' + '০') : c)
+        .Aggregate(new System.Text.StringBuilder(), (sb, c) => sb.Append(c))
+        .ToString();
 }
 
 <main class="container" id="main">
@@ -23,22 +33,22 @@
     <div class="grid grid-4" style="margin-bottom: 24px;">
         <div class="card kpi">
             <span class="k-label" data-bn="সর্বমোট সমাধানকৃত মামলা" data-en="Total Resolved Cases"><i data-lucide="folder-check" aria-hidden="true"></i>সর্বমোট সমাধানকৃত মামলা</span>
-            <span class="k-num" data-bn="১,২৮৪" data-en="1,284">১,২৮৪</span>
-            <span class="k-sub" data-bn="+১৪ এই সপ্তাহে নতুন" data-en="+14 new cases this week">+১৪ এই সপ্তাহে নতুন</span>
+            <span class="k-num" data-bn="@ToBn(Model.ResolvedCasesCount)" data-en="@Model.ResolvedCasesCount.ToString("N0")">@ToBn(Model.ResolvedCasesCount)</span>
+            <span class="k-sub" data-bn="+@ToBn(Model.CasesThisWeek) এই সপ্তাহে নতুন" data-en="+@Model.CasesThisWeek new cases this week">+@ToBn(Model.CasesThisWeek) এই সপ্তাহে নতুন</span>
         </div>
         <div class="card kpi">
             <span class="k-label" data-bn="গড় আইনজীবী রিভিউ সময়" data-en="Avg Lawyer Review Time"><i data-lucide="clock" aria-hidden="true"></i>গড় আইনজীবী রিভিউ সময়</span>
-            <span class="k-num" data-bn="৩.৪ ঘণ্টা" data-en="3.4 Hours">৩.৪ ঘণ্টা</span>
+            <span class="k-num" data-bn="@ToBnDouble(Model.AvgLawyerReviewTimeHours) ঘণ্টা" data-en="@Model.AvgLawyerReviewTimeHours.ToString("0.0") Hours">@ToBnDouble(Model.AvgLawyerReviewTimeHours) ঘণ্টা</span>
             <span class="k-sub" data-bn="টার্গেট: < ৬ ঘণ্টা" data-en="Target: < 6 hours">টার্গেট: &lt; ৬ ঘণ্টা</span>
         </div>
         <div class="card kpi">
             <span class="k-label" data-bn="AI কল ভলিউম (আজ)" data-en="AI Calls Today"><i data-lucide="cpu" aria-hidden="true"></i>AI কল ভলিউম (আজ)</span>
-            <span class="k-num" data-bn="৩৪২" data-en="342">৩৪২</span>
-            <span class="k-sub" data-bn="ব্যর্থতার হার: ২.১%" data-en="Failure rate: 2.1%">ব্যর্থতার হার: ২.১%</span>
+            <span class="k-num" data-bn="@ToBn(Model.AiCallsToday)" data-en="@Model.AiCallsToday.ToString("N0")">@ToBn(Model.AiCallsToday)</span>
+            <span class="k-sub" data-bn="ব্যর্থতার হার: @ToBnDouble(Model.AiFailureRate)%" data-en="Failure rate: @Model.AiFailureRate.ToString("0.0")%">ব্যর্থতার হার: @ToBnDouble(Model.AiFailureRate)%</span>
         </div>
         <div class="card kpi">
             <span class="k-label" data-bn="গড় RAG রেসপন্স লেটেন্সি" data-en="Avg RAG Response Latency"><i data-lucide="zap" aria-hidden="true"></i>গড় RAG রেসপন্স লেটেন্সি</span>
-            <span class="k-num" data-bn="১,৮২০ ms" data-en="1,820 ms">১,৮২০ ms</span>
+            <span class="k-num" data-bn="@ToBn(Model.AvgRagLatencyMs) ms" data-en="@Model.AvgRagLatencyMs.ToString("N0") ms">@ToBn(Model.AvgRagLatencyMs) ms</span>
             <span class="k-sub" data-bn="গুগল জেমিনাই + কিউড্রান্ট" data-en="Google Gemini + Qdrant">গুগল জেমিনাই + কিউড্রান্ট</span>
         </div>
     </div>
@@ -77,30 +87,30 @@
                 <div>
                     <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
                         <span data-bn="১. আইনি সমস্যা ইনটেক ও অধিকার বিশ্লেষণ" data-en="1. Case Intake & Rights Analysis">১. আইনি সমস্যা ইনটেক ও অধিকার বিশ্লেষণ</span>
-                        <strong data-bn="১০০% (১,২৮৪টি)" data-en="100% (1,284)">১০০% (১,২৮৪টি)</strong>
+                        <strong data-bn="@ToBnDouble(Model.FunnelIntakePct)% (@ToBn(Model.FunnelIntakeCount)টি)" data-en="@Model.FunnelIntakePct.ToString("0.#")% (@Model.FunnelIntakeCount.ToString("N0"))">@ToBnDouble(Model.FunnelIntakePct)% (@ToBn(Model.FunnelIntakeCount)টি)</strong>
                     </div>
-                    <div class="bar-track"><div class="bar-fill primary" style="--w:100%"></div></div>
+                    <div class="bar-track"><div class="bar-fill primary" style="--w:@Model.FunnelIntakePct%"></div></div>
                 </div>
                 <div>
                     <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
                         <span data-bn="২. স্বয়ংক্রিয় আইনি ড্রাফট প্রস্তুত" data-en="2. Automated Legal Draft Prepared">২. স্বয়ংক্রিয় আইনি ড্রাফট প্রস্তুত</span>
-                        <strong data-bn="৯৪.২% (১,২১০টি)" data-en="94.2% (1,210)">৯৪.২% (১,২১০টি)</strong>
+                        <strong data-bn="@ToBnDouble(Model.FunnelDraftPct)% (@ToBn(Model.FunnelDraftCount)টি)" data-en="@Model.FunnelDraftPct.ToString("0.#")% (@Model.FunnelDraftCount.ToString("N0"))">@ToBnDouble(Model.FunnelDraftPct)% (@ToBn(Model.FunnelDraftCount)টি)</strong>
                     </div>
-                    <div class="bar-track"><div class="bar-fill gold" style="--w:94.2%"></div></div>
+                    <div class="bar-track"><div class="bar-fill gold" style="--w:@Model.FunnelDraftPct%"></div></div>
                 </div>
                 <div>
                     <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
                         <span data-bn="৩. আইনজীবী দ্বারা ভেরিফাইড ও অনুমোদিত" data-en="3. Advocate Verified & Approved">৩. আইনজীবী দ্বারা ভেরিফাইড ও অনুমোদিত</span>
-                        <strong data-bn="৮৯.৫% (১,১৪৯টি)" data-en="89.5% (1,149)">৮৯.৫% (১,১৪৯টি)</strong>
+                        <strong data-bn="@ToBnDouble(Model.FunnelApprovedPct)% (@ToBn(Model.FunnelApprovedCount)টি)" data-en="@Model.FunnelApprovedPct.ToString("0.#")% (@Model.FunnelApprovedCount.ToString("N0"))">@ToBnDouble(Model.FunnelApprovedPct)% (@ToBn(Model.FunnelApprovedCount)টি)</strong>
                     </div>
-                    <div class="bar-track"><div class="bar-fill green" style="--w:89.5%"></div></div>
+                    <div class="bar-track"><div class="bar-fill green" style="--w:@Model.FunnelApprovedPct%"></div></div>
                 </div>
                 <div>
                     <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
                         <span data-bn="৪. নাগরিক কর্তৃক চূড়ান্ত PDF ডাউনলোড" data-en="4. Final PDF Downloaded by Citizen">৪. নাগরিক কর্তৃক চূড়ান্ত PDF ডাউনলোড</span>
-                        <strong data-bn="৮২.১% (১,০৫৪টি)" data-en="82.1% (1,054)">৮২.১% (১,০৫৪টি)</strong>
+                        <strong data-bn="@ToBnDouble(Model.FunnelFinalizedPct)% (@ToBn(Model.FunnelFinalizedCount)টি)" data-en="@Model.FunnelFinalizedPct.ToString("0.#")% (@Model.FunnelFinalizedCount.ToString("N0"))">@ToBnDouble(Model.FunnelFinalizedPct)% (@ToBn(Model.FunnelFinalizedCount)টি)</strong>
                     </div>
-                    <div class="bar-track"><div class="bar-fill info" style="--w:82.1%"></div></div>
+                    <div class="bar-track"><div class="bar-fill info" style="--w:@Model.FunnelFinalizedPct%"></div></div>
                 </div>
             </div>
         </div>

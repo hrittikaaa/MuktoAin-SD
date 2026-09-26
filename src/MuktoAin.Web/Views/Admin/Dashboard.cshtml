@@ -180,14 +180,32 @@
                                 <td style="padding: 10px 10px; font-size: 13px; color: var(--ink-2);">@app.AppliedDate</td>
                                 <td style="padding: 10px 10px; text-align: right;">
                                     <div style="display: inline-flex; gap: 6px;">
-                                        <button class="btn btn-primary btn-sm" style="padding: 4px 8px; font-size: 12px;" title="অনুমোদন করুন">
-                                            <i data-lucide="check" style="width: 13px; height: 13px;"></i> <span data-bn="অনুমোদন" data-en="Approve">অনুমোদন</span>
-                                        </button>
-                                        <button class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 12px; color: #b91c1c;" title="বাতিল করুন">
+                                        <form asp-action="VerifyLawyer" method="post" style="display:inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="lawyerProfileId" value="@app.ApplicationId" />
+                                            <input type="hidden" name="approve" value="true" />
+                                            <input type="hidden" name="returnUrl" value="/Admin/Dashboard" />
+                                            <button class="btn btn-primary btn-sm" type="submit" style="padding: 4px 8px; font-size: 12px;"
+                                                    data-confirm="আইনজীবীর আবেদন অনুমোদন করতে চান? রিভিউ কিউ অ্যাক্সেস সক্রিয় হবে। / Approve this lawyer application?"
+                                                    data-confirm-title="আইনজীবী অনুমোদন / Approve Lawyer"
+                                                    data-confirm-ok="অনুমোদন / Approve"
+                                                    data-confirm-cancel="বাতিল / Cancel"
+                                                    title="অনুমোদন করুন">
+                                                <i data-lucide="check" style="width: 13px; height: 13px;"></i> <span data-bn="অনুমোদন" data-en="Approve">অনুমোদন</span>
+                                            </button>
+                                        </form>
+                                        <button class="btn btn-outline btn-sm" type="button" style="padding: 4px 8px; font-size: 12px; color: #b91c1c;"
+                                                data-open-modal="#reject-@app.ApplicationId" title="বাতিল করুন">
                                             <i data-lucide="x" style="width: 13px; height: 13px;"></i> <span data-bn="বাতিল" data-en="Reject">বাতিল</span>
                                         </button>
                                     </div>
                                 </td>
+                            </tr>
+                        }
+                        @if (!Model.VerificationQueue.Any())
+                        {
+                            <tr>
+                                <td colspan="4" class="muted" style="text-align: center; padding: 18px;" data-bn="কোনো অপেক্ষমান আবেদন নেই।" data-en="No pending applications.">কোনো অপেক্ষমান আবেদন নেই।</td>
                             </tr>
                         }
                     </tbody>
@@ -195,7 +213,7 @@
             </div>
             
             <div style="margin-top: 16px; text-align: right;">
-                <a asp-controller="Search" asp-action="Index" class="btn btn-outline btn-sm" style="font-size: 12.5px;">
+                <a asp-controller="Admin" asp-action="Lawyers" class="btn btn-outline btn-sm" style="font-size: 12.5px;">
                     <i data-lucide="external-link"></i> <span data-bn="সকল আইনজীবী অডিট রেকর্ড দেখুন" data-en="View All Advocate Audit Records">সকল আইনজীবী অডিট রেকর্ড দেখুন</span>
                 </a>
             </div>
@@ -218,7 +236,7 @@
                             <strong style="font-size: 15px; display: block;"><i data-lucide="users" style="width: 16px; height: 16px; display: inline; vertical-align: text-bottom;"></i> <span data-bn="ব্যবহারকারী ও রোল ব্যবস্থাপনা (FR-17)" data-en="User & Role Management (FR-17)">ব্যবহারকারী ও রোল ব্যবস্থাপনা (FR-17)</span></strong>
                             <span class="muted tiny" data-bn="নাগরিক ও আইনজীবী একাউন্ট সক্রিয়/স্থগিতকরণ ও অ্যাক্সেস নিয়ন্ত্রণ" data-en="Citizen and advocate account status and access control">নাগরিক ও আইনজীবী একাউন্ট সক্রিয়/স্থগিতকরণ ও অ্যাক্সেস নিয়ন্ত্রণ</span>
                         </div>
-                        <a asp-controller="Search" asp-action="Index" class="btn btn-outline btn-sm" data-bn="ম্যানেজ" data-en="Manage">ম্যানেজ</a>
+                        <a asp-controller="Admin" asp-action="Users" class="btn btn-outline btn-sm" data-bn="ম্যানেজ" data-en="Manage">ম্যানেজ</a>
                     </div>
 
                     <!-- 2. Legislative Corpus & Indexing -->
@@ -227,7 +245,7 @@
                             <strong style="font-size: 15px; display: block;"><i data-lucide="book-open-check" style="width: 16px; height: 16px; display: inline; vertical-align: text-bottom;"></i> <span data-bn="আইন করপাস ও ভেক্টর রি-ইনডেক্সিং (FR-18)" data-en="Corpus & Vector Re-indexing (FR-18)">আইন করপাস ও ভেক্টর রি-ইনডেক্সিং (FR-18)</span></strong>
                             <span class="muted tiny" data-bn="১,৪৮৪টি আইন, সেকশন চাঙ্ক এবং SHA256 ইন্টিগ্রিটি রি-সিঙ্ক" data-en="1,484 Acts, section chunks, and SHA256 integrity re-sync">১,৪৮৪টি আইন, সেকশন চাঙ্ক এবং SHA256 ইন্টিগ্রিটি রি-সিঙ্ক</span>
                         </div>
-                        <a asp-controller="Search" asp-action="Index" class="btn btn-outline btn-sm" data-bn="করপাস" data-en="Corpus">করপাস</a>
+                        <a asp-controller="Admin" asp-action="Corpus" class="btn btn-outline btn-sm" data-bn="করপাস" data-en="Corpus">করপাস</a>
                     </div>
 
                     <!-- 3. Scenario Mappings & Legal Boosts -->
@@ -236,7 +254,7 @@
                             <strong style="font-size: 15px; display: block;"><i data-lucide="zap" style="width: 16px; height: 16px; display: inline; vertical-align: text-bottom;"></i> <span data-bn="সিনারিও কি-ওয়ার্ড বুস্ট ম্যাপিং (FR-18)" data-en="Scenario Keyword Boosts (FR-18)">সিনারিও কি-ওয়ার্ড বুস্ট ম্যাপিং (FR-18)</span></strong>
                             <span class="muted tiny" data-bn="আইনি সমস্যার ধরন ও সেকশন র্যাংকিং বুস্টিং রুলস" data-en="Legal scenario rules and statutory ranking weights">আইনি সমস্যার ধরন ও সেকশন র্যাংকিং বুস্টিং রুলস</span>
                         </div>
-                        <a asp-controller="Category" asp-action="Index" class="btn btn-outline btn-sm" data-bn="কনফিগার" data-en="Configure">কনফিগার</a>
+                        <a asp-controller="Admin" asp-action="Scenarios" class="btn btn-outline btn-sm" data-bn="কনফিগার" data-en="Configure">কনফিগার</a>
                     </div>
 
                     <!-- 4. Deep Analytics Suite -->
@@ -303,6 +321,36 @@
         </div>
     </div>
 </main>
+
+<!-- Rejection reason modals (one per pending triage row) -->
+@foreach (var app in Model.VerificationQueue)
+{
+    <div class="modal-backdrop" id="reject-@app.ApplicationId" role="dialog" aria-modal="true">
+        <div class="modal">
+            <div class="modal-handle"></div>
+            <div class="modal-head">
+                <div>
+                    <span class="kicker" style="color: var(--danger)" data-bn="আবেদন প্রত্যাখ্যান" data-en="Reject Application">আবেদন প্রত্যাখ্যান</span>
+                    <h3>@app.ApplicantName · @app.BarRegNo</h3>
+                </div>
+                <button class="icon-btn" type="button" data-close-modal aria-label="Close"><i data-lucide="x"></i></button>
+            </div>
+            <form asp-action="VerifyLawyer" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="lawyerProfileId" value="@app.ApplicationId" />
+                <input type="hidden" name="approve" value="false" />
+                <input type="hidden" name="returnUrl" value="/Admin/Dashboard" />
+                <label class="form-label" data-bn="প্রত্যাখ্যানের কারণ (বাধ্যতামূলক — আইনজীবীকে দেখানো হবে)" data-en="Reason (mandatory — shown to the lawyer)">প্রত্যাখ্যানের কারণ (বাধ্যতামূলক — আইনজীবীকে দেখানো হবে)</label>
+                <textarea class="input" name="reason" rows="3" maxlength="500" required
+                          placeholder="e.g. Bar number not found in the Bar Council registry."></textarea>
+                <div class="row" style="justify-content: flex-end; gap: 10px; margin-top: 14px">
+                    <button class="btn btn-outline btn-sm" type="button" data-close-modal data-bn="বাতিল" data-en="Cancel">বাতিল</button>
+                    <button class="btn btn-danger-outline btn-sm" type="submit" data-bn="আবেদন প্রত্যাখ্যান করুন" data-en="Reject application">আবেদন প্রত্যাখ্যান করুন</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
 
 @section Scripts {
 <script>
