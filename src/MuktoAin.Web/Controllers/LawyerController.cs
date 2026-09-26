@@ -37,9 +37,15 @@ public class LawyerController : Controller
     {
         var idStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(idStr, out var userId)) return null;
-        var all = await _profileRepo.GetAllAsync();
-        return all.FirstOrDefault(p => p.UserId == userId);
+        return (await _profileRepo.FindAsync(p => p.UserId == userId)).FirstOrDefault();
     }
+
+    // The sign-in cookie already carries the display name (FullName claim);
+    // fall back to the user record only when it is missing.
+    private async Task<string> MyNameAsync(LawyerProfile profile) =>
+        User.FindFirst("FullName")?.Value
+        ?? (await _userManager.FindByIdAsync(profile.UserId.ToString()))?.FullName
+        ?? "";
 
     // Unverified lawyers land here instead of the queue.
     [HttpGet]
@@ -47,11 +53,9 @@ public class LawyerController : Controller
     {
         var profile = await MyProfileAsync();
         if (profile == null) return NotFound();
-        var user = await _userManager.FindByIdAsync(profile.UserId.ToString());
-
         var vm = new LawyerStatusViewModel
         {
-            LawyerName = user?.FullName ?? "",
+            LawyerName = await MyNameAsync(profile),
             BarRegistrationNumber = profile.BarRegistrationNumber,
             Specialization = profile.Specialization ?? "",
             Status = profile.VerificationStatus.ToString(),
@@ -104,7 +108,7 @@ public class LawyerController : Controller
         var totalPages = Math.Max((int)Math.Ceiling(queue.TotalCount / (double)QueuePageSize), 1);
         var vm = new LawyerQueueViewModel
         {
-            LawyerName = (await _userManager.FindByIdAsync(profile.UserId.ToString()))?.FullName ?? "",
+            LawyerName = await MyNameAsync(profile),
             BarRegistrationNumber = profile.BarRegistrationNumber,
             Specialization = profile.Specialization ?? "",
             PendingCount = queue.TotalCount, // KPI shows the full backlog, not the page
@@ -261,28 +265,20 @@ public class LawyerController : Controller
         DateTime? fromDate = fromDay.HasValue ? BdTime.DayStartUtc(fromDay.Value) : null;
         DateTime? toDate = toDay.HasValue ? BdTime.DayEndUtc(toDay.Value) : null;
 
-        var history = await _reviewService.GetHistoryAsync(profile.LawyerProfileId, decision, fromDate, toDate);
-        // Service already returns newest-first; only re-sort for the other options.
-        IEnumerable<ReviewHistoryItemDto> sorted = sort switch
-        {
-            "date_asc" => history.OrderBy(h => h.ReviewedAt),
-            "case_asc" => history.OrderBy(h => h.CaseTitle, StringComparer.OrdinalIgnoreCase),
-            _ => history
-        };
+        var history = await _reviewService.GetHistoryPageAsync(
+            profile.LawyerProfileId, decision, fromDate, toDate, sort, page, HistoryPageSize);
 
         var vm = new LawyerHistoryViewModel
         {
-            LawyerName = (await _userManager.FindByIdAsync(profile.UserId.ToString()))?.FullName ?? "",
+            LawyerName = await MyNameAsync(profile),
             BarRegistrationNumber = profile.BarRegistrationNumber,
             ActiveFilter = decision ?? "All",
             FromDate = from,
             ToDate = to,
             Sort = sort ?? "date_desc",
-            TotalCount = history.Count
-        };
-        vm.Page = Math.Max(1, Math.Min(page, Math.Max((int)Math.Ceiling(vm.TotalCount / (double)HistoryPageSize), 1)));
-        vm.Items = sorted.Skip((vm.Page - 1) * HistoryPageSize).Take(HistoryPageSize)
-            .Select(h => new LawyerHistoryItemViewModel
+            TotalCount = history.TotalCount,
+            Page = history.Page,
+            Items = history.Items.Select(h => new LawyerHistoryItemViewModel
             {
                 ReviewId = h.ReviewId,
                 DocumentId = h.DocumentId,
@@ -295,7 +291,8 @@ public class LawyerController : Controller
                 ReviewedAt = h.ReviewedAt,
                 VersionNo = h.VersionNo,
                 DocumentText = h.DocumentText
-            }).ToList();
+            }).ToList()
+        };
 
         return View(vm);
     }
@@ -311,7 +308,7 @@ public class LawyerController : Controller
         var earnings = await _paymentService.GetLawyerEarningsAsync(profile.LawyerProfileId);
         var vm = new LawyerPaymentsViewModel
         {
-            LawyerName = (await _userManager.FindByIdAsync(profile.UserId.ToString()))?.FullName ?? "",
+            LawyerName = await MyNameAsync(profile),
             BarRegistrationNumber = profile.BarRegistrationNumber,
             Balance = earnings.Balance,
             History = earnings.History.Select(h => new EarningRowViewModel

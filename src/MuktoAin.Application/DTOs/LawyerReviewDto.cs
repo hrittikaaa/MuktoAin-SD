@@ -65,3 +65,11 @@ public record ReviewHistoryItemDto(
     int VersionNo,
     string DocumentText // ContentFinal if approved, else ContentDraft (what was rejected)
 );
+
+// One page of a lawyer's review history. TotalCount is the full filtered
+// count (for the pager); Page is the requested page clamped to the range.
+public record HistoryPageDto(
+    int TotalCount,
+    int Page,
+    IReadOnlyList<ReviewHistoryItemDto> Items
+);

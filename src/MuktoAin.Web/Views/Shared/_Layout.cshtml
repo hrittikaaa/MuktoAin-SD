@@ -17,11 +17,11 @@
         {
             var lawyerRepo = Context.RequestServices
                 .GetRequiredService<MuktoAin.Domain.Interfaces.Repositories.IRepository<MuktoAin.Domain.Entities.LawyerProfile>>();
-            var profiles = await lawyerRepo.GetAllAsync();
             var uidStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (int.TryParse(uidStr, out var uid))
             {
-                var p = profiles.FirstOrDefault(x => x.UserId == uid);
+                // Only this lawyer's profile row, not the whole table, on every page render.
+                var p = (await lawyerRepo.FindAsync(x => x.UserId == uid)).FirstOrDefault();
                 isVerifiedLawyer = p?.VerificationStatus == MuktoAin.Domain.Enums.VerificationStatus.Approved;
             }
         }

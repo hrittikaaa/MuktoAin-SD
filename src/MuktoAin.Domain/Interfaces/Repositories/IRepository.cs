@@ -1,3 +1,5 @@
+using System.Linq.Expressions;
+
 namespace MuktoAin.Domain.Interfaces.Repositories;
 
 // Generic base. Entities with no custom query needs (District, CaseCategory,
@@ -13,6 +15,8 @@ public interface IRepository<T> where T : class
 {
     Task<T?> GetByIdAsync(object id);
     Task<IEnumerable<T>> GetAllAsync();
+    // Rows matching the predicate, filtered in the database (not in memory).
+    Task<IReadOnlyList<T>> FindAsync(Expression<Func<T, bool>> predicate);
     Task AddAsync(T entity);
     Task UpdateAsync(T entity);
     Task DeleteAsync(T entity);

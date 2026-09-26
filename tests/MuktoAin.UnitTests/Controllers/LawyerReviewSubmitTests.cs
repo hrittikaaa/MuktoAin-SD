@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using MuktoAin.UnitTests.TestSupport;
 using MuktoAin.Application.Services;
 using MuktoAin.Domain.Entities;
 using MuktoAin.Domain.Enums;
@@ -51,7 +52,7 @@ public class LawyerReviewSubmitTests
             LawyerProfileId = ProfileId, UserId = UserId, BarRegistrationNumber = "BAR-1001",
             VerificationStatus = VerificationStatus.Approved
         };
-        _profileRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<LawyerProfile> { profile });
+        _profileRepo.SetupRows(new List<LawyerProfile> { profile });
 
         _doc = new GeneratedDocument
         {
@@ -64,7 +65,7 @@ public class LawyerReviewSubmitTests
         _caseRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(c);
         _categoryRepo.Setup(r => r.GetByIdAsync(It.IsAny<object>())).ReturnsAsync(new CaseCategory { CategoryId = 1, Name = "Labour" });
         _districtRepo.Setup(r => r.GetByIdAsync(It.IsAny<object>())).ReturnsAsync(new District { DistrictId = 1, Name = "Dhaka" });
-        _refRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<CaseActReference>());
+        _refRepo.SetupRows(new List<CaseActReference>());
 
         var encryption = new Mock<IEncryptionService>();
         encryption.Setup(e => e.Decrypt(It.IsAny<string>())).Returns<string>(s => s);
