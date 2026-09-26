@@ -114,6 +114,35 @@ public class AdminController : Controller
     }
 
     private static int? _cachedTotalChunks;
+    private static int? _cachedDistinctChunkTexts;
+
+    private async Task<bool> SharedCollectionCoversCorpusAsync()
+    {
+        var endpoint = _configuration["Qdrant:Endpoint"];
+        var apiKey = _configuration["Qdrant:ApiKey"];
+        var collection = _configuration["Qdrant:Collection"] ?? "act_section_chunks";
+        if (string.IsNullOrWhiteSpace(endpoint) || endpoint.Contains("your-cluster-id") ||
+            string.IsNullOrWhiteSpace(apiKey) || apiKey.Contains("YOUR_QDRANT_API_KEY"))
+            return false;
+
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            var uri = new Uri(endpoint);
+            var client = new QdrantClient(uri.Host, port: uri.Port, https: uri.Scheme == "https", apiKey: apiKey);
+            var points = (long)await client.CountAsync(collection, cancellationToken: cts.Token);
+
+            _cachedDistinctChunkTexts ??= await _dbContext.ActSectionChunks
+                .AsNoTracking().Select(c => c.ChunkText).Distinct().CountAsync();
+
+            return points > 0 && points >= _cachedDistinctChunkTexts.Value;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogInformation("Qdrant point-count check failed: {Message}", ex.Message);
+            return false;
+        }
+    }
 
     /// <summary>
     /// Live endpoint for tracking Qdrant embedding and upload progress.
@@ -131,6 +160,16 @@ public class AdminController : Controller
             .AsNoTracking()
             .Where(c => c.VectorId != null)
             .CountAsync();
+
+        // The shared Qdrant collection is embedded by one teammate against their own
+        // SQL database, so this DB's VectorId column can stay NULL even though every
+        // vector already exists. Identical texts share one point (global dedupe), so
+        // the collection is complete once it holds a point per distinct chunk text.
+        if (embeddedChunks < totalChunks && await SharedCollectionCoversCorpusAsync())
+        {
+            embeddedChunks = totalChunks;
+        }
+
         var percent = totalChunks > 0 ? (double)embeddedChunks / totalChunks * 100.0 : 0;
 
         return Json(new
