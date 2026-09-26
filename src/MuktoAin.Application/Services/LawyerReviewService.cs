@@ -128,9 +128,9 @@ public class LawyerReviewService
             var claimActive = IsActiveClaim(d, cutoff);
             var isMine = lawyerProfileId.HasValue && d.AssignedLawyerProfileId == lawyerProfileId;
             string? claimedBy = null;
-            if (claimActive)
+            if (claimActive && d.AssignedLawyerProfileId is int holderId)
             {
-                var p = await _profileRepo.GetByIdAsync(d.AssignedLawyerProfileId.Value);
+                var p = await _profileRepo.GetByIdAsync(holderId);
                 claimedBy = p?.BarRegistrationNumber; // admin-safe identifier
             }
             result.Add(new QueueItemDto(
