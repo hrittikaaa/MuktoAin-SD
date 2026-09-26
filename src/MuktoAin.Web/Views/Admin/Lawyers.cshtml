@@ -31,19 +31,19 @@
     <!-- Filter Tabs / Chips -->
     <div class="chip-row" style="margin-bottom: 16px">
         <a asp-action="Lawyers" asp-route-status="all" asp-route-q="@Model.SearchQuery" 
-           class="chip chip-sm @(Model.StatusFilter == "all" ? "active" : "")" style="text-decoration:none">
+           class="chip chip-sm @(string.Equals(Model.StatusFilter, "all", StringComparison.OrdinalIgnoreCase) || string.IsNullOrEmpty(Model.StatusFilter) ? "active" : "")" style="text-decoration:none">
             <span data-bn="সকল · @ToBn(totalCount)" data-en="All · @totalCount">All · @totalCount</span>
         </a>
         <a asp-action="Lawyers" asp-route-status="pending" asp-route-q="@Model.SearchQuery" 
-           class="chip chip-sm @(Model.StatusFilter == "pending" ? "active" : "")" style="text-decoration:none">
+           class="chip chip-sm @(string.Equals(Model.StatusFilter, "pending", StringComparison.OrdinalIgnoreCase) ? "active" : "")" style="text-decoration:none">
             <span data-bn="অপেক্ষমান · @ToBn(Model.Pending.Count)" data-en="Pending · @Model.Pending.Count">Pending · @Model.Pending.Count</span>
         </a>
         <a asp-action="Lawyers" asp-route-status="approved" asp-route-q="@Model.SearchQuery" 
-           class="chip chip-sm @(Model.StatusFilter == "approved" ? "active" : "")" style="text-decoration:none">
+           class="chip chip-sm @(string.Equals(Model.StatusFilter, "approved", StringComparison.OrdinalIgnoreCase) ? "active" : "")" style="text-decoration:none">
             <span data-bn="অনুমোদিত · @ToBn(Model.Approved.Count)" data-en="Approved · @Model.Approved.Count">Approved · @Model.Approved.Count</span>
         </a>
         <a asp-action="Lawyers" asp-route-status="rejected" asp-route-q="@Model.SearchQuery" 
-           class="chip chip-sm @(Model.StatusFilter == "rejected" ? "active" : "")" style="text-decoration:none">
+           class="chip chip-sm @(string.Equals(Model.StatusFilter, "rejected", StringComparison.OrdinalIgnoreCase) ? "active" : "")" style="text-decoration:none">
             <span data-bn="বাতিলকৃত · @ToBn(Model.Rejected.Count)" data-en="Rejected · @Model.Rejected.Count">Rejected · @Model.Rejected.Count</span>
         </a>
     </div>

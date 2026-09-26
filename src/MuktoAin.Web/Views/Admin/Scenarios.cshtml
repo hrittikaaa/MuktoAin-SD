@@ -25,9 +25,9 @@
         <span class="kicker"><i data-lucide="git-merge"></i> FR-18</span>
         <h1 class="page-title" data-bn="সিনারিও কি-ওয়ার্ড বুস্ট ম্যাপিং" data-en="Scenario Mappings">Scenario Mappings</h1>
         <p class="page-sub">
-            <span data-bn="নাগরিকদের ব্যবহৃত কি-ওয়ার্ড → সংবিধিবদ্ধ ধারা যা রিট্রিভাল পাইপলাইনে অগ্রাধিকার পায়। মোট @ToBn(Model.TotalFilteredCount) টি ম্যাপিং।"
-                  data-en="Citizen keywords → statute sections the retrieval pipeline prioritizes. @Model.TotalFilteredCount mappings.">
-                Citizen keywords → statute sections the retrieval pipeline prioritizes. @Model.TotalFilteredCount mappings.
+            <span data-bn="নাগরিকদের ব্যবহৃত কি-ওয়ার্ড যা রিট্রিভাল পাইপলাইনে সংশ্লিষ্ট আইনের সাথে অগ্রাধিকার পায়। মোট @ToBn(Model.TotalFilteredCount) টি ম্যাপিং।"
+                  data-en="Citizen keywords prioritized by the retrieval pipeline for relevant acts. @Model.TotalFilteredCount mappings.">
+                Citizen keywords prioritized by the retrieval pipeline for relevant acts. @Model.TotalFilteredCount mappings.
             </span>
         </p>
     </div>
@@ -35,9 +35,9 @@
     <!-- Search Toolbar -->
     <form method="get" asp-action="Scenarios" class="search-form" style="display: flex; gap: 8px; margin-bottom: 16px; align-items: center; flex-wrap: wrap;">
         <input type="text" name="q" value="@Model.SearchQuery" class="input" style="max-width: 320px;" 
-               placeholder="Search keyword, act title, section..." 
-               data-bn-placeholder="কি-ওয়ার্ড, আইনের নাম বা ধারা দিয়ে খুঁজুন..." 
-               data-en-placeholder="Search keyword, act title, section..." />
+               placeholder="Search keyword, act title, notes..." 
+               data-bn-placeholder="কি-ওয়ার্ড, আইনের নাম বা মন্তব্য দিয়ে খুঁজুন..." 
+               data-en-placeholder="Search keyword, act title, notes..." />
         <button type="submit" class="btn btn-outline btn-sm">
             <i data-lucide="search"></i>
             <span data-bn="অনুসন্ধান" data-en="Search">Search</span>
@@ -58,32 +58,13 @@
         </h3>
         <form asp-action="AddScenario" method="post" class="row wrap" style="gap: 12px; align-items: flex-end">
             @Html.AntiForgeryToken()
-            <div>
+            <div style="flex: 1; min-width: 220px;">
                 <label class="form-label" data-bn="কি-ওয়ার্ড (Keyword)" data-en="Keyword">Keyword</label>
                 <input class="input" name="keyword" placeholder="বেতন বাকি" required 
                        data-bn-placeholder="বেতন বাকি" data-en-placeholder="e.g. unpaid wages" />
             </div>
 
-            <div>
-                <label class="form-label" data-bn="আইন ও ধারা (Act & Section)" data-en="Act & Section">Act & Section</label>
-                @if (Model.AvailableSections.Any())
-                {
-                    <select class="input" name="sectionId" required style="min-width: 280px; max-width: 460px;">
-                        <option value="" data-bn="-- ধারা নির্বাচন করুন --" data-en="-- Select Section --">-- Select Section --</option>
-                        @foreach (var sec in Model.AvailableSections)
-                        {
-                            <option value="@sec.SectionId">@sec.DisplayText</option>
-                        }
-                    </select>
-                }
-                else
-                {
-                    <input class="input" name="sectionId" type="number" min="1" placeholder="1" required 
-                           data-bn-placeholder="ধারা আইডি (উদাঃ ১)" data-en-placeholder="Section ID (e.g. 1)" />
-                }
-            </div>
-
-            <div>
+            <div style="flex: 2; min-width: 260px;">
                 <label class="form-label" data-bn="মন্তব্য (ঐচ্ছিক)" data-en="Notes (optional)">Notes (optional)</label>
                 <input class="input" name="notes" placeholder="unpaid wages" 
                        data-bn-placeholder="যেমন: unpaid wages" data-en-placeholder="e.g. unpaid wages" />
@@ -103,7 +84,6 @@
                 <tr>
                     <th data-bn="কি-ওয়ার্ড" data-en="Keyword">Keyword</th>
                     <th data-bn="আইন" data-en="Act">Act</th>
-                    <th data-bn="ধারা" data-en="Section">Section</th>
                     <th data-bn="মন্তব্য" data-en="Notes">Notes</th>
                     <th data-bn="পদক্ষেপ" data-en="Actions">Actions</th>
                 </tr>
@@ -113,17 +93,7 @@
                 {
                     <tr>
                         <td><b>@m.Keyword</b></td>
-                        <td>@m.ActTitle</td>
-                        <td class="mono">
-                            @if (string.IsNullOrEmpty(m.SectionNumber))
-                            {
-                                <span>#</span>
-                            }
-                            else
-                            {
-                                <span data-bn="ধারা @m.SectionNumber" data-en="Section @m.SectionNumber">Section @m.SectionNumber</span>
-                            }
-                        </td>
+                        <td>@(string.IsNullOrWhiteSpace(m.ActTitle) ? "—" : m.ActTitle)</td>
                         <td class="muted">@m.Notes</td>
                         <td>
                             <form asp-action="DeleteScenario" method="post" style="display:inline"
@@ -141,7 +111,7 @@
                 @if (!Model.Mappings.Any())
                 {
                     <tr>
-                        <td colspan="5" class="muted" style="text-align:center" 
+                        <td colspan="4" class="muted" style="text-align:center" 
                             data-bn="কোনো সিনারিও ম্যাপিং পাওয়া যায়নি।" data-en="No scenario mappings found.">
                             No scenario mappings found.
                         </td>

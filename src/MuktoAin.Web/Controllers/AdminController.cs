@@ -351,7 +351,7 @@ public class AdminController : Controller
         var rejectedList = rows.Where(r => r.Status == "Rejected").ToList();
 
         var filtered = rows.AsEnumerable();
-        if (!string.IsNullOrWhiteSpace(status) && status != "All")
+        if (!string.IsNullOrWhiteSpace(status) && !status.Equals("All", StringComparison.OrdinalIgnoreCase))
         {
             filtered = filtered.Where(r => r.Status.Equals(status, StringComparison.OrdinalIgnoreCase));
         }
@@ -531,26 +531,9 @@ public class AdminController : Controller
             .Take(pageSize)
             .ToList();
 
-        var availableSections = sections
-            .Select(s =>
-            {
-                actDict.TryGetValue(s.ActId, out var act);
-                var actTitle = act?.Title ?? $"Act #{s.ActId}";
-                var secNum = !string.IsNullOrWhiteSpace(s.SectionNumber) ? $"ধারা {s.SectionNumber}" : $"Section #{s.SectionId}";
-                var secTitle = !string.IsNullOrWhiteSpace(s.SectionTitle) ? $": {s.SectionTitle}" : "";
-                return new AdminSectionOptionViewModel
-                {
-                    SectionId = s.SectionId,
-                    DisplayText = $"{actTitle} — {secNum}{secTitle}"
-                };
-            })
-            .OrderBy(x => x.DisplayText)
-            .ToList();
-
         var vm = new AdminScenariosViewModel
         {
             Mappings = pagedRows,
-            AvailableSections = availableSections,
             SearchQuery = q,
             Page = page,
             PageSize = pageSize,
@@ -561,22 +544,72 @@ public class AdminController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddScenario(int sectionId, string keyword, string? notes)
+    public async Task<IActionResult> AddScenario(string keyword, string? notes, int? sectionId)
     {
-        if (string.IsNullOrWhiteSpace(keyword) || sectionId <= 0)
+        if (string.IsNullOrWhiteSpace(keyword))
         {
-            TempData["Error"] = "Keyword এবং ধারা নির্বাচন বাধ্যতামূলক। / Keyword and section are required.";
+            TempData["Error"] = "কি-ওয়ার্ড (Keyword) বাধ্যতামূলক। / Keyword is required.";
             return RedirectToAction(nameof(Scenarios));
         }
+
+        var secId = sectionId ?? 0;
+        if (secId <= 0)
+        {
+            var firstSection = (await _sectionRepo.GetAllAsync()).FirstOrDefault();
+            if (firstSection != null)
+            {
+                secId = firstSection.SectionId;
+            }
+            else
+            {
+                secId = await EnsureFallbackSectionAsync();
+            }
+        }
+
         await _scenarioRepo.AddAsync(new Domain.Entities.ScenarioMapping
         {
-            SectionId = sectionId,
+            SectionId = secId,
             ScenarioKeyword = keyword.Trim(),
             Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim()
         });
         await _scenarioRepo.SaveChangesAsync();
         TempData["Success"] = "নতুন সিনারিও ম্যাপিং যুক্ত হয়েছে। / Scenario mapping added.";
         return RedirectToAction(nameof(Scenarios));
+    }
+
+    private async Task<int> EnsureFallbackSectionAsync()
+    {
+        var existingSection = (await _sectionRepo.GetAllAsync()).FirstOrDefault();
+        if (existingSection != null) return existingSection.SectionId;
+
+        var existingAct = (await _actRepo.GetAllAsync()).FirstOrDefault();
+        if (existingAct == null)
+        {
+            existingAct = new Domain.Entities.Act
+            {
+                Title = "Laws of Bangladesh (General)",
+                ActNumber = "0",
+                Year = 2026,
+                PublicationDate = "2026",
+                Language = "en",
+                ImportedAt = DateTime.UtcNow
+            };
+            await _actRepo.AddAsync(existingAct);
+            await _actRepo.SaveChangesAsync();
+        }
+
+        var fallbackSection = new Domain.Entities.ActSection
+        {
+            ActId = existingAct.ActId,
+            SectionNumber = "General",
+            SectionTitle = "General Statutory Reference",
+            SectionText = "General statutory reference",
+            OrdinalPosition = 1
+        };
+        await _sectionRepo.AddAsync(fallbackSection);
+        await _sectionRepo.SaveChangesAsync();
+
+        return fallbackSection.SectionId;
     }
 
     [HttpPost]
