@@ -46,7 +46,7 @@ public class ConsumerComplaintTemplateTests
         Assert.Contains("TO", rendered);
         Assert.Contains("Directorate of National Consumer Rights Protection (DNCRP)", rendered);
         Assert.Contains("District Office: Rajshahi, Bangladesh", rendered);
-        Assert.Contains("Subject: Complaint Under Section 45 of the Consumer Rights Protection Act, 2009", rendered);
+        Assert.Contains("Subject: Complaint regarding defective product / service (________) against ________, Under Section 45 of the Consumer Rights Protection Act, 2009", rendered);
         Assert.Contains("FACTS OF THE COMPLAINT:", rendered);
         Assert.Contains("Purchased expired dairy products from local superstore and seller refused replacement/refund.", rendered);
         Assert.Contains("APPLICABLE LEGAL PROVISIONS:", rendered);
@@ -80,7 +80,7 @@ public class ConsumerComplaintTemplateTests
         var rendered = await _template.RenderAsync(caseEntity, explanation);
 
         Assert.Contains("District Office: ________, Bangladesh", rendered);
-        Assert.Contains("Subject: Complaint the Consumer Rights Protection Act, 2009", rendered);
+        Assert.Contains("Subject: Complaint regarding defective product / service (________) against ________, the Consumer Rights Protection Act, 2009", rendered);
         Assert.Contains("• Consumer Rights Protection Act, 2009 (Relevant anti-consumer practice provisions)", rendered);
         Assert.Contains("District: ________", rendered);
         Assert.Contains(Disclaimers.Legal, rendered);
