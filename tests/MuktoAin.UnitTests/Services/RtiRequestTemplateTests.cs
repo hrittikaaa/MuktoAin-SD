@@ -47,7 +47,7 @@ public class RtiRequestTemplateTests
         Assert.Contains("The Designated Officer / RTI Officer", rendered);
         Assert.Contains("Sylhet, Bangladesh", rendered);
         Assert.Contains("Subject: Application for Information Under Section 8 of the Right to Information Act, 2009", rendered);
-        Assert.Contains("INFORMATION REQUESTED:", rendered);
+        Assert.Contains("SPECIFIC INFORMATION SOUGHT:", rendered);
         Assert.Contains("Requesting certified expenditure statement for local road construction project (2024-2025).", rendered);
         Assert.Contains("APPLICABLE LEGAL PROVISIONS / JUSTIFICATION:", rendered);
         Assert.Contains("• Right to Information Act, 2009, Section 8:", rendered);

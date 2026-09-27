@@ -51,10 +51,14 @@ public class AiOrchestrationServiceTests
         };
 
         _logRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<AiLog>());
-        _ragContextMock.Setup(r => r.RetrieveContextAsync(@case.Description, 8))
+        // Category is unset (CategoryId 0), so the service retrieves top 5 with a null category key.
+        _ragContextMock.Setup(r => r.RetrieveContextAsync(@case.Description, 5, null))
             .ReturnsAsync(sections);
+        // The service materialises the sections into a new list, so match on contents, not reference.
         _promptAssemblerMock.Setup(p => p.AssemblePromptAsync(
-            @case.Description, sections, "en", AiRequestType.RightsExplanation, null, default))
+            @case.Description,
+            It.Is<IEnumerable<RetrievedSection>>(s => s.SequenceEqual(sections)),
+            "en", AiRequestType.RightsExplanation, null, default))
             .ReturnsAsync("Grounded prompt text");
         _aiServiceMock.Setup(a => a.GenerateContentAsync("Grounded prompt text", default))
             .ReturnsAsync("You have the right to receive wages under Section 123.");

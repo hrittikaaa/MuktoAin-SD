@@ -76,7 +76,7 @@ public class BanglaOnlyTemplateTests
         var factsHeading = docType switch
         {
             DocumentType.LabourComplaint => "মামলার ঘটনাবলি",
-            DocumentType.GeneralDiary => "ঘটনার বিবরণ",
+            DocumentType.GeneralDiary => "ঘটনার বিস্তারিত বিবরণ",
             DocumentType.RtiRequest => "প্রার্থিত তথ্য",
             DocumentType.ConsumerComplaint => "অভিযোগের ঘটনাবলি",
             _ => "ঘটনা"

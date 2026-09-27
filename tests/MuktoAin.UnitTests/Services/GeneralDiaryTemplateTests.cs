@@ -46,8 +46,8 @@ public class GeneralDiaryTemplateTests
         Assert.Contains("TO", rendered);
         Assert.Contains("The Officer-in-Charge", rendered);
         Assert.Contains("Police Station / Thana, Chattogram, Bangladesh", rendered);
-        Assert.Contains("Subject: General Diary (GD) Entry Application (Relating to Code of Criminal Procedure, 1898, Section 154)", rendered);
-        Assert.Contains("STATEMENT OF FACTS:", rendered);
+        Assert.Contains("Subject: General Diary (GD) Entry Application regarding ________ (Relating to Code of Criminal Procedure, 1898, Section 154)", rendered);
+        Assert.Contains("DETAILED STATEMENT OF FACTS:", rendered);
         Assert.Contains("Lost National ID card (NID) and received unknown threatening phone calls.", rendered);
         Assert.Contains("APPLICABLE LEGAL PROVISIONS:", rendered);
         Assert.Contains("• Code of Criminal Procedure, 1898, Section 154:", rendered);

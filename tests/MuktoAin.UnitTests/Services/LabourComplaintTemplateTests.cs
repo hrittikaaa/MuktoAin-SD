@@ -46,7 +46,7 @@ public class LabourComplaintTemplateTests
         Assert.Contains("TO", rendered);
         Assert.Contains("The Inspector General / District Labour Court", rendered);
         Assert.Contains("Dhaka, Bangladesh", rendered);
-        Assert.Contains("Subject: Complaint Under Section 33 of the Bangladesh Labour Act, 2006", rendered);
+        Assert.Contains("Subject: Complaint regarding Labour Act Violation against ________, Under Section 33 of the Bangladesh Labour Act, 2006", rendered);
         Assert.Contains("FACTS OF THE CASE:", rendered);
         Assert.Contains("Employer has not paid salary for 3 months.", rendered);
         Assert.Contains("APPLICABLE LEGAL PROVISIONS:", rendered);
@@ -78,7 +78,7 @@ public class LabourComplaintTemplateTests
         var rendered = await _template.RenderAsync(caseEntity, explanation);
 
         Assert.Contains("________, Bangladesh", rendered);
-        Assert.Contains("Subject: Complaint Under  the Bangladesh Labour Act, 2006", rendered);
+        Assert.Contains("Subject: Complaint regarding Labour Act Violation against ________, Under  the Bangladesh Labour Act, 2006", rendered);
         Assert.Contains("[No specific sections retrieved — consult a qualified advocate]", rendered);
         Assert.Contains(Disclaimers.Legal, rendered);
         Assert.Contains(Disclaimers.LegalBangla, rendered);
